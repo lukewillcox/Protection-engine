@@ -65,7 +65,11 @@ def new_lead():
             "ai_sms_content":           sms,
         })
 
-        ghl.send_sms(contact_id, sms)
+        try:
+            ghl.send_sms(contact_id, sms)
+        except Exception:
+            log.warning("SMS send failed for %s (DND or no number) — continuing", contact_id)
+
         ghl.add_note(
             contact_id,
             f"AI qualification\nScore: {q.get('readiness_score')}\n"
@@ -102,15 +106,21 @@ def handle_reply():
 
     slot = booking.parse_reply(reply_text, labels)
     if not slot:
-        ghl.send_sms(contact_id,
-                     "Sorry, I didn't catch which slot — reply 1, 2 or 3.")
+        try:
+            ghl.send_sms(contact_id,
+                         "Sorry, I didn't catch which slot — reply 1, 2 or 3.")
+        except Exception:
+            log.warning("Clarification SMS failed for %s — continuing", contact_id)
         return jsonify({"ok": True, "note": "unparsed reply"}), 200
 
     try:
         booking.book(contact_id, slot)
         _pending_offers.pop(contact_id, None)
         nice = slot.strftime("%A %-d %B at %-I:%M%p").replace("AM", "am").replace("PM", "pm")
-        ghl.send_sms(contact_id, f"Booked you in for {nice}. Speak then.")
+        try:
+            ghl.send_sms(contact_id, f"Booked you in for {nice}. Speak then.")
+        except Exception:
+            log.warning("Confirmation SMS failed for %s — booking still made", contact_id)
         ghl.add_note(contact_id, f"Appointment booked via SMS reply: {nice}")
         log.info("Booked %s for %s", contact_id, slot)
         return jsonify({"ok": True, "booked": nice})

@@ -13,12 +13,13 @@ You never use emojis."""
 def write_sms(contact: dict, q: dict) -> str:
     driver = q.get("urgency_driver")
     completion = q.get("mortgage_completion_date")
+    score = q.get("readiness_score") or 0   # None-safe
 
     if driver == "Mortgage Completion" and completion:
         tone = (f"They have a mortgage completion on {completion}. "
                 f"Reference it naturally. Convey quiet urgency "
                 f"without pressure.")
-    elif q.get("readiness_score", 0) >= 70:
+    elif score >= 70:
         tone = "Life event driven. Warm, prompt, human."
     else:
         tone = "Early research stage. Helpful, zero pressure."

@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify
 import ghl
 import booking
 from qualify import qualify
+from copilot import register_copilot_routes
 from messaging import write_sms
 from config import WEBHOOK_SECRET
 
@@ -13,6 +14,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
+register_copilot_routes(app)
 
 # Temporary in-memory store of slot offers per contact.
 # (Fine for now; a real deployment would use a database.)

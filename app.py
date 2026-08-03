@@ -2,6 +2,7 @@ import hmac
 import logging
 from datetime import datetime
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 import ghl
 import booking
@@ -14,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)
 register_copilot_routes(app)
 
 # Temporary in-memory store of slot offers per contact.

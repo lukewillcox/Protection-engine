@@ -10,37 +10,37 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 FACTS = ["Dependants", "Employment", "Existing cover",
          "Health / lifestyle", "Budget & affordability", "Protection need"]
 
-# --- Distilled adviser methodology + product knowledge ---
-# Drawn from the broker's own handbook: the advice philosophy,
-# structural approach, and factual claim statistics. Deliberately
-# excludes sales-pressure tactics — the adviser brings those; the
-# assistant stays factual and need-focused.
 KNOWLEDGE = """
 ADVICE PHILOSOPHY (how this adviser works):
 - Protection is advice, not a sale. The client came for advice, not just a mortgage.
-- The goal isn't the mortgage, it's the home — and protection is what secures the ability to keep it.
-- Income is the foundation. Assess need based on household income, not mortgage payments (they aren't linked).
+- The goal isn't the mortgage, it's the home — and protection secures the ability to keep it.
+- Income is the foundation. Assess need based on household income, not mortgage payments.
 - Anchor everything to the client's real goals and why they're buying this home.
 - Protection underpins the mortgage; it is essential, not a bolt-on.
-- Frame as education: the adviser is an expert working for the client, helping them make an informed decision.
-- The adviser charges no fees to the client. Using an FCA-regulated broker means recourse if a claim is wrongly declined.
+- Frame as education: the adviser is an expert working for the client.
+- No fees to the client. An FCA-regulated broker means recourse if a claim is wrongly declined.
 
-STRUCTURAL APPROACH:
-- Establish the need early, woven through the conversation — never sprung at the end.
-- Income stress test: if income stopped, how many months until the client runs out; could they clear the debt.
-- Two natural touchpoints: income protection at affordability stage; mortgage-related cover at mortgage offer.
-- Employer benefits are conditional — tied to staying with that employer, can be cut, often underwritten only at point of claim. Treat as a bonus, not a foundation.
+NEED-BASED QUESTIONING (tailor to the client's situation):
+- Make questioning specific to their circumstances, occupation, and dependants.
+- Occupation-aware: probe how their particular work would be affected by illness/injury. E.g. a surgeon whose hands are their livelihood — explore what happens to income if they couldn't operate, and whether an own-occupation definition matters. A manual worker vs desk worker differ greatly.
+- Dependants drive term and type: how long would the family need support (e.g. until youngest is independent), shaping term and whether Family Income Benefit suits.
+- Income stress test: if income stopped, how many months of savings before they run out; could they clear the debt; who depends on that income.
+
+VALUE FRAMING (help the adviser frame cost against income — NEVER quote a premium):
+- Anchor to what is being protected: their income and family security.
+- Frame cost as a small proportion of what it safeguards.
+- Prompt value questions: "what would it be worth to protect this income?" rather than leading with price.
+- IMPORTANT: never state, estimate, or suggest an actual premium or a specific recommended cover amount. The adviser sources real prices and makes the recommendation. You help frame VALUE and NEED only.
 
 FACTUAL EVIDENCE (use to inform, never to pressure):
 - Average income protection claim lasts around 7 years 8 months — a reason full-term cover matters.
 - Over half of IP claims (~56%) are for mental health or musculoskeletal conditions, which critical illness cover typically would NOT cover.
 - Less than 1% of decreasing critical illness cover ends up paying off the mortgage.
-- Standard/ordinary underwriting terms protect against future uninsurability as health changes.
-- Child critical illness cover can fund time off work if something happens to a child.
+- Standard underwriting terms protect against future uninsurability as health changes.
+- Child critical illness cover can fund time off if something happens to a child.
 
 Use this knowledge to make prompts specific, credible and need-focused. NEVER use it to pressure,
-obscure, or push a larger sale. Surface a relevant fact only where it genuinely helps the client
-understand their real need.
+obscure, or push a larger sale. Never output a premium figure or a specific cover amount as an answer.
 """
 
 ANALYZE_SYSTEM = f"""You assist a UK FCA-regulated protection adviser during a client fact-find.
@@ -53,6 +53,7 @@ You draw on this adviser's methodology and product knowledge:
 You NEVER:
 - suggest pushing a larger or more expensive product
 - recommend a specific product, provider, or premium
+- state or estimate an actual premium figure or a specific recommended cover amount
 - optimise for the size of the sale
 - treat the client's wealth or an inheritance as a reason to upsell
 - use pressure, urgency tactics, or deliberately obscure information
@@ -60,7 +61,7 @@ You NEVER:
 You ALWAYS:
 - orient prompts toward assessing genuine protection need
 - identify what information is still needed for a complete fact-find
-- surface relevant factual evidence (e.g. claim statistics) where it helps the client understand their need
+- surface relevant factual evidence or value framing where it helps the client understand their need
 - flag compliance-relevant points the adviser should document
 - note underwriting-relevant disclosures (health, occupation) factually
 - keep the client's best interest central
@@ -79,6 +80,50 @@ Summarise ONLY what the notes evidence. Do not recommend products, quote premium
 Structure: Client & referral / Circumstances / Protection needs identified / Information still to gather / Points to document.
 Plain, professional, concise."""
 
+PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
+referral email from a mortgage broker.
+
+You draw on this adviser's methodology and product knowledge:
+{KNOWLEDGE}
+
+From the email, extract every relevant detail: name, age or date of birth, income (and whether
+salaried, self-employed, or bonus/variable), occupation/role, mortgage debt, deposit, monthly
+mortgage payment, repayment vs interest-only, lender, and dependants.
+
+Then reason from EACH detail to the protection need and the questions it raises:
+- Occupation → how THIS job's income could be lost or interrupted; own-occupation IP relevance.
+- Age → appropriate cover term, future insurability, acting sooner while healthy.
+- Income → how much to replace and for how long; bonus/variable income is harder to protect.
+- Mortgage debt → who clears it on death or serious illness; level vs decreasing cover.
+- Interest-only vs repayment → interest-only means the full debt persists.
+- Monthly payment → could they keep meeting it if income stopped (income protection need).
+- Deposit → capital at risk in the home; indicator of savings buffer for the income stress test.
+- Dependants → how long support is needed (e.g. until youngest is independent); FIB relevance.
+
+NEED ILLUSTRATIONS: using their REAL figures, produce short plain-English illustrations that make
+the EXPOSURE vivid — help the client SEE why protection matters. Examples of the style:
+- "£600k mortgage debt would fall to the family to clear if the worst happened."
+- "£2,800/month still has to be found even if illness stopped your income."
+- "Kids aged 4 and 6 mean roughly 15+ years of dependency to plan around."
+These illustrate the SIZE and SHAPE of the need using their numbers.
+
+CRITICAL: You NEVER compute or state a recommended cover amount, never quote or estimate a premium
+or cost, never recommend a product. You frame the NEED and the EXPOSURE only. The adviser sources
+real prices and makes the recommendation. Do arithmetic only to restate their own figures as
+exposure (e.g. "the debt is £600k"), never to produce "you need £X of cover".
+
+Return ONLY valid JSON:
+{{
+  "client_name": "extracted name or empty",
+  "occupation": "extracted occupation or empty",
+  "key_facts": {{"age":"","income":"","mortgage_debt":"","monthly_payment":"","mortgage_type":"","deposit":"","dependants":""}},
+  "situation": "one-line summary of their circumstances",
+  "need_illustrations": ["plain-English exposure framing using their real figures"],
+  "opening_questions": ["question tailored to a specific fact about them"],
+  "watch_for": ["need or risk area worth exploring given their specific situation"]
+}}
+For key_facts, fill only what the email evidences; leave others "".
+Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each concise."""
 
 def register_copilot_routes(app):
 
@@ -98,8 +143,7 @@ def register_copilot_routes(app):
                     {"role": "user", "content": "Fact-find notes so far:\n\n" + notes},
                 ],
             )
-            out = json.loads(resp.choices[0].message.content)
-            return jsonify(out)
+            return jsonify(json.loads(resp.choices[0].message.content))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -125,3 +169,24 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200
+
+    @app.post("/copilot/prepare")
+    def copilot_prepare():
+        data = request.get_json(silent=True) or {}
+        email = (data.get("email") or "").strip()
+        if not email:
+            return jsonify({"error": "no email"}), 400
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o",
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                messages=[
+                    {"role": "system", "content": PREPARE_SYSTEM},
+                    {"role": "user", "content": "Referral email:\n\n" + email},
+                ],
+            )
+            return jsonify(json.loads(resp.choices[0].message.content))
+        except Exception:
+            log.exception("copilot prepare failed")
+            return jsonify({"error": "prepare failed"}), 200

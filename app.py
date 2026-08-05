@@ -3,6 +3,9 @@ import logging
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import json as _json
+import config
+from copilot import extract_lead_from_email, generate_prep
 
 import ghl
 import booking
@@ -26,6 +29,86 @@ _pending_offers = {}
 @app.get("/health")
 def health():
     return {"ok": True}
+
+@app.post("/webhook/inbound-email")
+def inbound_email():
+    if not hmac.compare_digest(
+        request.headers.get("X-Webhook-Secret", ""), WEBHOOK_SECRET or ""
+    ):
+        return jsonify({"error": "unauthorised"}), 401
+
+    data = request.get_json(silent=True) or {}
+    email_text = (data.get("body") or data.get("text")
+                  or data.get("email") or data.get("plain") or "").strip()
+    if not email_text:
+        return jsonify({"error": "no email body"}), 400
+
+    try:
+        lead = extract_lead_from_email(email_text)
+
+        if not lead.get("client_details_present"):
+            log.info("Referral email had no client details — skipping")
+            return jsonify({"ok": True, "note": "no client details"}), 200
+
+        contact_id, contact = ghl.create_contact(
+            first_name=lead.get("first_name") or None,
+            last_name=lead.get("last_name") or None,
+            phone=lead.get("phone") or None,
+            email=lead.get("email") or None,
+            source="Mortgage Broker Referral",
+        )
+
+        prep = generate_prep(email_text)
+        ghl.add_note(contact_id, "PREP_JSON:" + _json.dumps(prep))
+        ghl.add_note(
+            contact_id,
+            f"Referral from {lead.get('referred_by') or 'mortgage broker'}\n"
+            f"Occupation: {lead.get('occupation')}\n"
+            f"Summary: {lead.get('message')}"
+        )
+
+        log.info("Created lead %s from referral email, prep stored", contact_id)
+        return jsonify({"ok": True, "contact_id": contact_id})
+
+    except Exception:
+        log.exception("inbound-email processing failed")
+        return jsonify({"ok": False}), 200
+
+@app.get("/copilot/recent-referrals")
+def recent_referrals():
+    try:
+        result = ghl._request(
+            "GET",
+            f"/contacts/?locationId={config.GHL_LOCATION_ID}&limit=20&query=",
+        )
+        contacts = result.get("contacts", [])
+        out = []
+        for c in contacts:
+            src = (c.get("source") or "")
+            if "referral" in src.lower():
+                out.append({
+                    "id": c.get("id"),
+                    "name": f"{c.get('firstName','')} {c.get('lastName','')}".strip(),
+                })
+        return jsonify({"referrals": out})
+    except Exception:
+        log.exception("recent-referrals failed")
+        return jsonify({"referrals": []}), 200
+
+
+@app.get("/copilot/load/<contact_id>")
+def load_prep(contact_id):
+    try:
+        result = ghl._request("GET", f"/contacts/{contact_id}/notes")
+        notes = result.get("notes", [])
+        for n in notes:
+            body = n.get("body", "")
+            if body.startswith("PREP_JSON:"):
+                return jsonify(_json.loads(body[len("PREP_JSON:"):]))
+        return jsonify({"error": "no prep found"}), 200
+    except Exception:
+        log.exception("load prep failed")
+        return jsonify({"error": "load failed"}), 200
 
 
 @app.post("/webhook/new-lead")

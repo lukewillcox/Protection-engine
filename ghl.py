@@ -48,6 +48,25 @@ def update_contact(contact_id: str, values: dict):
     payload = {"customFields": custom_fields}
     return _request("PUT", f"/contacts/{contact_id}", json=payload)
 
+def create_contact(first_name=None, last_name=None, phone=None,
+                   email=None, source="Referral"):
+    """Create a NEW contact in GHL and return (id, contact_dict)."""
+    from config import GHL_LOCATION_ID
+
+    payload = {
+        "locationId": GHL_LOCATION_ID,
+        "firstName": first_name,
+        "lastName": last_name,
+        "phone": phone,
+        "email": email,
+        "source": source,
+    }
+    # GHL's create endpoint rejects null values — strip them
+    payload = {k: v for k, v in payload.items() if v is not None}
+
+    result = _request("POST", "/contacts/", json=payload)
+    contact = result.get("contact", result)
+    return contact.get("id"), contact
 
 def send_sms(contact_id: str, message: str):
     return _request("POST", "/conversations/messages", json={

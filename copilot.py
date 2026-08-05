@@ -125,6 +125,50 @@ Return ONLY valid JSON:
 For key_facts, fill only what the email evidences; leave others "".
 Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each concise."""
 
+LEAD_EXTRACT_SYSTEM = """You extract a structured lead from a referral email sent to a
+UK protection adviser by a mortgage broker.
+
+Pull out the CLIENT's details (not the broker's). Return ONLY valid JSON:
+{
+  "first_name": "",
+  "last_name": "",
+  "phone": "",
+  "email": "",
+  "occupation": "",
+  "referred_by": "the mortgage broker's name if present",
+  "message": "a one-paragraph plain summary of the client's situation from the email",
+  "client_details_present": true
+}
+- phone/email: the CLIENT's, if present. Empty string if not found.
+- client_details_present: false if the email doesn't contain the client's contact details.
+- Never invent details. Empty string for anything not in the email."""
+
+
+def extract_lead_from_email(email_text: str) -> dict:
+    resp = client.chat.completions.create(
+        model="gpt-4o",
+        response_format={"type": "json_object"},
+        temperature=0.2,
+        messages=[
+            {"role": "system", "content": LEAD_EXTRACT_SYSTEM},
+            {"role": "user", "content": "Referral email:\n\n" + email_text},
+        ],
+    )
+    return json.loads(resp.choices[0].message.content)
+
+
+def generate_prep(email_text: str) -> dict:
+    resp = client.chat.completions.create(
+        model="gpt-4o",
+        response_format={"type": "json_object"},
+        temperature=0.3,
+        messages=[
+            {"role": "system", "content": PREPARE_SYSTEM},
+            {"role": "user", "content": "Referral email:\n\n" + email_text},
+        ],
+    )
+    return json.loads(resp.choices[0].message.content)
+
 def register_copilot_routes(app):
 
     @app.post("/copilot/analyze")

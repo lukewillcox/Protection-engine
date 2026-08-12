@@ -3,6 +3,7 @@ import logging
 from flask import request, jsonify
 from openai import OpenAI
 from config import OPENAI_API_KEY
+from rag import retrieve
 
 log = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -42,6 +43,23 @@ FACTUAL EVIDENCE (use to inform, never to pressure):
 Use this knowledge to make prompts specific, credible and need-focused. NEVER use it to pressure,
 obscure, or push a larger sale. Never output a premium figure or a specific cover amount as an answer.
 """
+def get_relevant_knowledge(situation_text, k=5):
+    """Retrieve the most relevant knowledge chunks for a situation,
+    formatted for injection into a prompt. Fails safe: if retrieval
+    errors, returns empty string so the co-pilot still works."""
+    try:
+        hits = retrieve(situation_text, k=k)
+        if not hits:
+            return ""
+        lines = []
+        for cid, doc in hits:
+            # tag the source so the model knows where it came from
+            source = cid.split("::")[0] if "::" in cid else cid
+            lines.append(f"[{source}] {doc}")
+        return "\n\n".join(lines)
+    except Exception:
+        log.exception("knowledge retrieval failed")
+        return ""
 
 ANALYZE_SYSTEM = f"""You assist a UK FCA-regulated protection adviser during a client fact-find.
 You help them gather and assess the client's NEEDS thoroughly and document them.
@@ -70,10 +88,19 @@ Return ONLY valid JSON matching:
 {{
   "captured": {{"Dependants":"","Employment":"","Existing cover":"","Health / lifestyle":"","Budget & affordability":"","Protection need":""}},
   "prompts": ["advice-led suggestion"],
-  "flags": ["point to document"]
+  "flags": ["point to document"],
+  "relevant_facts": ["a concrete factual point from provider knowledge, with source in brackets"]
 }}
 For captured, fill only fields the notes evidence; leave others "".
-Max 3 prompts, max 3 flags, each under 30 words."""
+Max 3 prompts, max 3 flags, each under 30 words.
+
+For "relevant_facts": include 0-3 SHORT factual points drawn ONLY from the
+provider knowledge supplied in the user message (if any is provided). Each
+should be a concrete, sourced fact that helps the adviser understand the
+product landscape - e.g. "Some CIC plans cover 50+ conditions; definitions
+vary by insurer [Zurich, L&G]". Put the provider/source in brackets. NEVER
+state a premium or recommend a specific product. If no provider knowledge is
+relevant or supplied, return an empty array"""
 
 SUMMARY_SYSTEM = """You write a factual fact-find summary for a UK protection adviser's suitability record.
 Summarise ONLY what the notes evidence. Do not recommend products, quote premiums, or give advice.
@@ -178,13 +205,21 @@ def register_copilot_routes(app):
         if not notes:
             return jsonify({"error": "no notes"}), 400
         try:
+            kb = get_relevant_knowledge(notes, k=5)
+            user_content = "Fact-find notes so far:\n\n" + notes
+            if kb:
+                user_content += (
+                    "\n\n---\nRelevant factual knowledge from provider "
+                    "documents and guidance (use only if genuinely relevant; "
+                    "never quote a premium or recommend a specific product):\n\n" + kb
+                )
             resp = client.chat.completions.create(
                 model="gpt-4o",
                 response_format={"type": "json_object"},
                 temperature=0.3,
                 messages=[
                     {"role": "system", "content": ANALYZE_SYSTEM},
-                    {"role": "user", "content": "Fact-find notes so far:\n\n" + notes},
+                    {"role": "user", "content": user_content},
                 ],
             )
             return jsonify(json.loads(resp.choices[0].message.content))
@@ -221,13 +256,21 @@ def register_copilot_routes(app):
         if not email:
             return jsonify({"error": "no email"}), 400
         try:
+            kb = get_relevant_knowledge(email, k=5)
+            user_content = "Referral email:\n\n" + email
+            if kb:
+                user_content += (
+                    "\n\n---\nRelevant factual knowledge from provider "
+                    "documents (use only if genuinely relevant; never quote a "
+                    "premium or recommend a specific product):\n\n" + kb
+                )
             resp = client.chat.completions.create(
                 model="gpt-4o",
                 response_format={"type": "json_object"},
                 temperature=0.3,
                 messages=[
                     {"role": "system", "content": PREPARE_SYSTEM},
-                    {"role": "user", "content": "Referral email:\n\n" + email},
+                    {"role": "user", "content": user_content},
                 ],
             )
             return jsonify(json.loads(resp.choices[0].message.content))

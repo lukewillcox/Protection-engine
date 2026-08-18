@@ -155,6 +155,15 @@
 </style>
 </head>
 <body>
+  <div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:100;background:rgba(26,37,54,0.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:32px 34px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+      <div style="font-family:var(--serif,serif);font-size:20px;font-weight:600;margin-bottom:4px;">Fact-Find <span style="color:#1f7a70">Co-Pilot</span></div>
+      <div style="font-size:12px;color:#8794a2;margin-bottom:18px;">Enter the access password to continue.</div>
+      <input id="loginPw" type="password" placeholder="Password" style="width:100%;border:1px solid #cfd8e0;border-radius:7px;padding:10px 12px;font-size:14px;margin-bottom:12px;" onkeydown="if(event.key==='Enter')doLogin()">
+      <button onclick="doLogin()" style="width:100%;background:#1f3a52;color:#fff;border:none;border-radius:7px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;">Enter</button>
+      <div id="loginMsg" style="font-size:12px;color:#a3341f;margin-top:10px;min-height:16px;"></div>
+    </div>
+  </div>
   <header>
     <div class="back">← Back to case</div>
     <div class="hdr-spacer"></div>
@@ -221,6 +230,40 @@
 
 <script>
   const API_BASE = "https://web-production-5da6a7.up.railway.app";
+
+  // ---------- auth ----------
+  let COPILOT_TOKEN = sessionStorage.getItem('copilot_token') || '';
+
+  function showLogin(msg){
+    const ov=document.getElementById('loginOverlay');
+    if(ov){ ov.style.display='flex'; if(msg) document.getElementById('loginMsg').textContent=msg; }
+  }
+  function hideLogin(){ const ov=document.getElementById('loginOverlay'); if(ov) ov.style.display='none'; }
+
+  async function doLogin(){
+    const pw=document.getElementById('loginPw').value;
+    const msg=document.getElementById('loginMsg');
+    msg.textContent='Checking…';
+    try{
+      const res=await fetch(API_BASE+'/copilot/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+      const data=await res.json();
+      if(data.token){
+        COPILOT_TOKEN=data.token;
+        sessionStorage.setItem('copilot_token',data.token);
+        hideLogin();
+        loadReferralList();
+      } else { msg.textContent='Wrong password.'; }
+    }catch(e){ msg.textContent='Login failed — check connection.'; }
+  }
+
+  // token-aware fetch wrapper: injects X-Copilot-Token, handles 401
+  async function authFetch(url, opts){
+    opts=opts||{};
+    opts.headers=Object.assign({}, opts.headers, {'X-Copilot-Token':COPILOT_TOKEN});
+    const res=await fetch(url, opts);
+    if(res.status===401){ showLogin('Session expired — log in again.'); throw new Error('unauthorised'); }
+    return res;
+  }
 
   // ---------- state ----------
   const STEPS = [
@@ -546,7 +589,7 @@
     document.getElementById('guidePassive').style.display='none';
     status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
     try{
-      const res=await fetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({notes, step:STEPS[state.current].title})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
@@ -583,7 +626,7 @@
       total:'£'+prem.total, notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
     };
     try{
-      const res=await fetch(API_BASE+'/copilot/summary',{method:'POST',headers:{'Content-Type':'application/json'},
+      const res=await authFetch(API_BASE+'/copilot/summary',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({notes:ff.notesByStep, fact_find:ff, client_name:state.c1.name||'the client'})});
       const data=await res.json();
       alert(data.summary||'No summary returned. (The /copilot/summary backend may need updating to use fact_find.)');
@@ -596,7 +639,7 @@
     if(!sel) return;
     sel.innerHTML='<option value="">Loading…</option>';
     try{
-      const res=await fetch(API_BASE+'/copilot/recent-referrals');
+      const res=await authFetch(API_BASE+'/copilot/recent-referrals');
       const data=await res.json();
       const list=data.referrals||[];
       if(!list.length){ sel.innerHTML='<option value="">No referred clients yet</option>'; return; }
@@ -631,7 +674,7 @@
     const st=document.getElementById('referralStatus');
     if(st) st.textContent='Loading brief…';
     try{
-      const res=await fetch(API_BASE+'/copilot/load/'+id);
+      const res=await authFetch(API_BASE+'/copilot/load/'+id);
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
@@ -645,7 +688,7 @@
     if(!email){ if(st) st.textContent='Paste an email first.'; return; }
     if(st) st.textContent='Preparing…';
     try{
-      const res=await fetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const res=await authFetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
@@ -657,7 +700,8 @@
   window.prepareFromEmail=prepareFromEmail;
 
   // ---------- init ----------
-  renderRail(); renderStep(); loadReferralList();
+  renderRail(); renderStep();
+  if(COPILOT_TOKEN){ hideLogin(); loadReferralList(); } else { showLogin(); }
 </script>
 </body>
 </html>

@@ -19,6 +19,32 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+import hashlib
+from config import COPILOT_PASSWORD
+
+def _valid_token(token):
+    # token is a hash of the password; simple shared-secret scheme
+    expected = hashlib.sha256((COPILOT_PASSWORD or "").encode()).hexdigest()
+    return token == expected and bool(COPILOT_PASSWORD)
+
+@app.post("/copilot/login")
+def copilot_login():
+    data = request.get_json(silent=True) or {}
+    if data.get("password") and data["password"] == COPILOT_PASSWORD:
+        token = hashlib.sha256(COPILOT_PASSWORD.encode()).hexdigest()
+        return jsonify({"token": token})
+    return jsonify({"error": "wrong password"}), 401
+
+@app.before_request
+def _guard_copilot():
+    path = request.path
+    # only guard /copilot paths; allow the login and the page shell through
+    if path.startswith("/copilot") and path not in ("/copilot", "/copilot/login"):
+        token = request.headers.get("X-Copilot-Token", "")
+        if not _valid_token(token):
+            return jsonify({"error": "unauthorised"}), 401
+        
 register_copilot_routes(app)
 
 # Temporary in-memory store of slot offers per contact.

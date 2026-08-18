@@ -16,6 +16,9 @@ OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY")
 # --- Webhook security ---
 WEBHOOK_SECRET  = os.getenv("WEBHOOK_SECRET")
 
+# --- Copilot security ---
+COPILOT_PASSWORD = os.getenv("COPILOT_PASSWORD")
+
 # --- Broker identity (used in SMS sign-off) ---
 BROKER_NAME     = os.getenv("BROKER_NAME", "Andrew")
 BROKER_COMPANY  = os.getenv("BROKER_COMPANY", "AndrewTEST")

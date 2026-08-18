@@ -1,7 +1,7 @@
 import hmac
 import logging
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json as _json
 import config
@@ -29,6 +29,10 @@ _pending_offers = {}
 @app.get("/health")
 def health():
     return {"ok": True}
+
+@app.get("/copilot")
+def serve_copilot():
+    return send_from_directory("static", "copilot.html")
 
 @app.post("/webhook/inbound-email")
 def inbound_email():

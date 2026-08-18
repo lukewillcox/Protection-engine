@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protection Call Co-Pilot</title>
+<style>
+  :root{
+    --ink:#1a2536; --ink-soft:#5b6b7a; --paper:#f5f7f9; --panel:#ffffff;
+    --line:#e4e9ee; --line-strong:#cfd8e0;
+    --blue:#2f5fd0; --blue-soft:#eaf0fc;
+    --teal:#1f7a70; --teal-soft:#e3f1ef;
+    --green:#1f6b45; --green-soft:#e3f1ea;
+    --amber:#9a6a1a; --amber-soft:#f6edd8;
+    --red:#a3341f; --red-soft:#f7e6e1;
+    --muted:#8794a2; --radius:9px;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"SF Mono","Menlo",monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;}
+  a{color:inherit;}
+
+  header{display:flex;align-items:center;gap:16px;padding:12px 22px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;}
+  .back{font-size:13px;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .back:hover{color:var(--ink);}
+  .hdr-spacer{flex:1;}
+  .progress-count{font-size:13px;color:var(--ink-soft);}
+  .saved{font-size:13px;color:var(--green);display:flex;align-items:center;gap:5px;}
+  .postcall-btn{font-size:13px;font-weight:600;border:1px solid var(--line-strong);background:var(--panel);border-radius:7px;padding:7px 13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .postcall-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+  /* snapshot bar */
+  .snapshot{background:var(--paper);border-bottom:1px solid var(--line);padding:14px 22px;}
+  .snapshot-head{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+  .snap-tag{color:var(--blue);background:var(--blue-soft);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;font-family:var(--sans);}
+  .snap-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+  .snap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:11px 13px;}
+  .snap .k{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);}
+  .snap .v{font-size:20px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;}
+  .snap .s{font-size:11px;color:var(--muted);margin-top:1px;}
+  .snap.good .v{color:var(--green);}
+  .snap.prem .v{color:var(--blue);}
+
+  /* body layout */
+  .layout{display:grid;grid-template-columns:220px 1fr 320px;gap:0;align-items:start;}
+  .rail{padding:20px 14px;border-right:1px solid var(--line);min-height:calc(100vh - 180px);}
+  .rail h4{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin:0 0 12px 8px;}
+  .step-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--ink-soft);margin-bottom:2px;}
+  .step-link:hover{background:var(--paper);}
+  .step-link.active{background:var(--blue-soft);color:var(--blue);font-weight:600;}
+  .step-link .dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;color:var(--muted);}
+  .step-link.done .dot{background:var(--green-soft);border-color:var(--green);color:var(--green);}
+  .step-link.active .dot{border-color:var(--blue);color:var(--blue);}
+
+  .main{padding:22px;min-height:calc(100vh - 180px);}
+  .step-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;}
+  .step-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+  .step-num{font-size:12px;font-family:var(--mono);color:var(--blue);font-weight:600;letter-spacing:0.04em;}
+  .step-card h1{font-size:22px;margin:4px 0 6px;font-family:var(--serif);font-weight:600;}
+  .step-desc{color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;}
+  .complete-toggle{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft);}
+  .switch{position:relative;width:42px;height:23px;flex:none;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line-strong);border-radius:23px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;height:17px;width:17px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--green);}
+  .switch input:checked + .slider:before{transform:translateX(19px);}
+
+  label.fl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);margin-bottom:4px;font-weight:600;}
+  input.fi,select.fi,textarea.fi{width:100%;border:1px solid var(--line-strong);border-radius:7px;padding:9px 11px;font-family:var(--sans);font-size:14px;background:var(--panel);color:var(--ink);}
+  input.fi:focus,select.fi:focus,textarea.fi:focus{outline:2px solid var(--blue);outline-offset:-1px;}
+  .notes-label{font-size:13px;font-weight:600;margin:18px 0 7px;}
+  textarea.notes{width:100%;min-height:150px;border:1px solid var(--line-strong);border-radius:9px;padding:13px;font-family:var(--sans);font-size:15px;line-height:1.6;resize:vertical;}
+  textarea.notes:focus{outline:2px solid var(--blue);outline-offset:-1px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .fieldset{margin-bottom:14px;}
+
+  .miniclient{border:1px solid var(--line);border-radius:9px;padding:14px;}
+  .miniclient h3{margin:0 0 10px;font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.05em;color:var(--blue);}
+  .kv{display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px;border-bottom:1px dotted var(--line);}
+  .kv:last-child{border-bottom:none;}
+  .kv .kk{color:var(--muted);}
+  .kv .vv{font-weight:600;font-variant-numeric:tabular-nums;}
+
+  .assump{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:14px;margin-bottom:16px;}
+  .assump h4{margin:0 0 10px;font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);}
+
+  .stress{border:1px solid var(--line);border-radius:9px;padding:16px;margin-bottom:14px;}
+  .stress-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .stress-head h3{margin:0;font-size:15px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .badge.short{background:var(--red-soft);color:var(--red);}
+  .badge.ok{background:var(--green-soft);color:var(--green);}
+  .stress-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .sc{background:var(--paper);border-radius:8px;padding:11px 13px;}
+  .sc .k{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);line-height:1.3;}
+  .sc .v{font-size:17px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;}
+  .sc .s{font-size:11px;color:var(--muted);margin-top:2px;}
+  .sc.warn{background:var(--amber-soft);} .sc.warn .k{color:var(--amber);} .sc.warn .v{color:var(--amber);}
+  .sc.bad{background:var(--red-soft);} .sc.bad .k{color:var(--red);} .sc.bad .v{color:var(--red);}
+  .sc.info{background:var(--blue-soft);} .sc.info .k{color:var(--blue);} .sc.info .v{color:var(--blue);}
+  .stress-note{margin-top:12px;padding:11px 13px;border-radius:8px;font-size:13px;line-height:1.5;background:var(--red-soft);color:var(--red);}
+  .stress-note.ok{background:var(--green-soft);color:var(--green);}
+
+  .add-btn{font-size:12px;font-weight:600;color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer;}
+  .quote-block{border:1px solid var(--line);border-radius:9px;padding:14px;margin-bottom:12px;background:#fbfcfd;position:relative;}
+  .remove-btn{position:absolute;top:10px;right:12px;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;}
+  .remove-btn:hover{color:var(--red);}
+  .empty-note{color:var(--muted);font-style:italic;font-size:13px;}
+
+  .en-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .en-col h4{margin:0 0 8px;font-size:12px;font-family:var(--mono);letter-spacing:0.04em;}
+  .en-col.ess h4{color:var(--blue);} .en-col.need h4{color:var(--amber);}
+  .en-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+  .en-m{background:var(--paper);border-radius:6px;padding:8px;text-align:center;}
+  .en-m .k{font-size:9px;font-family:var(--mono);text-transform:uppercase;color:var(--muted);line-height:1.2;}
+  .en-m .v{font-size:15px;font-weight:700;margin-top:3px;}
+  .en-list{font-size:12.5px;color:var(--ink-soft);}
+  .en-list div{padding:2px 0;}
+
+  .navbtns{display:flex;justify-content:space-between;margin-top:20px;}
+  .navbtn{font-size:14px;font-weight:600;color:var(--ink-soft);background:none;border:none;cursor:pointer;padding:8px 4px;}
+  .navbtn:hover{color:var(--blue);}
+
+  /* AI guidance */
+  .guide{padding:22px 18px;position:sticky;top:180px;}
+  .guide-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .guide-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .guide-top .title{display:flex;align-items:center;gap:7px;font-weight:600;font-size:14px;}
+  .guide-top .spark{color:var(--blue);}
+  .guide-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px;}
+  .guide-status .d{width:7px;height:7px;border-radius:50%;background:var(--green);}
+  .guide-status.thinking{color:var(--amber);} .guide-status.thinking .d{background:var(--amber);}
+  .guide-section{margin-bottom:14px;}
+  .guide-section h5{font-size:10.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:0 0 7px;}
+  .g-cov{padding:9px 11px;border-left:3px solid var(--teal);background:var(--teal-soft);border-radius:0 6px 6px 0;margin-bottom:7px;font-size:13px;}
+  .g-cov .obs{font-size:11.5px;color:var(--ink-soft);margin-bottom:2px;}
+  .g-gap{padding:8px 11px;border-left:3px solid var(--amber);background:var(--amber-soft);border-radius:0 6px 6px 0;margin-bottom:6px;font-size:12.5px;}
+  .g-fact{padding:8px 11px;border-left:3px solid var(--blue);background:var(--blue-soft);border-radius:0 6px 6px 0;margin-bottom:6px;font-size:12px;}
+  .g-flag{padding:7px 11px;border-left:3px solid var(--muted);background:var(--paper);border-radius:0 6px 6px 0;margin-bottom:6px;font-size:12px;}
+  .g-empty{font-size:12px;color:var(--muted);font-style:italic;}
+  .g-passive{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+
+  @media (max-width:1100px){
+    .layout{grid-template-columns:1fr;}
+    .rail{border-right:none;border-bottom:1px solid var(--line);min-height:auto;display:flex;flex-wrap:wrap;gap:4px;}
+    .guide{position:static;}
+    .snap-cards{grid-template-columns:repeat(3,1fr);}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="back">← Back to case</div>
+    <div class="hdr-spacer"></div>
+    <div class="progress-count" id="progressCount">0/13 complete</div>
+    <div class="saved">✓ Saved</div>
+    <button class="postcall-btn" id="postcallBtn">📄 Post-call</button>
+  </header>
+
+  <!-- SNAPSHOT -->
+  <div class="snapshot">
+    <div class="snapshot-head">Financial snapshot <span class="snap-tag" id="protTag">Protection: in progress</span></div>
+    <div class="snap-cards">
+      <div class="snap"><div class="k">Household net / mo</div><div class="v" id="s_net">£0</div><div class="s" id="s_gross">gross £0/yr</div></div>
+      <div class="snap"><div class="k">Mortgage</div><div class="v" id="s_mort">£0</div><div class="s" id="s_term">— yrs</div></div>
+      <div class="snap"><div class="k">Monthly mortgage</div><div class="v" id="s_mpay">£0</div><div class="s">payment</div></div>
+      <div class="snap"><div class="k">Existing cover</div><div class="v" id="s_existing">£0</div><div class="s" id="s_expol">0 policies</div></div>
+      <div class="snap prem"><div class="k">Premium captured</div><div class="v" id="s_prem">£0</div><div class="s" id="s_ess">0 essential</div></div>
+      <div class="snap good"><div class="k">Disposable / mo</div><div class="v" id="s_disp">£0</div><div class="s">after mortgage &amp; cover</div></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- RAIL -->
+    <nav class="rail">
+      <h4>Progress</h4>
+      <div id="stepRail"></div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="step-card">
+        <div class="step-top">
+          <div>
+            <div class="step-num" id="stepNum">1 OF 13</div>
+            <h1 id="stepTitle">Introduction</h1>
+            <div class="step-desc" id="stepDesc"></div>
+          </div>
+          <div class="complete-toggle">Complete
+            <label class="switch"><input type="checkbox" id="stepComplete"><span class="slider"></span></label>
+          </div>
+        </div>
+        <div id="stepBody"></div>
+        <div class="notes-label">Live notes</div>
+        <textarea class="notes" id="stepNotes" placeholder="Type what the client tells you…"></textarea>
+        <div class="navbtns">
+          <button class="navbtn" id="prevBtn">← Previous</button>
+          <button class="navbtn" id="nextBtn">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUIDANCE -->
+    <aside class="guide">
+      <div class="guide-card">
+        <div class="guide-top">
+          <div class="title"><span class="spark">✦</span> AI Guidance</div>
+          <div class="guide-status" id="guideStatus"><span class="d"></span> ready</div>
+        </div>
+        <div class="g-passive" id="guidePassive">Passive — updates automatically as you type. No action needed.</div>
+        <div id="guideBody" style="margin-top:12px;"></div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  const API_BASE = "https://web-production-5da6a7.up.railway.app";
+
+  // ---------- state ----------
+  const STEPS = [
+    {id:'intro', title:'Introduction', desc:"What we do, how we do it, and why we're having this conversation."},
+    {id:'goals', title:'Goals & Motivations', desc:"Their why — why this property, why now, what they want to protect."},
+    {id:'factfind', title:'Confirm Factfind', desc:"Income, current address, mortgage stage, job roles, children, future plans."},
+    {id:'existing', title:'Existing Cover', desc:"What's already in place — provider, type, sum, premium."},
+    {id:'stress', title:'Income Stress Test', desc:"Earnings to retirement, gap vs mortgage, how long income lasts."},
+    {id:'stressq', title:'Stress Test Questions', desc:"Walk the client through what happens if income stops."},
+    {id:'health', title:'Eligibility & Health', desc:"Age, health, lifestyle, family history — ask and enter for underwriting."},
+    {id:'en', title:'Essential vs Needed', desc:"Split recommendations: essential (goals at risk) vs needed. % of income, price/day."},
+    {id:'ip', title:'Income Protection', desc:"Capture the IP quotes you've sourced. Mark essential or needed."},
+    {id:'fib', title:'Family Income Benefit', desc:"Capture FIB quotes. Often fits replacing income for dependants."},
+    {id:'life', title:'Life Cover', desc:"Capture life cover quotes to clear the mortgage / protect family."},
+    {id:'cic', title:'Critical Illness', desc:"Capture CIC quotes. Lump sum on diagnosis."},
+    {id:'close', title:'Close & Next Steps', desc:"Agree actions, what happens next, documentation."},
+  ];
+
+  const state = {
+    current: 0,
+    complete: {},
+    notes: {},
+    // fact-find
+    c1:{name:'',nick:'',age:'',job:'',salary:'',bonus:'',emp:'employed'},
+    c2:{name:'',nick:'',age:'',job:'',salary:'',bonus:'',emp:'employed',active:true},
+    mortgage:{purchasing:true,price:'',amount:'',deposit:'',payment:'',term:''},
+    assumptions:{retire:70,dis:4,savings:0,c1sick:0,c2sick:0},
+    existing:[], quotes:{ip:[],fib:[],life:[],cic:[]},
+  };
+
+  // ---------- tax calc ----------
+  function incomeTax(g){let pa=12570;if(g>100000)pa=Math.max(0,pa-(g-100000)/2);let t=Math.max(0,g-pa),tax=0;const b=Math.min(t,37700);tax+=b*0.2;t-=b;if(t>0){const h=Math.min(t,125140-37700);tax+=h*0.4;t-=h;}if(t>0)tax+=t*0.45;return Math.round(tax);}
+  function ni(g,self){if(self){let n=0;if(g>12570)n+=(Math.min(g,50270)-12570)*0.06;if(g>50270)n+=(g-50270)*0.02;return Math.round(n);}let n=0;if(g>12570)n+=(Math.min(g,50270)-12570)*0.08;if(g>50270)n+=(g-50270)*0.02;return Math.round(n);}
+  const num=v=>parseFloat(v)||0;
+  const gm=n=>'£'+Math.round(n).toLocaleString();
+  function grossOf(c){return num(c.salary)+num(c.bonus);}
+  function netAnnual(c){const g=grossOf(c);return g-incomeTax(g)-ni(g,c.emp==='self');}
+
+  function household(){
+    const c1n=netAnnual(state.c1);
+    const c2n=state.c2.active?netAnnual(state.c2):0;
+    const g1=grossOf(state.c1), g2=state.c2.active?grossOf(state.c2):0;
+    return {netAnnual:c1n+c2n, netMonthly:(c1n+c2n)/12, gross:g1+g2};
+  }
+  function totalPremium(){let t=0,ess=0;['ip','fib','life','cic'].forEach(k=>state.quotes[k].forEach(q=>{const p=num(q.premium);if(p>0){t+=p;if(q.priority==='essential')ess++;}}));return {total:t,ess};}
+  function existingSum(){return state.existing.reduce((a,e)=>a+num(e.sum),0);}
+
+  // ---------- snapshot ----------
+  function renderSnapshot(){
+    const h=household(), prem=totalPremium();
+    document.getElementById('s_net').textContent=gm(h.netMonthly);
+    document.getElementById('s_gross').textContent='gross '+gm(h.gross)+'/yr';
+    document.getElementById('s_mort').textContent=gm(num(state.mortgage.amount));
+    document.getElementById('s_term').textContent=(state.mortgage.term||'—')+' yrs';
+    document.getElementById('s_mpay').textContent=gm(num(state.mortgage.payment));
+    document.getElementById('s_existing').textContent=gm(existingSum());
+    document.getElementById('s_expol').textContent=state.existing.length+(state.existing.length===1?' policy':' policies');
+    document.getElementById('s_prem').textContent='£'+prem.total.toFixed(2).replace(/\.00$/,'');
+    document.getElementById('s_ess').textContent=prem.ess+' essential';
+    const disp=h.netMonthly-num(state.mortgage.payment)-prem.total;
+    document.getElementById('s_disp').textContent=gm(disp);
+  }
+
+  // ---------- rail ----------
+  function renderRail(){
+    const rail=document.getElementById('stepRail');
+    rail.innerHTML=STEPS.map((s,i)=>{
+      const done=state.complete[i], active=i===state.current;
+      return `<div class="step-link ${active?'active':''} ${done?'done':''}" data-i="${i}">
+        <span class="dot">${done?'✓':(i+1)}</span>${s.title}</div>`;
+    }).join('');
+    rail.querySelectorAll('.step-link').forEach(el=>el.addEventListener('click',()=>goto(+el.dataset.i)));
+    const n=Object.values(state.complete).filter(Boolean).length;
+    document.getElementById('progressCount').textContent=n+'/13 complete';
+  }
+
+  // ---------- step render ----------
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); }
+  function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
+
+  function renderStep(){
+    const s=STEPS[state.current];
+    document.getElementById('stepNum').textContent=(state.current+1)+' OF 13';
+    document.getElementById('stepTitle').textContent=s.title;
+    document.getElementById('stepDesc').textContent=s.desc;
+    document.getElementById('stepComplete').checked=!!state.complete[state.current];
+    document.getElementById('stepNotes').value=state.notes[state.current]||'';
+    document.getElementById('stepBody').innerHTML=bodyFor(s.id);
+    wireBody(s.id);
+    renderSnapshot();
+    // fire guidance for this step
+    requestGuidance();
+  }
+
+  function bodyFor(id){
+    if(id==='factfind') return factfindBody();
+    if(id==='stress') return stressBody();
+    if(id==='health') return healthBody();
+    if(id==='existing') return existingBody();
+    if(id==='en') return enBody();
+    if(['ip','fib','life','cic'].includes(id)) return quoteBody(id);
+    if(id==='intro'||id==='goals') return editClientsHint();
+    return '';
+  }
+
+  function editClientsHint(){
+    // On intro: referral dropdown to load a client, then editable fields
+    return `<div class="assump" style="margin-bottom:16px">
+      <h4>Load a referred client</h4>
+      <div class="row2" style="align-items:end">
+        <div class="fieldset" style="margin:0">
+          <label class="fl">Referred client</label>
+          <select class="fi" id="referralSelect" onchange="loadReferral(this.value)"><option value="">Loading…</option></select>
+        </div>
+        <div class="fieldset" style="margin:0;display:flex;gap:8px;align-items:center">
+          <button class="add-btn" onclick="loadReferralList()">↻ refresh</button>
+          <span class="empty-note" id="referralStatus" style="margin:0"></span>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label class="fl">…or paste a new referral email</label>
+        <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare"></textarea>
+        <button class="add-btn" style="margin-top:8px" onclick="prepareFromEmail()">Prepare from email</button>
+      </div>
+    </div>
+    <div class="row2">
+      ${clientEditor('c1','Client 1')}
+      ${state.c2.active?clientEditor('c2','Client 2'):`<div class="miniclient"><h3>Client 2</h3><button class="add-btn" onclick="addC2()">+ Add second client</button></div>`}
+    </div>
+    <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
+      <div class="row2">
+        <div class="fieldset"><label class="fl">Mortgage amount</label><input class="fi" id="m_amount" value="${state.mortgage.amount}" oninput="setM('amount',this.value)"></div>
+        <div class="fieldset"><label class="fl">Monthly payment</label><input class="fi" id="m_payment" value="${state.mortgage.payment}" oninput="setM('payment',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="fieldset"><label class="fl">Purchase price</label><input class="fi" value="${state.mortgage.price}" oninput="setM('price',this.value)"></div>
+        <div class="fieldset"><label class="fl">Term (years)</label><input class="fi" value="${state.mortgage.term}" oninput="setM('term',this.value)"></div>
+      </div>
+    </div>`;
+  }
+  function clientEditor(key,label){
+    const c=state[key];
+    return `<div class="miniclient"><h3>${label}</h3>
+      <div class="row2">
+        <div class="fieldset"><label class="fl">Name</label><input class="fi" value="${c.name}" oninput="setC('${key}','name',this.value)"></div>
+        <div class="fieldset"><label class="fl">Age</label><input class="fi" value="${c.age}" oninput="setC('${key}','age',this.value)"></div>
+      </div>
+      <div class="fieldset"><label class="fl">Job role</label><input class="fi" value="${c.job}" oninput="setC('${key}','job',this.value)"></div>
+      <div class="row2">
+        <div class="fieldset"><label class="fl">Salary</label><input class="fi" value="${c.salary}" oninput="setC('${key}','salary',this.value)"></div>
+        <div class="fieldset"><label class="fl">Bonus</label><input class="fi" value="${c.bonus}" oninput="setC('${key}','bonus',this.value)"></div>
+      </div>
+      <div class="fieldset"><label class="fl">Employment</label>
+        <select class="fi" onchange="setC('${key}','emp',this.value)">
+          <option value="employed" ${c.emp==='employed'?'selected':''}>Employed</option>
+          <option value="self" ${c.emp==='self'?'selected':''}>Self-employed</option>
+        </select></div>
+    </div>`;
+  }
+
+  function factfindBody(){
+    const h=household();
+    const card=(c,label)=>c.active===false?'':`<div class="miniclient"><h3>${label}</h3>
+      <div class="kv"><span class="kk">Age</span><span class="vv">${c.age||'—'}</span></div>
+      <div class="kv"><span class="kk">Role</span><span class="vv">${c.job||'—'}</span></div>
+      <div class="kv"><span class="kk">Salary</span><span class="vv">${gm(num(c.salary))}</span></div>
+      ${num(c.bonus)?`<div class="kv"><span class="kk">Bonus</span><span class="vv">${gm(num(c.bonus))}</span></div>`:''}
+    </div>`;
+    return `<div class="row4">
+      ${card(state.c1,state.c1.name||'Client 1')}
+      ${state.c2.active?card(state.c2,state.c2.name||'Client 2'):''}
+      <div class="miniclient"><h3>Household income</h3>
+        <div class="kv"><span class="kk">Gross / yr</span><span class="vv">${gm(h.gross)}</span></div>
+        <div class="kv"><span class="kk">Net / yr</span><span class="vv">${gm(h.netAnnual)}</span></div>
+        <div class="kv"><span class="kk">Net / mo</span><span class="vv">${gm(h.netMonthly)}</span></div>
+      </div>
+      <div class="miniclient"><h3>Property &amp; mortgage</h3>
+        <div class="kv"><span class="kk">Price</span><span class="vv">${gm(num(state.mortgage.price))}</span></div>
+        <div class="kv"><span class="kk">Mortgage</span><span class="vv">${gm(num(state.mortgage.amount))}</span></div>
+        <div class="kv"><span class="kk">Monthly</span><span class="vv">${gm(num(state.mortgage.payment))}</span></div>
+        <div class="kv"><span class="kk">Term</span><span class="vv">${state.mortgage.term||'—'} yrs</span></div>
+      </div>
+    </div>`;
+  }
+
+  function stressBody(){
+    const a=state.assumptions;
+    return `<div class="assump"><h4>Assumptions</h4>
+      <div class="row4">
+        <div><label class="fl">Retirement age</label><input class="fi" value="${a.retire}" oninput="setA('retire',this.value)"></div>
+        <div><label class="fl">Death-in-service (× salary)</label><input class="fi" value="${a.dis}" oninput="setA('dis',this.value)"></div>
+        <div><label class="fl">Savings (months)</label><input class="fi" value="${a.savings}" oninput="setA('savings',this.value)"></div>
+        <div><label class="fl">${state.c1.name||'Client 1'} sick pay (mo)</label><input class="fi" value="${a.c1sick}" oninput="setA('c1sick',this.value)"></div>
+      </div>
+      ${state.c2.active?`<div class="row4" style="margin-top:10px"><div><label class="fl">${state.c2.name||'Client 2'} sick pay (mo)</label><input class="fi" value="${a.c2sick}" oninput="setA('c2sick',this.value)"></div></div>`:''}
+    </div>
+    <div id="stressResults">${stressResults()}</div>`;
+  }
+  function stressResults(){
+    let out='';
+    const persons=[['c1',state.c1]]; if(state.c2.active)persons.push(['c2',state.c2]);
+    persons.forEach(([key,c])=>{
+      const a=state.assumptions;
+      const netMo=netAnnual(c)/12;
+      const monthsToRetire=Math.max(0,(num(a.retire)-num(c.age)))*12;
+      const earningsToRetire=netMo*monthsToRetire;
+      const lifeInPlace=grossOf(c)*num(a.dis);
+      const mortgage=num(state.mortgage.amount);
+      const lifeGap=Math.max(0,mortgage-lifeInPlace);
+      const sick=key==='c1'?num(a.c1sick):num(a.c2sick);
+      const incomeLasts=sick+num(a.savings);
+      const short=lifeGap>0||netMo>0;
+      out+=`<div class="stress"><div class="stress-head"><h3>${c.name||(key==='c1'?'Client 1':'Client 2')}</h3>
+        <span class="badge ${lifeGap>0?'short':'ok'}">${lifeGap>0?'Shortfall — not enough':'Covered'}</span></div>
+        <div class="stress-grid">
+          <div class="sc"><div class="k">Net monthly</div><div class="v">${gm(netMo)}</div></div>
+          <div class="sc"><div class="k">Earnings to retirement</div><div class="v">${gm(earningsToRetire)}</div><div class="s">${num(c.age)} yrs to ${a.retire}</div></div>
+          <div class="sc"><div class="k">Income lasts</div><div class="v">${incomeLasts} mo</div><div class="s">${sick} sick + ${a.savings} savings</div></div>
+          <div class="sc warn"><div class="k">Life cover in place</div><div class="v">${gm(lifeInPlace)}</div><div class="s">${a.dis}× DIS</div></div>
+          <div class="sc bad"><div class="k">Life gap to clear mortgage</div><div class="v">${gm(lifeGap)}</div><div class="s">vs ${gm(mortgage)} mortgage</div></div>
+          <div class="sc info"><div class="k">Months to protect</div><div class="v">${monthsToRetire}</div><div class="s">to retirement</div></div>
+        </div>
+        <div class="stress-note ${lifeGap>0?'':'ok'}">${lifeGap>0
+          ? `The numbers show ${c.name||'this client'} <b>does not have enough</b> cover: ${gm(lifeGap)} short to clear the mortgage on death, and ${gm(netMo)}/month unprotected if unable to work. Use this to establish the need before recommending.`
+          : `Mortgage would be cleared by existing cover, but ${gm(netMo)}/month of income remains unprotected if unable to work.`}</div>
+      </div>`;
+    });
+    return out;
+  }
+
+  function healthBody(){
+    const block=(key,c)=>c.active===false?'':`<div class="miniclient" style="margin-bottom:12px"><h3>${c.name||(key==='c1'?'Client 1':'Client 2')}</h3>
+      <div class="fieldset"><label class="fl">Health history (last 5 yrs)</label><textarea class="fi" rows="2" placeholder="e.g. mild asthma, back pain 2023"></textarea></div>
+      <div class="fieldset"><label class="fl">Family history</label><textarea class="fi" rows="2" placeholder="e.g. father heart attack age 60"></textarea></div>
+      <div class="fieldset"><label class="fl">Lifestyle / hobbies (risk activities)</label><input class="fi" placeholder="e.g. rock climbing, motorcycling"></div>
+    </div>`;
+    return `<div class="row2">${block('c1',state.c1)}${state.c2.active?block('c2',state.c2):''}</div>
+      <p class="empty-note">These factors affect price and acceptance — capture live to pre-empt underwriting questions. Health notes here are for the fact-find; enter minimal detail and rely on your sourcing tool for full underwriting.</p>`;
+  }
+
+  function existingBody(){
+    const rows=state.existing.map((e,i)=>`<div class="quote-block">
+      <button class="remove-btn" onclick="delExisting(${i})">✕ remove</button>
+      <div class="row4">
+        <div><label class="fl">Whose</label><input class="fi" value="${e.who||''}" oninput="setEx(${i},'who',this.value)"></div>
+        <div><label class="fl">Type</label><input class="fi" value="${e.type||''}" oninput="setEx(${i},'type',this.value)"></div>
+        <div><label class="fl">Provider</label><input class="fi" value="${e.provider||''}" oninput="setEx(${i},'provider',this.value)"></div>
+        <div><label class="fl">Sum / benefit</label><input class="fi" value="${e.sum||''}" oninput="setEx(${i},'sum',this.value)"></div>
+      </div></div>`).join('');
+    return `<button class="add-btn" onclick="addExisting()">+ Add policy</button>
+      <div style="margin-top:12px">${rows||'<p class="empty-note">No existing cover recorded.</p>'}</div>`;
+  }
+
+  function quoteBody(kind){
+    const labels={ip:'Income Protection',fib:'Family Income Benefit',life:'Life Cover',cic:'Critical Illness'};
+    const rows=state.quotes[kind].map((q,i)=>`<div class="quote-block">
+      <button class="remove-btn" onclick="delQuote('${kind}',${i})">✕ remove</button>
+      <div class="row4">
+        <div><label class="fl">Client</label><input class="fi" value="${q.client||''}" oninput="setQ('${kind}',${i},'client',this.value)"></div>
+        <div><label class="fl">Provider</label><input class="fi" value="${q.provider||''}" oninput="setQ('${kind}',${i},'provider',this.value)"></div>
+        <div><label class="fl">Benefit / sum</label><input class="fi" value="${q.benefit||''}" oninput="setQ('${kind}',${i},'benefit',this.value)"></div>
+        <div><label class="fl">Monthly premium</label><input class="fi" value="${q.premium||''}" oninput="setQ('${kind}',${i},'premium',this.value)"></div>
+      </div>
+      <div class="row4" style="margin-top:10px">
+        <div><label class="fl">Term</label><input class="fi" value="${q.term||''}" oninput="setQ('${kind}',${i},'term',this.value)"></div>
+        <div><label class="fl">Priority</label><select class="fi" onchange="setQ('${kind}',${i},'priority',this.value)">
+          <option value="essential" ${q.priority==='essential'?'selected':''}>Essential</option>
+          <option value="needed" ${q.priority==='needed'?'selected':''}>Needed</option></select></div>
+      </div></div>`).join('');
+    return `<div style="margin-bottom:6px;font-size:12.5px;color:var(--ink-soft)">Enter quotes you've sourced in your certified tool. This tool captures and organises — it doesn't price or recommend.</div>
+      <button class="add-btn" onclick="addQuote('${kind}')">+ Add ${labels[kind]} quote</button>
+      <div style="margin-top:12px">${rows||'<p class="empty-note">No quotes added.</p>'}</div>`;
+  }
+
+  function enBody(){
+    const h=household(); const netMo=h.netMonthly;
+    let ess=0,need=0; const essList=[],needList=[];
+    ['ip','fib','life','cic'].forEach(k=>state.quotes[k].forEach(q=>{
+      const p=num(q.premium); if(p<=0)return;
+      const label=`${k.toUpperCase()}: ${q.provider||'—'} — £${p}/mo`;
+      if(q.priority==='essential'){ess+=p;essList.push(label);}else{need+=p;needList.push(label);}
+    }));
+    const metrics=(sum)=>`<div class="en-metrics">
+      <div class="en-m"><div class="k">Monthly</div><div class="v">£${sum.toFixed(0)}</div></div>
+      <div class="en-m"><div class="k">Annual</div><div class="v">£${(sum*12).toFixed(0)}</div></div>
+      <div class="en-m"><div class="k">% net income</div><div class="v">${netMo>0?((sum/netMo)*100).toFixed(1):'—'}%</div></div>
+      <div class="en-m"><div class="k">Per day</div><div class="v">£${(sum*12/365).toFixed(0)}</div></div></div>`;
+    return `<div class="en-split">
+      <div class="en-col ess"><h4>ESSENTIAL — DISCUSS FIRST</h4>${metrics(ess)}<div class="en-list">${essList.map(l=>`<div>• ${l}</div>`).join('')||'<div class="empty-note">None marked essential.</div>'}</div></div>
+      <div class="en-col need"><h4>NEEDED — DISCUSS AFTER</h4>${metrics(need)}<div class="en-list">${needList.map(l=>`<div>• ${l}</div>`).join('')||'<div class="empty-note">None marked needed.</div>'}</div></div>
+    </div>
+    <p class="empty-note">Work through Essential products first (goals at immediate risk), then Needed. Set each quote's priority in its product step — this splits the conversation automatically.</p>`;
+  }
+
+  // ---------- wiring ----------
+  function wireBody(id){ /* inputs use inline handlers */ }
+  window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();};
+  window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();};
+  window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();};
+  window.addC2=()=>{state.c2.active=true;renderStep();};
+  window.addExisting=()=>{state.existing.push({});renderStep();};
+  window.delExisting=i=>{state.existing.splice(i,1);renderStep();};
+  window.setEx=(i,f,v)=>{state.existing[i][f]=v;renderSnapshot();};
+  window.addQuote=k=>{state.quotes[k].push({priority:'essential'});renderStep();};
+  window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);renderStep();};
+  window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;renderSnapshot();};
+
+  document.getElementById('stepComplete').addEventListener('change',e=>{state.complete[state.current]=e.target.checked;renderRail();});
+  document.getElementById('prevBtn').addEventListener('click',()=>goto(state.current-1));
+  document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
+
+  // ---------- AI guidance ----------
+  let guideTimer;
+  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);});
+
+  function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
+
+  async function requestGuidance(){
+    const notes=allNotes();
+    const status=document.getElementById('guideStatus');
+    const body=document.getElementById('guideBody');
+    if(!notes.trim()){ body.innerHTML=''; document.getElementById('guidePassive').style.display='block'; return; }
+    document.getElementById('guidePassive').style.display='none';
+    status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
+    try{
+      const res=await fetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({notes, step:STEPS[state.current].title})});
+      const out=await res.json();
+      if(out.error) throw new Error(out.error);
+      renderGuide(out);
+      status.className='guide-status'; status.innerHTML='<span class="d"></span> ready';
+    }catch(e){ status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline'; console.error(e); }
+  }
+  function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function renderGuide(out){
+    let html='';
+    const cov=out.coverage_prompts||[];
+    if(cov.length){ html+=`<div class="guide-section"><h5>Coverage prompts</h5>`+cov.map(c=>{
+      if(typeof c==='string')return `<div class="g-cov">${esc(c)}</div>`;
+      return `<div class="g-cov"><div class="obs">${esc(c.observation||'')}</div>${esc(c.consider||'')}</div>`;
+    }).join('')+`</div>`; }
+    else if(out.prompts&&out.prompts.length){ html+=`<div class="guide-section"><h5>Prompts</h5>`+out.prompts.map(p=>`<div class="g-cov">${esc(p)}</div>`).join('')+`</div>`; }
+    if(out.gaps&&out.gaps.length) html+=`<div class="guide-section"><h5>Gaps</h5>`+out.gaps.map(g=>`<div class="g-gap">${esc(g)}</div>`).join('')+`</div>`;
+    if(out.relevant_facts&&out.relevant_facts.length) html+=`<div class="guide-section"><h5>Relevant facts</h5>`+out.relevant_facts.map(f=>`<div class="g-fact">${esc(f)}</div>`).join('')+`</div>`;
+    if(out.flags&&out.flags.length) html+=`<div class="guide-section"><h5>To document</h5>`+out.flags.map(f=>`<div class="g-flag">${esc(f)}</div>`).join('')+`</div>`;
+    document.getElementById('guideBody').innerHTML=html||'<div class="g-empty">No guidance for this step yet.</div>';
+  }
+
+  // ---------- post-call ----------
+  document.getElementById('postcallBtn').addEventListener('click',buildSummary);
+  async function buildSummary(){
+    saveNotes();
+    const h=household(),prem=totalPremium();
+    const ff={
+      clients:[state.c1,state.c2.active?state.c2:null].filter(Boolean).map(c=>`${c.name||'client'}, age ${c.age}, ${c.job}, ${c.emp}, salary £${c.salary}, bonus £${c.bonus}`),
+      income:`Net monthly household ≈ ${gm(h.netMonthly)}, gross ${gm(h.gross)}/yr`,
+      mortgage:`Mortgage ${gm(num(state.mortgage.amount))}, payment ${gm(num(state.mortgage.payment))}/mo, term ${state.mortgage.term} yrs`,
+      existing:state.existing.map(e=>`${e.who||''} ${e.type||''} ${e.provider||''} ${e.sum||''}`),
+      quotes:['ip','fib','life','cic'].flatMap(k=>state.quotes[k].map(q=>`${k.toUpperCase()} [${q.priority}]: ${q.provider||''} ${q.benefit||''} £${q.premium||''}/mo`)),
+      total:'£'+prem.total, notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
+    };
+    try{
+      const res=await fetch(API_BASE+'/copilot/summary',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({notes:ff.notesByStep, fact_find:ff, client_name:state.c1.name||'the client'})});
+      const data=await res.json();
+      alert(data.summary||'No summary returned. (The /copilot/summary backend may need updating to use fact_find.)');
+    }catch(e){ alert('Could not generate summary — check the backend is running.'); }
+  }
+
+  // ---------- referrals ----------
+  async function loadReferralList(){
+    const sel=document.getElementById('referralSelect');
+    if(!sel) return;
+    sel.innerHTML='<option value="">Loading…</option>';
+    try{
+      const res=await fetch(API_BASE+'/copilot/recent-referrals');
+      const data=await res.json();
+      const list=data.referrals||[];
+      if(!list.length){ sel.innerHTML='<option value="">No referred clients yet</option>'; return; }
+      const tc=s=>(s||'').replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
+      sel.innerHTML='<option value="">Select a client…</option>'+list.map(r=>`<option value="${r.id}">${tc(r.name)}</option>`).join('');
+    }catch(e){ sel.innerHTML='<option value="">Couldn\'t load</option>'; console.error(e); }
+  }
+
+  function applyPrep(prep){
+    // pre-fill whatever the prep contains; broker fills the rest
+    const tc=s=>(s||'').replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
+    if(prep.client_name){
+      const parts=tc(prep.client_name).split(' ');
+      state.c1.name=tc(prep.client_name);
+    }
+    if(prep.occupation) state.c1.job=tc(prep.occupation);
+    const kf=prep.key_facts||{};
+    if(kf.age) state.c1.age=(''+kf.age).replace(/\D/g,'')||state.c1.age;
+    if(kf.income) state.c1.salary=(''+kf.income).replace(/[^\d]/g,'')||state.c1.salary;
+    if(kf.mortgage_debt) state.mortgage.amount=(''+kf.mortgage_debt).replace(/[^\d]/g,'')||state.mortgage.amount;
+    if(kf.monthly_payment) state.mortgage.payment=(''+kf.monthly_payment).replace(/[^\d]/g,'')||state.mortgage.payment;
+    // seed the intro notes with situation + opening questions
+    let seed='';
+    if(prep.situation) seed+='SITUATION: '+prep.situation+'\n\n';
+    if(prep.opening_questions&&prep.opening_questions.length) seed+='OPENING QUESTIONS:\n'+prep.opening_questions.map(q=>'• '+q).join('\n');
+    if(seed && !(state.notes[0]||'').trim()) state.notes[0]=seed;
+    renderStep(); renderSnapshot();
+  }
+
+  async function loadReferral(id){
+    if(!id) return;
+    const st=document.getElementById('referralStatus');
+    if(st) st.textContent='Loading brief…';
+    try{
+      const res=await fetch(API_BASE+'/copilot/load/'+id);
+      const prep=await res.json();
+      if(prep.error) throw new Error(prep.error);
+      applyPrep(prep);
+      if(st) st.textContent='Loaded — fields pre-filled where known.';
+    }catch(e){ if(st) st.textContent='Couldn\'t load this client.'; console.error(e); }
+  }
+
+  async function prepareFromEmail(){
+    const email=(document.getElementById('pasteEmail')?.value||'').trim();
+    const st=document.getElementById('referralStatus');
+    if(!email){ if(st) st.textContent='Paste an email first.'; return; }
+    if(st) st.textContent='Preparing…';
+    try{
+      const res=await fetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const prep=await res.json();
+      if(prep.error) throw new Error(prep.error);
+      applyPrep(prep);
+      if(st) st.textContent='Prepared — fields pre-filled where known.';
+    }catch(e){ if(st) st.textContent='Couldn\'t prepare — check connection.'; console.error(e); }
+  }
+  window.loadReferralList=loadReferralList;
+  window.loadReferral=loadReferral;
+  window.prepareFromEmail=prepareFromEmail;
+
+  // ---------- init ----------
+  renderRail(); renderStep(); loadReferralList();
+</script>
+</body>
+</html>

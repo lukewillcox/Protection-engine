@@ -2,6 +2,7 @@ import json
 from datetime import date
 from openai import OpenAI
 from config import OPENAI_API_KEY
+from llm import claude_json, MODEL_QUALIFY
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -46,13 +47,4 @@ Rules:
     40-69   general review, no deadline
     0-39    early research, no stated need
 """
-    resp = client.chat.completions.create(
-        model="gpt-4o",
-        response_format={"type": "json_object"},
-        temperature=0.2,
-        messages=[
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return json.loads(resp.choices[0].message.content)
+    return claude_json(SYSTEM, prompt, MODEL_QUALIFY)

@@ -4,6 +4,7 @@ from flask import request, jsonify
 from openai import OpenAI
 from config import OPENAI_API_KEY
 from rag import retrieve
+from llm import claude_json, claude_text, MODEL_ANALYZE, MODEL_PREPARE, MODEL_SUMMARY
 
 log = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -172,29 +173,11 @@ Pull out the CLIENT's details (not the broker's). Return ONLY valid JSON:
 
 
 def extract_lead_from_email(email_text: str) -> dict:
-    resp = client.chat.completions.create(
-        model="gpt-4o",
-        response_format={"type": "json_object"},
-        temperature=0.2,
-        messages=[
-            {"role": "system", "content": LEAD_EXTRACT_SYSTEM},
-            {"role": "user", "content": "Referral email:\n\n" + email_text},
-        ],
-    )
-    return json.loads(resp.choices[0].message.content)
+    return claude_json(LEAD_EXTRACT_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE)
 
 
 def generate_prep(email_text: str) -> dict:
-    resp = client.chat.completions.create(
-        model="gpt-4o",
-        response_format={"type": "json_object"},
-        temperature=0.3,
-        messages=[
-            {"role": "system", "content": PREPARE_SYSTEM},
-            {"role": "user", "content": "Referral email:\n\n" + email_text},
-        ],
-    )
-    return json.loads(resp.choices[0].message.content)
+    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE)
 
 def register_copilot_routes(app):
 
@@ -221,16 +204,7 @@ def register_copilot_routes(app):
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            resp = client.chat.completions.create(
-                model="gpt-4o",
-                response_format={"type": "json_object"},
-                temperature=0.3,
-                messages=[
-                    {"role": "system", "content": ANALYZE_SYSTEM},
-                    {"role": "user", "content": user_content},
-                ],
-            )
-            return jsonify(json.loads(resp.choices[0].message.content))
+            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -266,15 +240,7 @@ def register_copilot_routes(app):
             elif notes:
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
-            resp = client.chat.completions.create(
-                model="gpt-4o",
-                temperature=0.3,
-                messages=[
-                    {"role": "system", "content": SUMMARY_SYSTEM},
-                    {"role": "user", "content": user_content},
-                ],
-            )
-            return jsonify({"summary": resp.choices[0].message.content.strip()})
+            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY).strip()})
         except Exception:
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200
@@ -294,16 +260,7 @@ def register_copilot_routes(app):
                     "documents (use only if genuinely relevant; never quote a "
                     "premium or recommend a specific product):\n\n" + kb
                 )
-            resp = client.chat.completions.create(
-                model="gpt-4o",
-                response_format={"type": "json_object"},
-                temperature=0.3,
-                messages=[
-                    {"role": "system", "content": PREPARE_SYSTEM},
-                    {"role": "user", "content": user_content},
-                ],
-            )
-            return jsonify(json.loads(resp.choices[0].message.content))
+            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE))
         except Exception:
             log.exception("copilot prepare failed")
             return jsonify({"error": "prepare failed"}), 200

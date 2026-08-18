@@ -1,5 +1,6 @@
 from openai import OpenAI
 from config import OPENAI_API_KEY, BROKER_NAME, BROKER_COMPANY
+from llm import claude_text, MODEL_SMS
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -41,12 +42,4 @@ Rules:
 
 Return the SMS text only, no quotation marks.
 """
-    resp = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.7,
-        messages=[
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return resp.choices[0].message.content.strip()
+    return claude_text(SYSTEM, prompt, MODEL_SMS).strip()

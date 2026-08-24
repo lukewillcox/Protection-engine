@@ -175,8 +175,32 @@
     <div class="hdr-spacer"></div>
     <div class="progress-count" id="progressCount">0/13 complete</div>
     <div class="saved">✓ Saved</div>
+    <button class="postcall-btn" id="emailBtn">✉️ Client email</button>
     <button class="postcall-btn" id="postcallBtn">📄 Post-call</button>
   </header>
+
+  <!-- Email draft modal -->
+  <div id="emailModal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(14,21,37,0.5);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:85vh;overflow:auto;box-shadow:var(--shadow-md);">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:700;font-size:16px;">Client follow-up email <span style="font-weight:400;color:var(--muted);font-size:12px;">— draft for your review</span></div>
+        <button onclick="document.getElementById('emailModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">×</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <label class="fl">Subject</label>
+        <input class="fi" id="emailSubject" style="margin-bottom:14px;">
+        <label class="fl">Body</label>
+        <textarea class="fi" id="emailBody" style="min-height:280px;line-height:1.6;"></textarea>
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+          <button onclick="copyEmail()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:600;font-size:14px;cursor:pointer;">Copy email</button>
+          <span id="emailStatus" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.4;font-style:italic;">
+          A draft recap for you to review, edit and send. It does not contain advice, quotes or product recommendations — those remain part of your formal suitability process.
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SNAPSHOT -->
   <div class="snapshot">
@@ -674,6 +698,41 @@
       console.error(e);
       setTimeout(()=>{ btn.innerHTML=orig; btn.style.pointerEvents=''; }, 2500);
     }
+  }
+
+  // ---------- client email draft ----------
+  document.getElementById('emailBtn').addEventListener('click',buildEmail);
+  async function buildEmail(){
+    saveNotes();
+    const btn=document.getElementById('emailBtn');
+    const orig=btn.innerHTML;
+    btn.innerHTML='⏳ Drafting…'; btn.style.pointerEvents='none';
+    const h=household();
+    const ff={
+      clients:[state.c1,state.c2.active?state.c2:null].filter(Boolean).map(c=>`${c.name||'client'}, age ${c.age}, ${c.job}`),
+      mortgage:`Mortgage ${gm(num(state.mortgage.amount))}, term ${state.mortgage.term} yrs`,
+      notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
+    };
+    try{
+      const res=await authFetch(API_BASE+'/copilot/summary-email',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({notes:ff.notesByStep, fact_find:ff, client_name:state.c1.name||'the client'})});
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      document.getElementById('emailSubject').value=data.subject||'';
+      document.getElementById('emailBody').value=data.body||'';
+      document.getElementById('emailModal').style.display='flex';
+      btn.innerHTML=orig; btn.style.pointerEvents='';
+    }catch(e){
+      btn.innerHTML='✕ Failed'; console.error(e);
+      setTimeout(()=>{ btn.innerHTML=orig; btn.style.pointerEvents=''; }, 2500);
+    }
+  }
+  function copyEmail(){
+    const subj=document.getElementById('emailSubject').value;
+    const body=document.getElementById('emailBody').value;
+    navigator.clipboard.writeText(`Subject: ${subj}\n\n${body}`);
+    document.getElementById('emailStatus').textContent='Copied to clipboard.';
+    setTimeout(()=>document.getElementById('emailStatus').textContent='',1800);
   }
 
   // ---------- referrals ----------

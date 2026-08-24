@@ -548,6 +548,107 @@
           : `Mortgage would be cleared by existing cover, but ${gm(netMo)}/month of income remains unprotected if unable to work.`}</div>
       </div>`;
     });
+
+    // ── Extended protection maths ─────────────────────────────────
+    const h2=household();
+    const netMo=h2.netMonthly;
+    const grossYr=h2.gross;
+    const mortgage=num(state.mortgage.amount);
+    const propVal=num(state.property&&state.property.value||0);
+    const savings=num(state.assumptions.savings)*num(h2.netMonthly||1)/1; // savings in months × net
+
+    // ── 1. Income Replacement Ratio ──
+    const irrTarget=netMo*0.70;
+    const irrMax=netMo*0.80;
+    out += `<div class="stress" style="margin-top:10px">
+      <div class="stress-head"><h3>Income protection — benefit target</h3></div>
+      <div class="stress-grid">
+        <div class="sc info"><div class="k">IRR floor (70% of net)</div><div class="v">${gm(irrTarget)}<span style="font-size:13px">/mo</span></div><div class="s">minimum IP benefit to aim for</div></div>
+        <div class="sc info"><div class="k">IRR ceiling (80% of net)</div><div class="v">${gm(irrMax)}<span style="font-size:13px">/mo</span></div><div class="s">insurer max — net of state benefits</div></div>
+        <div class="sc"><div class="k">State sick pay (SSP)</div><div class="v">£507/mo</div><div class="s">first 28 weeks only (2026/27)</div></div>
+      </div>
+      <div class="stress-note ok">Target IP benefit: ${gm(irrTarget)}–${gm(irrMax)}/mo (after deferred period). Insurers cap at 65–70% gross / 80% net. Source the benefit at this level before discussing premiums.</div>
+    </div>`;
+
+    // ── 2. IHT exposure ──
+    const estateVal = propVal > 0 ? (propVal - mortgage) : 0;
+    const NRB = 325000;
+    const RNRB = propVal > 0 ? 175000 : 0;
+    const couple = state.c2.active;
+    const allowances = couple ? (NRB*2 + RNRB*2) : (NRB + RNRB);
+    const netEstate = estateVal + num(state.assumptions.savings||0)*0; // savings not separately captured here
+    const ihtExposure = Math.max(0, netEstate - allowances) * 0.40;
+    const ihtNote = propVal===0
+      ? "Enter property value above to estimate IHT exposure."
+      : ihtExposure > 0
+        ? `Potential IHT: ${gm(ihtExposure)} at 40% on estate above ${couple?'£1,000,000 (couple)':'£500,000 (single)'} allowances. Consider whole-of-life in trust.`
+        : `Estate appears within ${couple?'couple':'individual'} allowances (£${allowances.toLocaleString()}) — but frozen thresholds mean this narrows each year.`;
+    out += `<div class="stress" style="margin-top:10px">
+      <div class="stress-head"><h3>IHT exposure estimate</h3></div>
+      <div class="stress-grid">
+        <div class="sc"><div class="k">Property equity (est.)</div><div class="v">${gm(estateVal)}</div><div class="s">property value − mortgage</div></div>
+        <div class="sc"><div class="k">IHT-free allowances</div><div class="v">£${allowances.toLocaleString()}</div><div class="s">${couple?'NRB + RNRB × 2 (couple)':'NRB + RNRB (single)'}</div></div>
+        <div class="sc ${ihtExposure>0?'warn':'ok'}"><div class="k">Potential IHT (40%)</div><div class="v">${ihtExposure>0?gm(ihtExposure):'None est.'}</div><div class="s">frozen to Apr 2030</div></div>
+      </div>
+      <div class="stress-note ${ihtExposure>0?'':'ok'}">${ihtNote}</div>
+    </div>`;
+
+    // ── 3. CIC need estimate ──
+    const cicYears = 3; // default: 3 years income
+    const cicBase = grossYr * cicYears;
+    const cicNeed = Math.max(0, cicBase + mortgage*0.1 - 0); // rough: income × 3 + 10% of debts
+    out += `<div class="stress" style="margin-top:10px">
+      <div class="stress-head"><h3>Critical illness — starting need</h3></div>
+      <div class="stress-grid">
+        <div class="sc info"><div class="k">Income × 3 yrs</div><div class="v">${gm(cicBase)}</div><div class="s">typical recovery / adaptation window</div></div>
+        <div class="sc"><div class="k">Debts to clear (est.)</div><div class="v">${gm(mortgage)}</div><div class="s">mortgage (adviser to confirm total)</div></div>
+        <div class="sc warn"><div class="k">Discussion starting point</div><div class="v">${gm(cicNeed)}</div><div class="s">gross income × 3 + 10% debts</div></div>
+      </div>
+      <div class="stress-note ok">CIC need = income years + debts to clear − savings. This is a starting point for the conversation, not a recommendation. Adviser to sense-check against client's real priorities and existing cover.</div>
+    </div>`;
+
+    // ── 4. Deferred period guide ──
+    const c1sick = num(state.assumptions.c1sick);
+    const emp = (state.c1.emp||'').toLowerCase();
+    const isNHS = emp.includes('nhs') || (state.c1.job||'').toLowerCase().includes('nhs');
+    const isSE = emp.includes('self') || emp.includes('sole');
+    let defPeriod, defReason;
+    if(isSE){ defPeriod='4 weeks'; defReason='Self-employed: no sick pay → shortest deferred period recommended.'; }
+    else if(isNHS || c1sick >= 6){ defPeriod='26 weeks'; defReason='6+ months sick pay or NHS: 26-week deferred period aligns to employer benefit.'; }
+    else if(c1sick >= 3){ defPeriod='13 weeks'; defReason='3–6 months sick pay: 13-week deferred period is the natural match.'; }
+    else if(c1sick >= 1){ defPeriod='4 weeks'; defReason='Short sick pay (1–3 months): consider 4-week or 8-week deferred.'; }
+    else { defPeriod='Clarify'; defReason='Sick pay duration not confirmed — clarify before sourcing quotes.'; }
+    out += `<div class="stress" style="margin-top:10px">
+      <div class="stress-head"><h3>Deferred period guide</h3></div>
+      <div class="stress-grid">
+        <div class="sc"><div class="k">Sick pay recorded</div><div class="v">${c1sick} mo</div><div class="s">months before income drops</div></div>
+        <div class="sc info"><div class="k">Suggested deferred period</div><div class="v">${defPeriod}</div><div class="s">match to sick-pay end point</div></div>
+        <div class="sc"><div class="k">Key rule</div><div class="v">Match it</div><div class="s">deferred = sick pay duration</div></div>
+      </div>
+      <div class="stress-note ok">${defReason} Shorter deferred = higher premium but less reliance on savings. Confirm with client exactly when income drops before sourcing.</div>
+    </div>`;
+
+    // ── 5. Mortgage payment shock ──
+    const mpay = num(state.mortgage.payment);
+    const mbal = mortgage;
+    const mterm = num(state.mortgage.term||25);
+    // rough SVR shock: assume current rate implied from payment, then +3%
+    // simpler: show fixed/SVR delta using current payment as base and scaling
+    // (0.075/0.045 ≈ +29% at typical 2026 rates — just use ratio)
+    const shock = mpay > 0 ? mpay * 1.30 : 0;
+    const shockDelta = shock - mpay;
+    out += `<div class="stress" style="margin-top:10px">
+      <div class="stress-head"><h3>Mortgage payment shock (rate reversion)</h3></div>
+      <div class="stress-grid">
+        <div class="sc"><div class="k">Current payment</div><div class="v">${gm(mpay)}<span style="font-size:13px">/mo</span></div><div class="s">as entered</div></div>
+        <div class="sc warn"><div class="k">At SVR +3% (est.)</div><div class="v">${gm(shock)}<span style="font-size:13px">/mo</span></div><div class="s">FCA stress rate (+30% est.)</div></div>
+        <div class="sc bad"><div class="k">Extra cost at reversion</div><div class="v">${gm(shockDelta)}<span style="font-size:13px">/mo</span></div><div class="s">payment shock on fixed expiry</div></div>
+      </div>
+      <div class="stress-note ${mpay>0?'':'ok'}">${mpay>0
+        ? `If their fixed rate ends and they revert to SVR, the monthly payment rises by ~${gm(shockDelta)}. If income were also interrupted at this point, the combined exposure is acute — IP cover needs to be sufficient to bridge both.`
+        : 'Enter monthly mortgage payment to calculate the reversion shock.'}</div>
+    </div>`;
+
     return out;
   }
 

@@ -565,38 +565,61 @@
   }
 
   // ---------- wiring ----------
+  let guideTimer;
+  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 2500); }
   function wireBody(id){ /* inputs use inline handlers */ }
-  window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();};
-  window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();};
+  window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();nudgeGuidance();};
+  window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();nudgeGuidance();};
   window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();};
   window.addC2=()=>{state.c2.active=true;renderStep();};
   window.addExisting=()=>{state.existing.push({});renderStep();};
   window.delExisting=i=>{state.existing.splice(i,1);renderStep();};
-  window.setEx=(i,f,v)=>{state.existing[i][f]=v;renderSnapshot();};
+  window.setEx=(i,f,v)=>{state.existing[i][f]=v;renderSnapshot();nudgeGuidance();};
   window.addQuote=k=>{state.quotes[k].push({priority:'essential'});renderStep();};
   window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);renderStep();};
-  window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;renderSnapshot();};
+  window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;renderSnapshot();nudgeGuidance();};
 
   document.getElementById('stepComplete').addEventListener('change',e=>{state.complete[state.current]=e.target.checked;renderRail();});
   document.getElementById('prevBtn').addEventListener('click',()=>goto(state.current-1));
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
 
   // ---------- AI guidance ----------
-  let guideTimer;
   document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);});
 
   function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
 
+  // Build a compact summary of the STRUCTURED fact-find so the AI sees the fields, not just notes
+  function factFindContext(){
+    const h=household(), prem=totalPremium();
+    const lines=[];
+    const c=(cl,label)=>{ if(cl.active===false) return; const bits=[];
+      if(cl.name) bits.push(cl.name);
+      if(cl.age) bits.push(`age ${cl.age}`);
+      if(cl.job) bits.push(cl.job);
+      bits.push(cl.emp==='self'?'self-employed':'employed');
+      if(cl.salary) bits.push(`salary £${cl.salary}`);
+      if(cl.bonus && +cl.bonus>0) bits.push(`bonus £${cl.bonus}`);
+      if(bits.length>1) lines.push(`${label}: ${bits.join(', ')}`); };
+    c(state.c1,'Client 1'); c(state.c2,'Client 2');
+    if(h.netMonthly>0) lines.push(`Household net income ~£${Math.round(h.netMonthly).toLocaleString()}/mo (gross £${Math.round(h.gross).toLocaleString()}/yr)`);
+    if(+state.mortgage.amount>0) lines.push(`Mortgage £${(+state.mortgage.amount).toLocaleString()}${state.mortgage.term?`, term ${state.mortgage.term} yrs`:''}${state.mortgage.payment?`, £${(+state.mortgage.payment).toLocaleString()}/mo`:''}`);
+    if(state.existing.length) lines.push(`Existing cover: ${state.existing.map(e=>[e.who,e.type,e.provider,e.sum].filter(Boolean).join(' ')).filter(Boolean).join('; ')||'recorded'}`);
+    ['ip','fib','life','cic'].forEach(k=>state.quotes[k].forEach(q=>{ if(q.provider||q.premium) lines.push(`Quote ${k.toUpperCase()} [${q.priority}]: ${[q.provider,q.benefit,q.premium?'£'+q.premium+'/mo':''].filter(Boolean).join(' ')}`); }));
+    return lines.length ? 'FACT-FIND SO FAR:\n'+lines.join('\n') : '';
+  }
+
   async function requestGuidance(){
     const notes=allNotes();
+    const ff=factFindContext();
+    const combined=[ff, notes && 'CALL NOTES:\n'+notes].filter(Boolean).join('\n\n');
     const status=document.getElementById('guideStatus');
     const body=document.getElementById('guideBody');
-    if(!notes.trim()){ body.innerHTML=''; document.getElementById('guidePassive').style.display='block'; return; }
+    if(!combined.trim()){ body.innerHTML=''; document.getElementById('guidePassive').style.display='block'; return; }
     document.getElementById('guidePassive').style.display='none';
     status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
     try{
       const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes, step:STEPS[state.current].title})});
+        body:JSON.stringify({notes:combined, step:STEPS[state.current].title})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
       renderGuide(out);
@@ -622,6 +645,9 @@
   document.getElementById('postcallBtn').addEventListener('click',buildSummary);
   async function buildSummary(){
     saveNotes();
+    const btn=document.getElementById('postcallBtn');
+    const orig=btn.innerHTML;
+    btn.innerHTML='⏳ Generating…'; btn.style.pointerEvents='none';
     const h=household(),prem=totalPremium();
     const ff={
       clients:[state.c1,state.c2.active?state.c2:null].filter(Boolean).map(c=>`${c.name||'client'}, age ${c.age}, ${c.job}, ${c.emp}, salary £${c.salary}, bonus £${c.bonus}`),
@@ -632,11 +658,22 @@
       total:'£'+prem.total, notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
     };
     try{
-      const res=await authFetch(API_BASE+'/copilot/summary',{method:'POST',headers:{'Content-Type':'application/json'},
+      const res=await authFetch(API_BASE+'/copilot/summary-pdf',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({notes:ff.notesByStep, fact_find:ff, client_name:state.c1.name||'the client'})});
-      const data=await res.json();
-      alert(data.summary||'No summary returned. (The /copilot/summary backend may need updating to use fact_find.)');
-    }catch(e){ alert('Could not generate summary — check the backend is running.'); }
+      if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'failed'); }
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=`suitability-summary-${(state.c1.name||'client').replace(/\s+/g,'-')}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      btn.innerHTML='✓ Downloaded';
+      setTimeout(()=>{ btn.innerHTML=orig; btn.style.pointerEvents=''; }, 2000);
+    }catch(e){
+      btn.innerHTML='✕ Failed';
+      console.error(e);
+      setTimeout(()=>{ btn.innerHTML=orig; btn.style.pointerEvents=''; }, 2500);
+    }
   }
 
   // ---------- referrals ----------

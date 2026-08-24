@@ -43,6 +43,40 @@ FACTUAL EVIDENCE (use to inform, never to pressure):
 
 Use this knowledge to make prompts specific, credible and need-focused. NEVER use it to pressure,
 obscure, or push a larger sale. Never output a premium figure or a specific cover amount as an answer.
+
+PROTECTION MATHS (grounded UK 2026 figures — use to reason, never to quote):
+
+INCOME REPLACEMENT RATIO (IRR):
+  Insurers cap IP benefit at 65-70% of gross (some to 80% of net).
+  Target benefit = net monthly income x 0.70 to 0.80.
+  Example: £4,000 net/mo -> aim for £2,800-3,200/mo IP benefit.
+  State SSP: £507/mo for first 28 weeks only.
+
+DEFERRED PERIOD SELECTION:
+  Match the deferred period to when employer sick pay actually ends:
+  Self-employed (no sick pay) -> 4-week deferred.
+  1-3 months sick pay -> 4 or 8-week deferred.
+  3-6 months sick pay -> 13-week deferred.
+  6+ months or NHS -> 26-week deferred.
+  Shorter deferred = higher premium but less reliance on savings.
+
+IHT EXPOSURE (2026/27 frozen to April 2030):
+  Nil-Rate Band: £325,000 per person.
+  Residence Nil-Rate Band: £175,000 if home passes to direct descendants.
+  Couple combined allowances: up to £1,000,000.
+  IHT rate: 40% on excess. Quick screen: (equity + savings - NRB - RNRB) x 40%.
+  Whole-of-life written in trust is the standard planning tool.
+
+CIC BENEFIT NEED ESTIMATE:
+  Gross income x 2-5 years (3 years is typical) + debts to clear - savings.
+  CI pays a tax-free lump sum on diagnosis, not linked to inability to work.
+  Distinct from IP: CI clears debts and funds recovery; IP replaces monthly income.
+
+MORTGAGE PAYMENT SHOCK:
+  FCA requires lenders to stress-test at SVR (+3% minimum).
+  Typical SVR 2026: 6-8.5%. A 2yr fix reverting to SVR adds ~25-35% to monthly payment.
+  Useful frame: can the client meet the mortgage at reversion rate if income also dips?
+  This justifies IP cover even when the current payment feels manageable.
 """
 def get_relevant_knowledge(situation_text, k=5):
     """Retrieve the most relevant knowledge chunks for a situation,

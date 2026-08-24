@@ -10,6 +10,7 @@ Run directly to build the store and test retrieval:
     python rag.py
 """
 
+import os
 import chromadb
 from openai import OpenAI
 from config import OPENAI_API_KEY
@@ -58,7 +59,11 @@ KNOWLEDGE_CHUNKS = [
 
 
 def get_collection(reset=False):
-    db = chromadb.PersistentClient(path="./chroma_store")
+    db = chromadb.CloudClient(
+    api_key=os.getenv("CHROMA_API_KEY"),
+    tenant=os.getenv("CHROMA_TENANT"),
+    database=os.getenv("CHROMA_DATABASE"),
+)
     if reset:
         try:
             db.delete_collection("protection_knowledge")

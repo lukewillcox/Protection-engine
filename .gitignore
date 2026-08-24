@@ -3,3 +3,4 @@
 knowledge_docs/
 __pycache__/
 *.pyc
+chroma_store/

@@ -108,6 +108,28 @@ Summarise ONLY what the notes evidence. Do not recommend products, quote premium
 Structure: Client & referral / Circumstances / Protection needs identified / Information still to gather / Points to document.
 Plain, professional, concise."""
 
+EMAIL_SYSTEM = """You draft a warm, professional follow-up EMAIL from a UK protection
+adviser to their client after a fact-find call. The adviser will review and send it.
+
+Purpose: thank the client, recap what was discussed, and confirm the next steps.
+Use the fact-find brief provided.
+
+TONE: warm, clear, human, professional. Short paragraphs. UK English. Address the
+client by first name where known. Sign off from the adviser.
+
+STRICT COMPLIANCE BOUNDARIES:
+- This is a RECAP, not advice in writing. Do NOT state a recommendation, a premium, a
+  specific product or provider, or a recommended cover amount. Those belong in the
+  adviser's formal suitability process, not this recap email.
+- Do NOT make guarantees or claims about cover or outcomes.
+- Recap the protection AREAS discussed (e.g. protecting income, protecting the family/
+  mortgage) in plain English, and the agreed next steps.
+- Keep it concise (roughly 120-200 words).
+
+Return ONLY valid JSON: {"subject": "...", "body": "..."}
+The body should use \n for line breaks, ready to paste into an email."""
+
+
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
 referral email from a mortgage broker.
 
@@ -295,6 +317,32 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot summary-pdf failed")
             return jsonify({"error": "pdf failed"}), 200
+
+    @app.post("/copilot/summary-email")
+    def copilot_summary_email():
+        data = request.get_json(silent=True) or {}
+        notes = (data.get("notes") or "").strip()
+        name = data.get("client_name") or "the client"
+        ff = data.get("fact_find") or {}
+        if not notes and not ff:
+            return jsonify({"error": "no notes"}), 400
+        try:
+            parts = [f"Client: {name}"]
+            if ff.get("clients"):
+                parts.append("Clients:\n" + "\n".join("- " + c for c in ff["clients"]))
+            if ff.get("mortgage"):
+                parts.append("Mortgage: " + ff["mortgage"])
+            if ff.get("notesByStep"):
+                parts.append("Call notes by step:\n" + ff["notesByStep"])
+            elif notes:
+                parts.append("Notes:\n" + notes)
+            user_content = "\n\n".join(parts)
+            result = claude_json(EMAIL_SYSTEM, user_content, MODEL_PREPARE)
+            return jsonify(result)
+        except Exception:
+            log.exception("copilot summary-email failed")
+            return jsonify({"error": "email failed"}), 200
+
 
 
     @app.post("/copilot/prepare")

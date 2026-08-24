@@ -245,6 +245,58 @@ def register_copilot_routes(app):
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200
 
+    @app.post("/copilot/summary-pdf")
+    def copilot_summary_pdf():
+        from flask import send_file
+        import io
+        import config as _cfg
+        from pdf_summary import build_summary_pdf
+        data = request.get_json(silent=True) or {}
+        notes = (data.get("notes") or "").strip()
+        name = data.get("client_name") or "the client"
+        ref = data.get("referred_by") or "\u2014"
+        ff = data.get("fact_find") or {}
+        if not notes and not ff:
+            return jsonify({"error": "no notes"}), 400
+        try:
+            parts = [f"Client: {name}", f"Referred by: {ref}"]
+            if ff.get("clients"):
+                parts.append("Clients:\n" + "\n".join("- " + c for c in ff["clients"]))
+            if ff.get("income"):
+                parts.append("Income: " + ff["income"])
+            if ff.get("mortgage"):
+                parts.append("Mortgage: " + ff["mortgage"])
+            if ff.get("existing"):
+                ex = [e for e in ff["existing"] if e and e.strip()]
+                parts.append("Existing cover: " + ("; ".join(ex) if ex else "none recorded"))
+            if ff.get("quotes"):
+                qs = [q for q in ff["quotes"] if q and q.strip()]
+                parts.append("Quotes captured by adviser:\n" + ("\n".join("- " + q for q in qs) if qs else "none"))
+            if ff.get("total"):
+                parts.append("Total monthly premium captured: " + ff["total"])
+            if ff.get("notesByStep"):
+                parts.append("Call notes by step:\n" + ff["notesByStep"])
+            elif notes:
+                parts.append("Notes:\n" + notes)
+            user_content = "\n\n".join(parts)
+
+            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY).strip()
+
+            meta = {
+                "client": name,
+                "adviser": getattr(_cfg, "BROKER_NAME", "Adviser"),
+                "firm": getattr(_cfg, "BROKER_COMPANY", ""),
+            }
+            pdf_bytes = build_summary_pdf(summary_text, meta)
+            safe = name.replace(" ", "-")
+            return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
+                             as_attachment=True,
+                             download_name="suitability-summary-" + safe + ".pdf")
+        except Exception:
+            log.exception("copilot summary-pdf failed")
+            return jsonify({"error": "pdf failed"}), 200
+
+
     @app.post("/copilot/prepare")
     def copilot_prepare():
         data = request.get_json(silent=True) or {}

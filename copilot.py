@@ -145,6 +145,26 @@ vary by insurer [Zurich, L&G]". Put the provider/source in brackets. NEVER
 state a premium or recommend a specific product. If no provider knowledge is
 relevant or supplied, return an empty array"""
 
+PROMPTS_SYSTEM = """You help a UK protection adviser during a live client call by
+generating 3 ready-to-say conversation prompts for the step they are about to move to.
+
+You are given: the step they're moving to, and everything captured so far in the
+fact-find (fields and notes across all previous steps).
+
+Generate 3 prompts the adviser can say out loud to the client at this step. They must:
+- Be specific to THIS client, using details already captured (name, job, family,
+  mortgage, health, goals, figures). Reference real facts where you can.
+- Sound natural and warm — like a skilled adviser speaking, not a script.
+- Move the conversation forward at this step.
+- Never state a premium, a specific product/provider recommendation, or a cover amount.
+- Be concise — one or two sentences each, ready to say aloud.
+
+If little has been captured yet, give sensible general prompts for the step.
+
+Return ONLY valid JSON: {"prompts": ["...", "...", "..."]}
+Each string is a complete phrase the adviser can say. UK English."""
+
+
 SUMMARY_SYSTEM = """You write a factual fact-find summary for a UK protection adviser's suitability record.
 Summarise ONLY what the notes evidence. Do not recommend products, quote premiums, or give advice.
 Structure: Client & referral / Circumstances / Protection needs identified / Information still to gather / Points to document.
@@ -272,6 +292,26 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
+
+    @app.post("/copilot/prompts")
+    def copilot_prompts():
+        data = request.get_json(silent=True) or {}
+        step = (data.get("step") or "").strip()
+        notes = (data.get("notes") or "").strip()
+        if not step:
+            return jsonify({"prompts": []}), 200
+        try:
+            user_content = "Step the adviser is moving to: " + step + "\n\n"
+            if notes:
+                user_content += "Everything captured so far:\n\n" + notes
+            else:
+                user_content += "Nothing captured yet — give sensible general prompts for this step."
+            result = claude_json(PROMPTS_SYSTEM, user_content, MODEL_ANALYZE)
+            return jsonify(result)
+        except Exception:
+            log.exception("copilot prompts failed")
+            return jsonify({"prompts": []}), 200
+
 
     @app.post("/copilot/summary")
     def copilot_summary():

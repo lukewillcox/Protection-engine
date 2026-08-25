@@ -56,7 +56,7 @@
   .snap.prem .v{color:var(--verd);}
 
   /* ---------- shell ---------- */
-  .layout{display:grid;grid-template-columns:236px minmax(0,1fr) 300px;gap:0;align-items:start;}
+  .layout{display:grid;grid-template-columns:236px minmax(0,1fr);gap:0;align-items:start;}
 
   /* ---------- the thread ---------- */
   .rail{padding:36px 10px 60px 34px;border-right:1px solid var(--hair);min-height:calc(100vh - 170px);position:relative;}
@@ -151,27 +151,31 @@
   #nextBtn{background:var(--ink);color:var(--porcelain);padding:10px 22px;border-radius:99px;}
   #nextBtn:hover{background:var(--verd);color:#fff;}
 
-  /* ---------- the margin (AI) ---------- */
-  .guide{padding:38px 32px 60px 26px;position:sticky;top:170px;}
-  .guide-card{background:none;border:none;border-radius:0;padding:0 0 0 0;box-shadow:none;position:relative;}
-  .guide-card::before{content:"";position:absolute;left:-26px;top:4px;bottom:0;width:1px;background:repeating-linear-gradient(to bottom,var(--hair-strong) 0 4px,transparent 4px 9px);}
-  .guide-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-  .guide-top .title{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);}
-  .guide-top .spark{color:var(--verd);}
-  .guide-status{font-family:var(--mono);font-size:10px;color:var(--verd);display:flex;align-items:center;gap:5px;letter-spacing:0.05em;}
-  .guide-status .d{width:6px;height:6px;border-radius:50%;background:var(--verd);animation:pulse 2.2s ease-in-out infinite;}
+  /* ---------- inline guidance (below step content) ---------- */
+  .guide-inline{margin-top:36px;padding-top:28px;border-top:1px solid var(--hair);max-width:700px;}
+  .guide-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .guide-bar-left{display:flex;align-items:center;gap:10px;}
+  .guide-pulse{width:7px;height:7px;border-radius:50%;background:var(--verd);flex:none;animation:pulse 2.2s ease-in-out infinite;}
   @keyframes pulse{50%{opacity:.35;}}
-  @media (prefers-reduced-motion:reduce){.guide-status .d{animation:none;}}
+  @media (prefers-reduced-motion:reduce){.guide-pulse{animation:none;}}
+  .guide-label{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .guide-step-label{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--verd);}
+  .guide-bar-right{display:flex;align-items:center;gap:14px;}
+  .guide-refresh{background:none;border:none;font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;color:var(--verd);cursor:pointer;padding:2px 0;}
+  .guide-refresh:hover{text-decoration:underline;}
+  .guide-status{font-family:var(--mono);font-size:10px;color:var(--verd);display:flex;align-items:center;gap:5px;letter-spacing:0.05em;}
+  .guide-status .d{width:6px;height:6px;border-radius:50%;background:var(--verd);}
   .guide-status.thinking{color:var(--signal);} .guide-status.thinking .d{background:var(--signal);}
-  .guide-section{margin-bottom:20px;}
-  .guide-section h5{font-size:9.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.14em;color:var(--muted);margin:0 0 10px;}
-  .g-cov{padding:1px 0 1px 14px;border-left:2px solid var(--verd);background:none;border-radius:0;margin-bottom:14px;font-size:13px;line-height:1.5;}
-  .g-cov .obs{font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);}
-  .g-gap{padding:1px 0 1px 14px;border-left:2px solid var(--signal);background:none;border-radius:0;margin-bottom:12px;font-size:12.5px;line-height:1.5;}
-  .g-fact{padding:1px 0 1px 14px;border-left:2px solid var(--verd);background:none;border-radius:0;margin-bottom:12px;font-size:12.5px;line-height:1.5;opacity:.92;}
-  .g-flag{padding:1px 0 1px 14px;border-left:2px solid var(--signal);background:none;border-radius:0;margin-bottom:12px;font-size:12.5px;line-height:1.5;}
-  .g-empty{font-size:12px;color:var(--muted);font-style:italic;}
-  .g-passive{font-size:12.5px;color:var(--muted);line-height:1.55;}
+  .guide-section{margin-bottom:22px;}
+  .guide-section h5{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.14em;color:var(--muted);margin:0 0 12px;}
+  .g-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .g-cov{padding:14px 16px;border-left:3px solid var(--verd);background:var(--verd-soft);border-radius:0 10px 10px 0;font-size:14px;line-height:1.5;}
+  .g-cov .obs{font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px;text-transform:uppercase;}
+  .g-gap{padding:14px 16px;border-left:3px solid var(--signal);background:var(--signal-soft);border-radius:0 10px 10px 0;font-size:14px;line-height:1.5;}
+  .g-fact{padding:14px 16px;border-left:3px solid var(--verd);background:rgba(14,107,92,0.06);border-radius:0 10px 10px 0;font-size:13.5px;line-height:1.5;}
+  .g-flag{padding:12px 16px;border-left:3px solid var(--signal);background:none;border-radius:0;font-size:13.5px;line-height:1.5;margin-bottom:8px;}
+  .g-empty{font-size:13px;color:var(--muted);font-style:italic;}
+  .g-passive{font-size:13.5px;color:var(--muted);line-height:1.55;}
 
   @media (max-width:1100px){
     .layout{grid-template-columns:1fr;}
@@ -179,11 +183,10 @@
     .rail::before{display:none;}
     .rail h4{width:100%;}
     .main{border-right:none;padding:30px 26px 70px;}
-    .guide{position:static;padding:26px;}
-    .guide-card::before{left:-16px;}
     .snap-cards{flex-wrap:wrap;gap:16px 0;}
     .snap{flex:1 1 30%;}
     .snap + .snap{padding-left:18px;}
+    .g-cards{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -270,23 +273,24 @@
           <button class="navbtn" id="nextBtn">Next →</button>
         </div>
       </div>
-    </div>
 
-    <!-- GUIDANCE -->
-    <aside class="guide">
-      <div class="guide-card">
-        <div class="guide-top">
-          <div class="title"><span class="spark">✦</span> In the margin</div>
-          <div class="guide-status" id="guideStatus"><span class="d"></span> ready</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <span id="guideStepLabel" style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);"></span>
-          <button onclick="requestGuidance()" style="background:none;border:none;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--verd);cursor:pointer;padding:2px 0;">↻ update</button>
+      <!-- GUIDANCE — inline below the step -->
+      <div class="guide-inline">
+        <div class="guide-bar">
+          <div class="guide-bar-left">
+            <span class="guide-pulse"></span>
+            <span class="guide-label">In the margin</span>
+            <span class="guide-step-label" id="guideStepLabel"></span>
+          </div>
+          <div class="guide-bar-right">
+            <div class="guide-status" id="guideStatus"><span class="d"></span> ready</div>
+            <button onclick="requestGuidance()" class="guide-refresh">↻ update</button>
+          </div>
         </div>
         <div class="g-passive" id="guidePassive">Notes for this stage appear here as you work, and stay put when you move on.</div>
-        <div id="guideBody" style="margin-top:12px;"></div>
+        <div id="guideBody"></div>
       </div>
-    </aside>
+    </div>
   </div>
 
 <script>
@@ -815,13 +819,13 @@
   function renderGuide(out, stepIdx){
     let html='';
     const cov=out.coverage_prompts||[];
-    if(cov.length){ html+=`<div class="guide-section"><h5>Coverage prompts</h5>`+cov.map(c=>{
+    if(cov.length){ html+=`<div class="guide-section"><h5>Prompts</h5><div class="g-cards">`+cov.map(c=>{
       if(typeof c==='string')return `<div class="g-cov">${esc(c)}</div>`;
       return `<div class="g-cov"><div class="obs">${esc(c.observation||'')}</div>${esc(c.consider||'')}</div>`;
-    }).join('')+`</div>`; }
-    else if(out.prompts&&out.prompts.length){ html+=`<div class="guide-section"><h5>Prompts</h5>`+out.prompts.map(p=>`<div class="g-cov">${esc(p)}</div>`).join('')+`</div>`; }
-    if(out.gaps&&out.gaps.length) html+=`<div class="guide-section"><h5>Gaps</h5>`+out.gaps.map(g=>`<div class="g-gap">${esc(g)}</div>`).join('')+`</div>`;
-    if(out.relevant_facts&&out.relevant_facts.length) html+=`<div class="guide-section"><h5>Relevant facts</h5>`+out.relevant_facts.map(f=>`<div class="g-fact">${esc(f)}</div>`).join('')+`</div>`;
+    }).join('')+`</div></div>`; }
+    else if(out.prompts&&out.prompts.length){ html+=`<div class="guide-section"><h5>Prompts</h5><div class="g-cards">`+out.prompts.map(p=>`<div class="g-cov">${esc(p)}</div>`).join('')+`</div></div>`; }
+    if(out.gaps&&out.gaps.length) html+=`<div class="guide-section"><h5>Gaps</h5><div class="g-cards">`+out.gaps.map(g=>`<div class="g-gap">${esc(g)}</div>`).join('')+`</div></div>`;
+    if(out.relevant_facts&&out.relevant_facts.length) html+=`<div class="guide-section"><h5>Relevant facts</h5><div class="g-cards">`+out.relevant_facts.map(f=>`<div class="g-fact">${esc(f)}</div>`).join('')+`</div></div>`;
     return html;
   }
 

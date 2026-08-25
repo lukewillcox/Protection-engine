@@ -276,10 +276,14 @@
     <aside class="guide">
       <div class="guide-card">
         <div class="guide-top">
-          <div class="title"><span class="spark">✦</span> AI Guidance</div>
+          <div class="title"><span class="spark">✦</span> In the margin</div>
           <div class="guide-status" id="guideStatus"><span class="d"></span> ready</div>
         </div>
-        <div class="g-passive" id="guidePassive">Passive — updates automatically as you type. No action needed.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span id="guideStepLabel" style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);"></span>
+          <button onclick="requestGuidance()" style="background:none;border:none;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--verd);cursor:pointer;padding:2px 0;">↻ update</button>
+        </div>
+        <div class="g-passive" id="guidePassive">Notes for this stage appear here as you work, and stay put when you move on.</div>
         <div id="guideBody" style="margin-top:12px;"></div>
       </div>
     </aside>
@@ -404,7 +408,7 @@
   }
 
   // ---------- step render ----------
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); }
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -780,17 +784,35 @@
     }
     document.getElementById('guidePassive').style.display='none';
     status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
+    const stepAtRequest=state.current;
     try{
       const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes:combined, step:STEPS[state.current].title})});
+        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
-      renderGuide(out);
+      guidanceCache[stepAtRequest]=out;          // persist for this step
+      addOpenItems(out.flags, stepAtRequest);    // accumulate across the case
+      if(state.current===stepAtRequest) paintGuide();
       status.className='guide-status'; status.innerHTML='<span class="d"></span> ready';
     }catch(e){ status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline'; console.error(e); }
   }
   function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function renderGuide(out){
+
+  // guidance cache: one entry per step, persists when navigating
+  const guidanceCache = {};
+  const openItems = [];   // accumulates across the whole case
+
+  function addOpenItems(flags, stepIdx){
+    (flags||[]).forEach(f=>{
+      const text=String(f).trim();
+      if(!text) return;
+      if(!openItems.some(o=>o.text.toLowerCase()===text.toLowerCase())){
+        openItems.push({text, step:stepIdx});
+      }
+    });
+  }
+
+  function renderGuide(out, stepIdx){
     let html='';
     const cov=out.coverage_prompts||[];
     if(cov.length){ html+=`<div class="guide-section"><h5>Coverage prompts</h5>`+cov.map(c=>{
@@ -800,9 +822,36 @@
     else if(out.prompts&&out.prompts.length){ html+=`<div class="guide-section"><h5>Prompts</h5>`+out.prompts.map(p=>`<div class="g-cov">${esc(p)}</div>`).join('')+`</div>`; }
     if(out.gaps&&out.gaps.length) html+=`<div class="guide-section"><h5>Gaps</h5>`+out.gaps.map(g=>`<div class="g-gap">${esc(g)}</div>`).join('')+`</div>`;
     if(out.relevant_facts&&out.relevant_facts.length) html+=`<div class="guide-section"><h5>Relevant facts</h5>`+out.relevant_facts.map(f=>`<div class="g-fact">${esc(f)}</div>`).join('')+`</div>`;
-    if(out.flags&&out.flags.length) html+=`<div class="guide-section"><h5>To document</h5>`+out.flags.map(f=>`<div class="g-flag">${esc(f)}</div>`).join('')+`</div>`;
-    document.getElementById('guideBody').innerHTML=html||'<div class="g-empty">No guidance for this step yet.</div>';
+    return html;
   }
+
+  function renderOpenItems(){
+    if(!openItems.length) return '';
+    return `<div class="guide-section" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--hair)">
+      <h5>Open across this case (${openItems.length})</h5>`
+      +openItems.map(o=>`<div class="g-flag">${esc(o.text)}<span style="display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:0.06em">step ${o.step+1} · ${esc(STEPS[o.step]?STEPS[o.step].title:'')}</span></div>`).join('')
+      +`</div>`;
+  }
+
+  // paint whatever is cached for the current step, plus the running open items
+  function paintGuide(){
+    const idx=state.current;
+    const cached=guidanceCache[idx];
+    const body=document.getElementById('guideBody');
+    const passive=document.getElementById('guidePassive');
+    const label=document.getElementById('guideStepLabel');
+    if(label) label.textContent='stage '+String(idx+1).padStart(2,'0')+' notes';
+    if(!body) return;
+    if(cached){
+      passive.style.display='none';
+      body.innerHTML=renderGuide(cached, idx)+renderOpenItems();
+    } else {
+      body.innerHTML=renderOpenItems();
+      passive.style.display=openItems.length?'none':'block';
+    }
+  }
+
+
 
   // ---------- post-call ----------
   document.getElementById('postcallBtn').addEventListener('click',buildSummary);

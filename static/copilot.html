@@ -677,6 +677,7 @@
         : 'Enter monthly mortgage payment to calculate the reversion shock.'}</div>
     </div>`;
 
+    out += goalsLinking();
     return out;
   }
 
@@ -1263,7 +1264,91 @@
   }
   renderStep = renderStepWithFIB;
 
-  renderRail(); renderStep(); updateFIBVisibility();
+
+  // ── Goals ↔ Stress Test linking ──
+  const GOAL_THEMES = [
+    {keywords:['home','house','property','mortgage','keep the home','stay in'],
+     theme:'keeping the home',
+     shortfall:'the family may not be able to keep the home',
+     gap:'the mortgage debt would fall to the surviving partner to clear'},
+    {keywords:['children','kids','child','daughter','son','school','education','university','aisha','dependant'],
+     theme:'protecting the children',
+     shortfall:'the children\'s financial security is exposed',
+     gap:'there may not be enough to support the children through to independence'},
+    {keywords:['income','lifestyle','bills','outgoings','standard of living','day to day'],
+     theme:'maintaining income and lifestyle',
+     shortfall:'the household cannot maintain its current lifestyle',
+     gap:'monthly income would drop below what\'s needed to cover essential outgoings'},
+    {keywords:['retire','retirement','pension','later life','future'],
+     theme:'retirement plans',
+     shortfall:'retirement plans are at risk if income is interrupted long-term',
+     gap:'a long-term claim could erode the savings needed for retirement'},
+    {keywords:['partner','wife','husband','spouse','family','each other'],
+     theme:'protecting each other',
+     shortfall:'the surviving partner would face the full financial burden alone',
+     gap:'if one income stops, the other cannot cover everything'},
+    {keywords:['debt','loan','car','credit','owe'],
+     theme:'clearing debts',
+     shortfall:'existing debts would still need servicing without income',
+     gap:'debts remain even if the ability to pay them doesn\'t'},
+    {keywords:['business','self-employed','company','clients'],
+     theme:'protecting the business and income',
+     shortfall:'the business income stops entirely if they cannot work',
+     gap:'no employer sick pay means the income cliff is immediate'},
+    {keywords:['second child','another baby','pregnant','maternity','baby'],
+     theme:'planning for a growing family',
+     shortfall:'a second child on one income makes the gap even wider',
+     gap:'maternity leave plus a loss of income would be a double hit'}
+  ];
+
+  function detectGoalThemes(){
+    const goalsNotes = (state.notes[1]||'').toLowerCase(); // step 2 = index 1
+    const introNotes = (state.notes[0]||'').toLowerCase();
+    const allGoals = goalsNotes + ' ' + introNotes;
+    return GOAL_THEMES.filter(g => g.keywords.some(k => allGoals.includes(k)));
+  }
+
+  function goalsLinking(){
+    const themes = detectGoalThemes();
+    if(!themes.length) return '';
+    const h = household();
+    const mortgage = num(state.mortgage.amount);
+    const netMo = h.netMonthly;
+    const c1 = state.c1;
+    const salary1 = num(c1.salary);
+    const dis = num(state.assumptions.dis||0) * salary1;
+    const lifeGap = mortgage - dis;
+    const sickMo = num(state.assumptions.c1sick);
+    const savMo = num(state.assumptions.savings);
+    const cliffMonth = sickMo + savMo;
+    const hasLifeGap = lifeGap > 0;
+    const hasIncomeCliff = cliffMonth > 0 && cliffMonth < 24;
+
+    let cards = [];
+    for(const t of themes){
+      let msg = '';
+      if(hasLifeGap && (t.keywords.some(k => ['home','house','mortgage','property','children','kids','partner','wife','husband','family'].includes(k)))){
+        msg = `Goal: "${t.theme}" — but with a ${gm(lifeGap)} life cover shortfall, ${t.shortfall}. ${t.gap}.`;
+      } else if(hasIncomeCliff && (t.keywords.some(k => ['income','lifestyle','bills','business','self-employed'].includes(k)))){
+        msg = `Goal: "${t.theme}" — but income runs out at month ${cliffMonth}. After that, ${t.shortfall}. ${t.gap}.`;
+      } else if(hasLifeGap || hasIncomeCliff){
+        msg = `Goal: "${t.theme}" — the current shortfall puts this at risk. ${t.gap}.`;
+      }
+      if(msg) cards.push(msg);
+    }
+    if(!cards.length) return '';
+
+    let out = '<div class="stress" style="margin-top:10px">';
+    out += '<div class="stress-head"><h3>How shortfalls affect stated goals</h3></div>';
+    for(const c of cards){
+      out += `<div class="stress-note" style="margin-bottom:10px;">${c}</div>`;
+    }
+    out += '<div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;">These link the client\'s own words (from Goals &amp; Motivations) to the numbers. Use them to make the need concrete and personal during the conversation.</div>';
+    out += '</div>';
+    return out;
+  }
+
+    renderRail(); renderStep(); updateFIBVisibility();
   if(COPILOT_TOKEN){ hideLogin(); loadReferralList(); } else { showLogin(); }
 </script>
 </body>

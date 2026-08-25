@@ -879,13 +879,15 @@
     const label=document.getElementById('guideStepLabel');
     if(label) label.textContent='stage '+String(idx+1).padStart(2,'0')+' notes';
     if(!body) return;
+    // always show pre-made prompts first (instant, no delay)
+    let content = renderPremadePrompts(idx);
     if(cached){
       passive.style.display='none';
-      body.innerHTML=renderGuide(cached, idx)+renderOpenItems();
-    } else {
-      body.innerHTML=renderOpenItems();
-      passive.style.display=openItems.length?'none':'block';
+      content += renderGuide(cached, idx);
     }
+    content += renderOpenItems();
+    body.innerHTML = content;
+    passive.style.display = (cached || content.trim()) ? 'none' : 'block';
   }
 
 
@@ -1346,6 +1348,102 @@
     out += '<div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;">These link the client\'s own words (from Goals &amp; Motivations) to the numbers. Use them to make the need concrete and personal during the conversation.</div>';
     out += '</div>';
     return out;
+  }
+
+  
+  // ── Pre-made instant prompts per step ──
+  const PREMADE_PROMPTS = [
+    // 0: Introduction
+    [
+      "Thanks for taking the time today — I work independently, there's no fee to you, and everything we discuss is confidential.",
+      "The referral mentioned you're buying a property — can you tell me a bit about that and what's prompted this conversation?",
+      "Before we get into the detail, can I ask who else lives in the household and who relies on your income?"
+    ],
+    // 1: Goals & Motivations
+    [
+      "If something happened to you — illness, injury, or worse — what would worry you most financially?",
+      "What does this home mean to you and your family? What made you stretch to buy it?",
+      "Is there anything specific you want to make sure is protected, beyond just the mortgage?"
+    ],
+    // 2: Confirm Factfind
+    [
+      "I'm going to run through your full financial picture so I can give you proper advice — is that OK?",
+      "Everything I recommend will be based on what we discuss today, so the more detail the better.",
+      "Do you have any existing policies or workplace benefits we should factor in?"
+    ],
+    // 3: Existing Cover
+    [
+      "Do you have any life insurance, income protection, or critical illness cover already in place?",
+      "Does your employer provide death-in-service benefit or sick pay? Do you know the details?",
+      "Have you ever had a protection policy that lapsed or been declined for cover?"
+    ],
+    // 4: Income Stress Test
+    [
+      "If you couldn't work from tomorrow due to illness or injury, how long would your income continue?",
+      "How many months could your savings cover your essential outgoings — mortgage, bills, food?",
+      "Have you ever looked at what happens to your income after your employer sick pay runs out?"
+    ],
+    // 5: Stress Test Questions
+    [
+      "Looking at these numbers, does the point where your income stops surprise you?",
+      "What would you do if you reached that cliff edge — who would you turn to?",
+      "Has anyone close to you ever been unable to work for a long period? What happened financially?"
+    ],
+    // 6: Eligibility & Health
+    [
+      "I need to ask about your health so we can see what's available — are you currently taking any medication?",
+      "Have you seen a GP or specialist for anything in the last 5 years?",
+      "Any family history of heart disease, cancer, or diabetes I should know about?"
+    ],
+    // 7: Essential vs Needed
+    [
+      "Based on everything we've discussed, I'm going to split the options into essential and needed.",
+      "Essential covers the things that would cause immediate financial harm. Needed covers the 'sleep better at night' layer.",
+      "Let's look at what fits your budget — we can always phase things in over time."
+    ],
+    // 8: Income Protection
+    [
+      "Income protection replaces your monthly income if you can't work due to illness or injury.",
+      "The key question is: how long could you manage without your salary before things got difficult?",
+      "There's a big difference between 'any occupation' and 'own occupation' cover — let me explain why that matters for your job."
+    ],
+    // 9: Family Income Benefit
+    [
+      "Family income benefit pays a monthly amount to your family if you pass away during the term.",
+      "It's designed to replace your income for a set period — usually until your youngest is independent.",
+      "For families with young children, this often gives better value than a large lump sum."
+    ],
+    // 10: Life Cover
+    [
+      "Life cover pays a lump sum on death — typically enough to clear the mortgage so the family keeps the home.",
+      "Do you want level cover (same payout throughout) or decreasing (reduces with the mortgage)?",
+      "Is your mortgage joint? If so, do you want joint life cover or separate policies?"
+    ],
+    // 11: Critical Illness
+    [
+      "Critical illness cover pays a tax-free lump sum if you're diagnosed with a serious condition like cancer, heart attack, or stroke.",
+      "It's worth knowing that over 56% of income protection claims are for mental health or musculoskeletal conditions — which critical illness typically wouldn't cover.",
+      "Think of it as the 'clear the debts and focus on recovery' cover, separate from replacing your monthly income."
+    ],
+    // 12: Close & Next Steps
+    [
+      "Let me summarise what we've covered today and confirm the next steps.",
+      "I'll put together the quotes based on everything we've discussed and come back to you by [date].",
+      "Do you have any questions about anything we've covered, or anything you want me to look at differently?"
+    ]
+  ];
+
+  function renderPremadePrompts(stepIdx){
+    const prompts = PREMADE_PROMPTS[stepIdx];
+    if(!prompts || !prompts.length) return '';
+    let html = '<div class="premade-section" style="margin-bottom:20px;">';
+    html += '<h5 style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Ready to use</h5>';
+    html += '<div class="g-cards">';
+    for(const p of prompts){
+      html += '<div class="g-card g-premade" style="border-left:3px solid var(--hair-strong);background:rgba(0,0,0,0.015);"><div class="g-detail" style="font-size:13.5px;line-height:1.55;color:var(--ink);font-style:italic;">"' + p + '"</div></div>';
+    }
+    html += '</div></div>';
+    return html;
   }
 
     renderRail(); renderStep(); updateFIBVisibility();

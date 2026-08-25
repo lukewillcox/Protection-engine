@@ -426,7 +426,7 @@
   }
 
   // ---------- step render ----------
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); }
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -746,7 +746,7 @@
 
   // ---------- wiring ----------
   let guideTimer;
-  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 2500); }
+  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 2500); updateFIBVisibility(); }
   function wireBody(id){ /* inputs use inline handlers */ }
   window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();nudgeGuidance();};
   window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();nudgeGuidance();};
@@ -1214,7 +1214,56 @@
     if(container) container.innerHTML = renderUWQuestions(conditions);
   }
 
-    renderRail(); renderStep();
+  
+  // ── FIB visibility based on dependants ──
+  function hasDependants(){
+    const notes = (state.notes||[]).join(' ').toLowerCase();
+    const c1deps = (state.c1.dependants||'').toLowerCase();
+    const c2deps = (state.c2.dependants||'').toLowerCase();
+    // check if any dependants info exists (not "none" or empty)
+    const depsText = [c1deps, c2deps].join(' ').trim();
+    if(depsText && !depsText.match(/^(none|no|nil|0|n\/a|\-)$/)) return true;
+    // also check notes for mentions of children/kids/dependants
+    if(notes.match(/\b(child|children|kids|daughter|son|baby|dependant|pregnant|family)\b/)) return true;
+    return false;
+  }
+
+  
+  // grey out FIB step in rail if no dependants
+  function updateFIBVisibility(){
+    const railNodes = document.querySelectorAll('.step-link');
+    if(railNodes.length > 9){
+      const fibNode = railNodes[9]; // index 9 = step 10 (FIB)
+      if(!hasDependants()){
+        fibNode.style.opacity='0.35';
+        fibNode.style.pointerEvents='none';
+        fibNode.title='No dependants recorded — FIB not applicable';
+      } else {
+        fibNode.style.opacity='';
+        fibNode.style.pointerEvents='';
+        fibNode.title='';
+      }
+    }
+  }
+
+    
+  // override step 10 body if no dependants
+  const _origRenderStep = renderStep;
+  function renderStepWithFIB(){
+    _origRenderStep();
+    if(state.current === 9 && !hasDependants()){
+      const body = document.getElementById('stepBody');
+      if(body) body.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);">' +
+        '<div style="font-size:40px;margin-bottom:14px;">👨‍👩‍👧</div>' +
+        '<div style="font-size:16px;font-weight:600;margin-bottom:8px;">No dependants recorded</div>' +
+        '<div style="font-size:14px;max-width:400px;margin:0 auto;">Family Income Benefit is designed to protect dependants. ' +
+        'Add dependants in Step 1 (Introduction) if applicable, and this section will activate.</div></div>';
+    }
+    updateFIBVisibility();
+  }
+  renderStep = renderStepWithFIB;
+
+  renderRail(); renderStep(); updateFIBVisibility();
   if(COPILOT_TOKEN){ hideLogin(); loadReferralList(); } else { showLogin(); }
 </script>
 </body>

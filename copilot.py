@@ -122,12 +122,20 @@ You ALWAYS:
 Return ONLY valid JSON matching:
 {{
   "captured": {{"Dependants":"","Employment":"","Existing cover":"","Health / lifestyle":"","Budget & affordability":"","Protection need":""}},
-  "prompts": ["advice-led suggestion"],
-  "flags": ["point to document"],
-  "relevant_facts": ["a concrete factual point from provider knowledge, with source in brackets"]
+  "prompts": [
+    {{"headline":"5-8 WORD HEADLINE","detail":"one actionable sentence","severity":"green|amber|red"}}
+  ],
+  "flags": ["must-document compliance point, under 20 words"],
+  "relevant_facts": ["a short factual point with source in brackets"]
 }}
 For captured, fill only fields the notes evidence; leave others "".
-Max 3 prompts, max 3 flags, each under 30 words.
+For prompts: 2-4 items. Each MUST be a JSON object with:
+  headline: 5-8 words MAX, caps, the broker scans this first
+  detail: one actionable sentence explaining why this matters
+  severity: green (informational), amber (gap/action needed), red (must document/compliance risk)
+  NOT EVERYTHING IS RED. Use green for factual prompts, amber for gaps, red only for compliance.
+For flags: must-document items only, under 20 words each. Always shown as red.
+Max 4 prompts, max 3 flags.
 
 For "relevant_facts": include 0-3 SHORT factual points drawn ONLY from the
 provider knowledge supplied in the user message (if any is provided). Each

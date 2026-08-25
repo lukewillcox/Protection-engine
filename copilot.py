@@ -344,7 +344,7 @@ def register_copilot_routes(app):
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
 
-            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY).strip()
+            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE).strip()
 
             meta = {
                 "client": name,

@@ -354,7 +354,13 @@
   // ---------- tax calc ----------
   function incomeTax(g){let pa=12570;if(g>100000)pa=Math.max(0,pa-(g-100000)/2);let t=Math.max(0,g-pa),tax=0;const b=Math.min(t,37700);tax+=b*0.2;t-=b;if(t>0){const h=Math.min(t,125140-37700);tax+=h*0.4;t-=h;}if(t>0)tax+=t*0.45;return Math.round(tax);}
   function ni(g,self){if(self){let n=0;if(g>12570)n+=(Math.min(g,50270)-12570)*0.06;if(g>50270)n+=(g-50270)*0.02;return Math.round(n);}let n=0;if(g>12570)n+=(Math.min(g,50270)-12570)*0.08;if(g>50270)n+=(g-50270)*0.02;return Math.round(n);}
-  const num=v=>parseFloat(v)||0;
+  const num=v=>{
+    if(v===null||v===undefined||v==='') return 0;
+    const s=String(v).replace(/£/g,'').replace(/,/g,'').trim().toLowerCase();
+    if(s.endsWith('k')) return (parseFloat(s)||0)*1000;
+    if(s.endsWith('m')) return (parseFloat(s)||0)*1000000;
+    return parseFloat(s)||0;
+  };
   const gm=n=>'£'+Math.round(n).toLocaleString();
   function grossOf(c){return num(c.salary)+num(c.bonus);}
   function netAnnual(c){const g=grossOf(c);return g-incomeTax(g)-ni(g,c.emp==='self');}
@@ -766,7 +772,12 @@
     const combined=[ff, notes && 'CALL NOTES:\n'+notes].filter(Boolean).join('\n\n');
     const status=document.getElementById('guideStatus');
     const body=document.getElementById('guideBody');
-    if(!combined.trim()){ body.innerHTML=''; document.getElementById('guidePassive').style.display='block'; return; }
+    // fire if we have any structured data OR notes — not just notes
+    if(!combined.trim()||combined.trim().length<15){
+      body.innerHTML='';
+      document.getElementById('guidePassive').style.display='block';
+      return;
+    }
     document.getElementById('guidePassive').style.display='none';
     status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
     try{

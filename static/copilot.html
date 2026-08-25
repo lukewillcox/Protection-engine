@@ -175,6 +175,19 @@
   .g-fact{padding:14px 16px;border-left:3px solid var(--verd);background:rgba(14,107,92,0.06);border-radius:0 10px 10px 0;font-size:13.5px;line-height:1.5;}
   .g-flag{padding:12px 16px;border-left:3px solid var(--signal);background:none;border-radius:0;font-size:13.5px;line-height:1.5;margin-bottom:8px;}
   .g-empty{font-size:13px;color:var(--muted);font-style:italic;}
+
+  /* traffic-light cards */
+  .g-card{padding:14px 16px;border-radius:0 10px 10px 0;font-size:14px;line-height:1.5;border-left:3.5px solid var(--verd);}
+  .g-card .g-head{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;}
+  .g-card .g-detail{font-size:13.5px;line-height:1.5;color:var(--ink);}
+  .g-green{background:rgba(14,107,92,0.07);border-left-color:var(--verd);}
+  .g-green .g-head{color:var(--verd);}
+  .g-amber{background:var(--signal-soft);border-left-color:var(--signal);}
+  .g-amber .g-head{color:var(--signal);}
+  .g-red{background:rgba(179,28,28,0.07);border-left-color:#B91C1C;}
+  .g-red .g-head{color:#B91C1C;}
+  .g-fact-card{background:rgba(14,107,92,0.04);border-left-color:var(--verd);border-left-width:2px;}
+  .g-fact-card .g-detail{font-size:13px;color:var(--ink-soft);}
   .g-passive{font-size:13.5px;color:var(--muted);line-height:1.55;}
 
   @media (max-width:1100px){
@@ -818,14 +831,32 @@
 
   function renderGuide(out, stepIdx){
     let html='';
-    const cov=out.coverage_prompts||[];
-    if(cov.length){ html+=`<div class="guide-section"><h5>Prompts</h5><div class="g-cards">`+cov.map(c=>{
-      if(typeof c==='string')return `<div class="g-cov">${esc(c)}</div>`;
-      return `<div class="g-cov"><div class="obs">${esc(c.observation||'')}</div>${esc(c.consider||'')}</div>`;
-    }).join('')+`</div></div>`; }
-    else if(out.prompts&&out.prompts.length){ html+=`<div class="guide-section"><h5>Prompts</h5><div class="g-cards">`+out.prompts.map(p=>`<div class="g-cov">${esc(p)}</div>`).join('')+`</div></div>`; }
-    if(out.gaps&&out.gaps.length) html+=`<div class="guide-section"><h5>Gaps</h5><div class="g-cards">`+out.gaps.map(g=>`<div class="g-gap">${esc(g)}</div>`).join('')+`</div></div>`;
-    if(out.relevant_facts&&out.relevant_facts.length) html+=`<div class="guide-section"><h5>Relevant facts</h5><div class="g-cards">`+out.relevant_facts.map(f=>`<div class="g-fact">${esc(f)}</div>`).join('')+`</div></div>`;
+    // new traffic-light format (prompts with headline+detail+severity)
+    const prompts=out.prompts||out.coverage_prompts||[];
+    if(prompts.length){
+      html+=`<div class="guide-section"><h5>Guidance</h5><div class="g-cards">`;
+      html+=prompts.map(p=>{
+        if(typeof p==='string') return `<div class="g-card g-green"><div class="g-head">${esc(p)}</div></div>`;
+        // handle both old format (observation/consider) and new (headline/detail/severity)
+        const sev=p.severity||'green';
+        const head=p.headline||p.observation||'';
+        const detail=p.detail||p.consider||'';
+        return `<div class="g-card g-${sev}"><div class="g-head">${esc(head)}</div><div class="g-detail">${esc(detail)}</div></div>`;
+      }).join('');
+      html+=`</div></div>`;
+    }
+    // gaps (always amber)
+    if(out.gaps&&out.gaps.length){
+      html+=`<div class="guide-section"><h5>Gaps</h5><div class="g-cards">`;
+      html+=out.gaps.map(g=>`<div class="g-card g-amber"><div class="g-head">${esc(typeof g==='string'?g:g.headline||g)}</div>${typeof g==='object'&&g.detail?'<div class="g-detail">'+esc(g.detail)+'</div>':''}</div>`).join('');
+      html+=`</div></div>`;
+    }
+    // relevant facts (always green, compact)
+    if(out.relevant_facts&&out.relevant_facts.length){
+      html+=`<div class="guide-section"><h5>Evidence</h5><div class="g-cards">`;
+      html+=out.relevant_facts.map(f=>`<div class="g-card g-fact-card"><div class="g-detail">${esc(f)}</div></div>`).join('');
+      html+=`</div></div>`;
+    }
     return html;
   }
 

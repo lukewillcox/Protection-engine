@@ -302,6 +302,7 @@
         </div>
         <div class="g-passive" id="guidePassive">Notes for this stage appear here as you work, and stay put when you move on.</div>
         <div id="guideBody"></div>
+      <div id="uwQuestions" style="max-width:700px;"></div>
       </div>
     </div>
   </div>
@@ -425,7 +426,7 @@
   }
 
   // ---------- step render ----------
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); }
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -763,7 +764,7 @@
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
 
   // ---------- AI guidance ----------
-  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);});
+  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
 
   function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
 
@@ -1025,7 +1026,195 @@
   window.prepareFromEmail=prepareFromEmail;
 
   // ---------- init ----------
-  renderRail(); renderStep();
+
+  // ── Underwriting follow-up questions (deterministic, instant) ──
+  const UW_CONDITIONS = {
+    'diabetes':{
+      label:'Diabetes',
+      color:'amber',
+      questions:[
+        'Type 1 or Type 2?',
+        'Date of diagnosis?',
+        'Latest HbA1c reading and date taken?',
+        'History of HbA1c readings (stable or fluctuating)?',
+        'Current medication (metformin, insulin, other)?',
+        'Any complications: retinopathy, neuropathy, nephropathy?',
+        'Any cardiovascular issues alongside diabetes?',
+        'BMI and blood pressure?',
+        'Date of last diabetic review?',
+        'Smoker status (compounds diabetes risk significantly)?'
+      ],
+      note:'HbA1c below 53 mmol/mol (7%) with no complications = best terms. Neuropathy/nephropathy typically leads to decline. History of readings matters, not just latest.'
+    },
+    'cancer':{
+      label:'Cancer history',
+      color:'red',
+      questions:[
+        'Type and site of cancer?',
+        'Date of diagnosis?',
+        'Stage and grade at diagnosis?',
+        'Treatment received (surgery, chemo, radiotherapy, hormone therapy)?',
+        'Date treatment completed?',
+        'Current status — full remission? Any ongoing treatment?',
+        'Date of last follow-up and result?',
+        'Any recurrence or secondary cancer?',
+        'Any lymph node involvement or metastasis?',
+        'Family history of the same cancer?'
+      ],
+      note:'Most insurers need 2-5 years post-treatment for life cover. CIC typically excludes related cancers. Early stage, fully treated, long remission = best terms. Metastasis usually means decline.'
+    },
+    'mental health':{
+      label:'Mental health',
+      color:'amber',
+      questions:[
+        'Specific condition (depression, anxiety, PTSD, bipolar, other)?',
+        'Date of first episode and most recent episode?',
+        'Duration and severity of episodes?',
+        'Current medication and dosage?',
+        'Any hospitalization or specialist referral?',
+        'Any self-harm or suicidal thoughts (past or present)?',
+        'Time off work due to mental health?',
+        'Current status — are symptoms managed/stable?',
+        'Any alcohol or substance use alongside?',
+        'Talking therapy or counselling — current or past?'
+      ],
+      note:'Single mild episode 2+ years ago, no time off work = often standard terms. Recent, recurrent, or severe episodes attract loading or IP exclusion. CIC typically excludes mental health claims entirely.'
+    },
+    'ms':{
+      label:'Multiple sclerosis',
+      color:'red',
+      questions:[
+        'Date of diagnosis?',
+        'Type of MS (relapsing-remitting, secondary progressive, primary progressive)?',
+        'Frequency and severity of relapses?',
+        'Date and details of last relapse?',
+        'Current symptoms (fatigue, mobility, vision, cognitive)?',
+        'Current treatment/medication (disease-modifying therapy)?',
+        'Impact on daily activities and work?',
+        'Any mobility aids used?',
+        'MRI results — number and location of lesions?',
+        'Current neurologist and last review date?'
+      ],
+      note:'IP very difficult — most insurers decline for MS. Life cover possible with loading. CIC: MS excluded but cover for cancer/heart/stroke still available. RRMS with low relapse rate gets better terms than progressive forms.'
+    },
+    'asthma':{
+      label:'Asthma',
+      color:'green',
+      questions:[
+        'Date of diagnosis or first symptoms?',
+        'Current medication (preventer, reliever, both)?',
+        'Frequency of inhaler use?',
+        'Any hospital admissions or A&E visits for asthma?',
+        'Any oral steroid courses in last 2 years?',
+        'Any time off work due to asthma?',
+        'Any other respiratory conditions (COPD, bronchiectasis)?',
+        'Smoker status?'
+      ],
+      note:'Well-controlled asthma on inhalers only = usually standard terms. Hospital admissions or oral steroids attract loading. Smoking + asthma = significantly worse terms.'
+    },
+    'heart':{
+      label:'Heart / cardiovascular',
+      color:'red',
+      questions:[
+        'Specific condition (high BP, high cholesterol, angina, heart attack, arrhythmia)?',
+        'Date of diagnosis?',
+        'Current medication and dosage?',
+        'Latest blood pressure reading?',
+        'Latest cholesterol reading (total + ratio)?',
+        'Any surgical procedures (stents, bypass, ablation)?',
+        'Any related conditions (diabetes, kidney disease)?',
+        'Smoker status?',
+        'BMI?',
+        'Family history of heart disease (age of onset)?'
+      ],
+      note:'Well-controlled hypertension on medication = often standard or small loading. Post-heart attack: most insurers need 6-12 months, loading likely. Angina or multiple cardiac events = significant loading or decline for some products.'
+    },
+    'back':{
+      label:'Back / musculoskeletal',
+      color:'green',
+      questions:[
+        'Specific condition (disc prolapse, sciatica, chronic pain, arthritis)?',
+        'Date of onset or diagnosis?',
+        'Any surgery (discectomy, fusion, injection)?',
+        'Current symptoms — constant or intermittent?',
+        'Any time off work in last 2 years?',
+        'Current treatment (physio, medication, none)?',
+        'Impact on daily activities or occupation?',
+        'Occupation involves manual work?'
+      ],
+      note:'Intermittent back pain, no time off work = usually standard. Chronic pain with work absence = IP exclusion likely. Manual workers with MSK history face stricter IP underwriting. MSK is the #2 cause of IP claims (~25%).'
+    }
+  };
+
+  // aliases so different phrasings trigger the right condition
+  const UW_ALIASES = {
+    'diabetic':'diabetes','type 1':'diabetes','type 2':'diabetes','hba1c':'diabetes','insulin':'diabetes','metformin':'diabetes',
+    'cancer':'cancer','tumour':'cancer','tumor':'cancer','remission':'cancer','chemo':'cancer','oncology':'cancer','leukaemia':'cancer','lymphoma':'cancer','melanoma':'cancer','carcinoma':'cancer','breast cancer':'cancer','prostate':'cancer',
+    'depression':'mental health','anxiety':'mental health','ptsd':'mental health','bipolar':'mental health','mental':'mental health','psychiatric':'mental health','self-harm':'mental health','eating disorder':'mental health','ocd':'mental health',
+    'multiple sclerosis':'ms','m.s.':'ms','m.s':'ms','relapsing':'ms',
+    'asthma':'asthma','inhaler':'asthma','bronchitis':'asthma','respiratory':'asthma',
+    'heart':'heart','cardiac':'heart','blood pressure':'heart','hypertension':'heart','cholesterol':'heart','angina':'heart','heart attack':'heart','arrhythmia':'heart','atrial fibrillation':'heart','af':'heart','stent':'heart',
+    'back pain':'back','sciatica':'back','disc':'back','prolapse':'back','arthritis':'back','joint':'back','musculoskeletal':'back','msk':'back','fibromyalgia':'back'
+  };
+
+  function detectConditions(text){
+    const t = (text||'').toLowerCase();
+    const found = new Set();
+    // check aliases first (longer phrases before short)
+    const sortedAliases = Object.keys(UW_ALIASES).sort((a,b)=>b.length-a.length);
+    for(const alias of sortedAliases){
+      if(t.includes(alias)) found.add(UW_ALIASES[alias]);
+    }
+    // check condition names directly
+    for(const key of Object.keys(UW_CONDITIONS)){
+      if(t.includes(key)) found.add(key);
+    }
+    return [...found];
+  }
+
+  function renderUWQuestions(conditions){
+    if(!conditions.length) return '';
+    let html = '<div class="uw-section"><h5 style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:28px 0 14px;">Underwriting follow-up questions</h5>';
+    for(const key of conditions){
+      const cond = UW_CONDITIONS[key];
+      if(!cond) continue;
+      const borderColor = cond.color==='red'?'#B91C1C':cond.color==='amber'?'var(--signal)':'var(--verd)';
+      const bgColor = cond.color==='red'?'rgba(179,28,28,0.05)':cond.color==='amber'?'var(--signal-soft)':'rgba(14,107,92,0.05)';
+      html += `<div class="uw-block" style="border-left:3.5px solid ${borderColor};background:${bgColor};border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:14px;">`;
+      html += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${borderColor};margin-bottom:10px;">${cond.label} — questions to capture</div>`;
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;">';
+      for(const q of cond.questions){
+        html += `<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.45;cursor:pointer;padding:3px 0;">
+          <input type="checkbox" style="margin-top:3px;accent-color:${borderColor};flex:none;">
+          <span>${q}</span>
+        </label>`;
+      }
+      html += '</div>';
+      html += `<div style="margin-top:12px;padding-top:10px;border-top:1px solid ${borderColor}20;font-size:12px;line-height:1.5;color:var(--ink-soft);font-style:italic;">${cond.note}</div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // watch for health disclosures and render questions
+  let uwTimer;
+  function checkUW(){
+    const step = state.current;
+    // only show on Eligibility & Health step (index 6) but scan ALL notes
+    if(step !== 6) return;
+    const allText = [
+      state.notes.join(' '),
+      state.c1.health||'', state.c2.health||'',
+      state.c1.familyHistory||'', state.c2.familyHistory||'',
+      state.c1.lifestyle||'', state.c2.lifestyle||''
+    ].join(' ');
+    const conditions = detectConditions(allText);
+    const container = document.getElementById('uwQuestions');
+    if(container) container.innerHTML = renderUWQuestions(conditions);
+  }
+
+    renderRail(); renderStep();
   if(COPILOT_TOKEN){ hideLogin(); loadReferralList(); } else { showLogin(); }
 </script>
 </body>

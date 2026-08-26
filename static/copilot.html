@@ -1220,14 +1220,15 @@
   
   // ── FIB visibility based on dependants ──
   function hasDependants(){
-    const notes = (state.notes||[]).join(' ').toLowerCase();
+    const notes = Object.values(state.notes||{}).join(' ').toLowerCase();
     const c1deps = (state.c1.dependants||'').toLowerCase();
     const c2deps = (state.c2.dependants||'').toLowerCase();
     // check if any dependants info exists (not "none" or empty)
     const depsText = [c1deps, c2deps].join(' ').trim();
     if(depsText && !depsText.match(/^(none|no|nil|0|n\/a|\-)$/)) return true;
     // also check notes for mentions of children/kids/dependants
-    if(notes.match(/\b(child|children|kids|daughter|son|baby|dependant|pregnant|family)\b/)) return true;
+    const stripped = notes.replace(/\b(no|not|zero|without|none)\s+(dependants?|children|kids|child)\b/g, '');
+    if(stripped.match(/\b(child|children|kids|daughter|son|baby|dependant|pregnant)\b/)) return true;
     return false;
   }
 

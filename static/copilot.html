@@ -1033,119 +1033,81 @@
   // ── Underwriting follow-up questions (deterministic, instant) ──
   const UW_CONDITIONS = {
     'diabetes':{
-      label:'Diabetes',
-      color:'amber',
-      questions:[
-        'Type 1 or Type 2?',
-        'Date of diagnosis?',
-        'Latest HbA1c reading and date taken?',
-        'History of HbA1c readings (stable or fluctuating)?',
-        'Current medication (metformin, insulin, other)?',
-        'Any complications: retinopathy, neuropathy, nephropathy?',
-        'Any cardiovascular issues alongside diabetes?',
-        'BMI and blood pressure?',
-        'Date of last diabetic review?',
-        'Smoker status (compounds diabetes risk significantly)?'
+      label:'Diabetes', color:'amber',
+      categories:[
+        {name:'Diagnosis', items:['Type 1 or Type 2?','Age at diagnosis?','Date of diagnosis?','Was it gestational — has it resolved postpartum?']},
+        {name:'Control', items:['Latest HbA1c reading and date?','HbA1c trend over last 2-3 readings — stable or rising?','Any severe hypoglycaemic episodes?','Any DKA (diabetic ketoacidosis) history?']},
+        {name:'Complications', items:['Retinopathy (eyes)?','Nephropathy (kidneys)?','Neuropathy (nerves)?','Any cardiovascular involvement?']},
+        {name:'Treatment', items:['Diet/lifestyle only, oral medication, or insulin?','Any recent changes to treatment plan?','Date of last diabetic review?']},
+        {name:'Lifestyle', items:['BMI?','Blood pressure?','Cholesterol?','Smoker status?']}
       ],
-      note:'HbA1c below 53 mmol/mol (7%) with no complications = best terms. Neuropathy/nephropathy typically leads to decline. History of readings matters, not just latest.'
+      note:'Well-controlled (HbA1c <53 mmol/mol / 7%), no complications, healthy BMI, non-smoker = often standard or near-standard rates. Type 2 diagnosed later in life with good control is viewed favourably. Complications materially affect terms.'
     },
     'cancer':{
-      label:'Cancer history',
-      color:'red',
-      questions:[
-        'Type and site of cancer?',
-        'Date of diagnosis?',
-        'Stage and grade at diagnosis?',
-        'Treatment received (surgery, chemo, radiotherapy, hormone therapy)?',
-        'Date treatment completed?',
-        'Current status — full remission? Any ongoing treatment?',
-        'Date of last follow-up and result?',
-        'Any recurrence or secondary cancer?',
-        'Any lymph node involvement or metastasis?',
-        'Family history of the same cancer?'
+      label:'Cancer history', color:'red',
+      categories:[
+        {name:'Diagnosis', items:['Type and site of cancer?','Date of diagnosis?','Stage and grade at diagnosis?']},
+        {name:'Control', items:['Current status — full remission?','Date of last follow-up and result?','Surveillance plan going forward?']},
+        {name:'Complications', items:['Any recurrence or secondary cancer?','Lymph node involvement or metastasis at diagnosis?']},
+        {name:'Treatment', items:['Surgery, chemotherapy, radiotherapy, hormone therapy — which?','Date treatment completed?']},
+        {name:'Lifestyle', items:['Family history of the same cancer?','Occupation — physically demanding or not?']}
       ],
-      note:'Most insurers need 2-5 years post-treatment for life cover. CIC typically excludes related cancers. Early stage, fully treated, long remission = best terms. Metastasis usually means decline.'
+      note:'Most insurers need 2-5 years post-treatment for life cover; longer for higher-risk cancers. CIC typically excludes related cancers. Clean follow-up letters and a documented remission trajectory materially speed underwriting.'
     },
     'mental health':{
-      label:'Mental health',
-      color:'amber',
-      questions:[
-        'Specific condition (depression, anxiety, PTSD, bipolar, other)?',
-        'Date of first episode and most recent episode?',
-        'Duration and severity of episodes?',
-        'Current medication and dosage?',
-        'Any hospitalization or specialist referral?',
-        'Any self-harm or suicidal thoughts (past or present)?',
-        'Time off work due to mental health?',
-        'Current status — are symptoms managed/stable?',
-        'Any alcohol or substance use alongside?',
-        'Talking therapy or counselling — current or past?'
+      label:'Mental health', color:'amber',
+      categories:[
+        {name:'Diagnosis', items:['Specific condition — depression, anxiety, PTSD, bipolar, other?','Date of first episode?']},
+        {name:'Control', items:['Time since last significant episode?','Frequency and severity of episodes?']},
+        {name:'Complications', items:['Any hospital admission?','Any self-harm or suicidal ideation, past or present?','Significant time off work?']},
+        {name:'Treatment', items:['Current medication and dosage?','Talking therapy or counselling — current or past?']},
+        {name:'Lifestyle', items:['Alcohol or substance use alongside?','Current work and social functioning?']}
       ],
-      note:'Single mild episode 2+ years ago, no time off work = often standard terms. Recent, recurrent, or severe episodes attract loading or IP exclusion. CIC typically excludes mental health claims entirely.'
+      note:'Around 2 years symptom-stable is a common informal threshold for standard rates. Treatment is read as management, not risk. Hospital admissions or self-harm history move underwriting most. CIC typically excludes mental health claims entirely; IP may carry an exclusion rather than a decline.'
     },
     'ms':{
-      label:'Multiple sclerosis',
-      color:'red',
-      questions:[
-        'Date of diagnosis?',
-        'Type of MS (relapsing-remitting, secondary progressive, primary progressive)?',
-        'Frequency and severity of relapses?',
-        'Date and details of last relapse?',
-        'Current symptoms (fatigue, mobility, vision, cognitive)?',
-        'Current treatment/medication (disease-modifying therapy)?',
-        'Impact on daily activities and work?',
-        'Any mobility aids used?',
-        'MRI results — number and location of lesions?',
-        'Current neurologist and last review date?'
+      label:'Multiple sclerosis', color:'red',
+      categories:[
+        {name:'Diagnosis', items:['Date of diagnosis?','Type — relapsing-remitting, secondary progressive, primary progressive?']},
+        {name:'Control', items:['Frequency and severity of relapses?','Date and details of last relapse?','MRI — number and location of lesions?']},
+        {name:'Complications', items:['Current symptoms — fatigue, mobility, vision, cognitive?','Any mobility aids used?']},
+        {name:'Treatment', items:['Current disease-modifying therapy?','Current neurologist and last review date?']},
+        {name:'Lifestyle', items:['Impact on daily activities and work?']}
       ],
-      note:'IP very difficult — most insurers decline for MS. Life cover possible with loading. CIC: MS excluded but cover for cancer/heart/stroke still available. RRMS with low relapse rate gets better terms than progressive forms.'
+      note:'IP is very difficult — most insurers decline. Life cover possible with loading. CIC: MS itself excluded but cover for unrelated conditions (cancer, heart, stroke) remains available. Low relapse-rate RRMS gets materially better terms than progressive forms.'
     },
     'asthma':{
-      label:'Asthma',
-      color:'green',
-      questions:[
-        'Date of diagnosis or first symptoms?',
-        'Current medication (preventer, reliever, both)?',
-        'Frequency of inhaler use?',
-        'Any hospital admissions or A&E visits for asthma?',
-        'Any oral steroid courses in last 2 years?',
-        'Any time off work due to asthma?',
-        'Any other respiratory conditions (COPD, bronchiectasis)?',
-        'Smoker status?'
+      label:'Asthma', color:'green',
+      categories:[
+        {name:'Diagnosis', items:['Date of diagnosis or first symptoms?']},
+        {name:'Control', items:['Frequency of reliever inhaler use?','Any oral steroid courses in the last 2 years?']},
+        {name:'Complications', items:['Any hospital admissions or A&E visits?','Any other respiratory conditions (COPD, bronchiectasis)?']},
+        {name:'Treatment', items:['Preventer, reliever, or both?']},
+        {name:'Lifestyle', items:['Any time off work due to asthma?','Smoker status?']}
       ],
-      note:'Well-controlled asthma on inhalers only = usually standard terms. Hospital admissions or oral steroids attract loading. Smoking + asthma = significantly worse terms.'
+      note:'Well-controlled on inhalers only, no admissions = usually standard terms. Hospital admissions or oral steroids attract loading. Smoking combined with asthma significantly worsens terms.'
     },
     'heart':{
-      label:'Heart / cardiovascular',
-      color:'red',
-      questions:[
-        'Specific condition (high BP, high cholesterol, angina, heart attack, arrhythmia)?',
-        'Date of diagnosis?',
-        'Current medication and dosage?',
-        'Latest blood pressure reading?',
-        'Latest cholesterol reading (total + ratio)?',
-        'Any surgical procedures (stents, bypass, ablation)?',
-        'Any related conditions (diabetes, kidney disease)?',
-        'Smoker status?',
-        'BMI?',
-        'Family history of heart disease (age of onset)?'
+      label:'Heart / cardiovascular', color:'red',
+      categories:[
+        {name:'Diagnosis', items:['Specific condition — high BP, high cholesterol, angina, heart attack, arrhythmia?','Date of diagnosis?']},
+        {name:'Control', items:['Latest blood pressure reading?','Latest cholesterol reading (total + ratio)?']},
+        {name:'Complications', items:['Any related conditions (diabetes, kidney disease)?','Family history of heart disease — age of onset?']},
+        {name:'Treatment', items:['Current medication and dosage?','Any surgical procedures — stents, bypass, ablation?']},
+        {name:'Lifestyle', items:['Smoker status?','BMI?']}
       ],
       note:'Well-controlled hypertension on medication = often standard or small loading. Post-heart attack: most insurers need 6-12 months, loading likely. Angina or multiple cardiac events = significant loading or decline for some products.'
     },
     'back':{
-      label:'Back / musculoskeletal',
-      color:'green',
-      questions:[
-        'Specific condition (disc prolapse, sciatica, chronic pain, arthritis)?',
-        'Date of onset or diagnosis?',
-        'Any surgery (discectomy, fusion, injection)?',
-        'Current symptoms — constant or intermittent?',
-        'Any time off work in last 2 years?',
-        'Current treatment (physio, medication, none)?',
-        'Impact on daily activities or occupation?',
-        'Occupation involves manual work?'
+      label:'Back / musculoskeletal', color:'green',
+      categories:[
+        {name:'Diagnosis', items:['Specific condition — disc prolapse, sciatica, chronic pain, arthritis?','Date of onset or diagnosis?']},
+        {name:'Control', items:['Current symptoms — constant or intermittent?']},
+        {name:'Complications', items:['Any time off work in the last 2 years?','Impact on daily activities?']},
+        {name:'Treatment', items:['Any surgery — discectomy, fusion, injection?','Current treatment — physio, medication, none?']},
+        {name:'Lifestyle', items:['Occupation involves manual work?']}
       ],
-      note:'Intermittent back pain, no time off work = usually standard. Chronic pain with work absence = IP exclusion likely. Manual workers with MSK history face stricter IP underwriting. MSK is the #2 cause of IP claims (~25%).'
+      note:'Intermittent pain with no work absence = usually standard. Chronic pain with absence = IP exclusion likely. Manual workers with MSK history face stricter IP underwriting — MSK is the #2 cause of IP claims (~25%).'
     }
   };
 
@@ -1175,26 +1137,45 @@
     return [...found];
   }
 
+  function toggleUW(key){
+    const el = document.getElementById('uwtree-'+key);
+    const arrow = document.getElementById('uwarrow-'+key);
+    if(!el) return;
+    const open = el.style.display === 'block';
+    el.style.display = open ? 'none' : 'block';
+    if(arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+  }
+
   function renderUWQuestions(conditions){
     if(!conditions.length) return '';
-    let html = '<div class="uw-section"><h5 style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:28px 0 14px;">Underwriting follow-up questions</h5>';
+    let html = '<div class="uw-section" style="border:1px solid var(--hair);border-radius:14px;overflow:hidden;margin-top:8px;">';
+    html += '<div style="padding:14px 18px;background:#F4F2EB;border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Underwriting reference</div>';
     for(const key of conditions){
       const cond = UW_CONDITIONS[key];
       if(!cond) continue;
       const borderColor = cond.color==='red'?'#B91C1C':cond.color==='amber'?'var(--signal)':'var(--verd)';
-      const bgColor = cond.color==='red'?'rgba(179,28,28,0.05)':cond.color==='amber'?'var(--signal-soft)':'rgba(14,107,92,0.05)';
-      html += `<div class="uw-block" style="border-left:3.5px solid ${borderColor};background:${bgColor};border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:14px;">`;
-      html += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${borderColor};margin-bottom:10px;">${cond.label} — questions to capture</div>`;
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;">';
-      for(const q of cond.questions){
-        html += `<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.45;cursor:pointer;padding:3px 0;">
-          <input type="checkbox" style="margin-top:3px;accent-color:${borderColor};flex:none;">
-          <span>${q}</span>
-        </label>`;
+      const bgColor = cond.color==='red'?'rgba(185,28,28,0.045)':cond.color==='amber'?'rgba(180,84,10,0.05)':'rgba(14,107,92,0.045)';
+      const totalQs = cond.categories.reduce((n,c)=>n+c.items.length,0);
+      html += `<div style="border-bottom:1px solid var(--hair);">`;
+      html += `<div onclick="toggleUW('${key}')" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;background:${bgColor};">
+        <span id="uwarrow-${key}" style="display:inline-block;transition:transform .15s;color:${borderColor};font-size:11px;">▶</span>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${borderColor};flex:1;">${cond.label}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${totalQs} questions</span>
+      </div>`;
+      html += `<div id="uwtree-${key}" style="display:none;padding:6px 18px 18px;">`;
+      for(const cat of cond.categories){
+        html += `<div style="margin-top:14px;">`;
+        html += `<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:${borderColor};margin-bottom:8px;border-left:2px solid ${borderColor};padding-left:8px;">${cat.name}</div>`;
+        for(const q of cat.items){
+          html += `<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;cursor:pointer;padding:4px 0 4px 10px;">
+            <input type="checkbox" style="margin-top:3px;accent-color:${borderColor};flex:none;">
+            <span>${q}</span>
+          </label>`;
+        }
+        html += `</div>`;
       }
-      html += '</div>';
-      html += `<div style="margin-top:12px;padding-top:10px;border-top:1px solid ${borderColor}20;font-size:12px;line-height:1.5;color:var(--ink-soft);font-style:italic;">${cond.note}</div>`;
-      html += '</div>';
+      html += `<div style="margin-top:16px;padding:12px 14px;background:${bgColor};border-radius:8px;font-size:12px;line-height:1.55;color:var(--ink-soft);font-style:italic;">${cond.note}</div>`;
+      html += `</div></div>`;
     }
     html += '</div>';
     return html;

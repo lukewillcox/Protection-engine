@@ -507,12 +507,13 @@
     if(id==='existing') return existingBody();
     if(id==='en') return enBody();
     if(['ip','fib','life','cic'].includes(id)) return quoteBody(id);
-    if(id==='intro'||id==='goals') return editClientsHint();
+    if(id==='intro') return introBody();
+    if(id==='goals') return goalsBody();
     if(id==='close') return renderRatingReview();
     return '';
   }
 
-  function editClientsHint(){
+  function introBody(){
     // On intro: referral dropdown to load a client, then editable fields
     return `<div class="assump" style="margin-bottom:16px">
       <h4>Load a referred client</h4>
@@ -545,6 +546,13 @@
         <div class="fieldset"><label class="fl">Purchase price</label><input class="fi" value="${state.mortgage.price}" oninput="setM('price',this.value)"></div>
         <div class="fieldset"><label class="fl">Term (years)</label><input class="fi" value="${state.mortgage.term}" oninput="setM('term',this.value)"></div>
       </div>
+    </div>`;
+  }
+
+  function goalsBody(){
+    return `<div class="assump" style="margin-bottom:16px">
+      <h4>What's driving this conversation?</h4>
+      <p class="empty-note" style="margin:0 0 4px">Why this property, why now, what they want to protect — capture it in their own words below. This context feeds the AI guidance and links back to the numbers later in the stress test.</p>
     </div>`;
   }
   function clientEditor(key,label){

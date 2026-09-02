@@ -1303,7 +1303,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     // only show on Eligibility & Health step (index 6) but scan ALL notes
     if(step !== 6) return;
     const allText = [
-      state.notes.join(' '),
+      Object.values(state.notes||{}).join(' '),
       state.c1.health||'', state.c2.health||'',
       state.c1.familyHistory||'', state.c2.familyHistory||'',
       state.c1.lifestyle||'', state.c2.lifestyle||''

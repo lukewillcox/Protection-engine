@@ -550,7 +550,15 @@
   }
 
   // ---------- step render ----------
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext(); }
+function clearScriptBox(){
+    if(typeof scriptMode === 'undefined' || scriptMode !== 'script') return;
+    const sbox = document.getElementById('scriptbox');
+    if(sbox && !scriptCache[state.current]){
+      sbox.innerHTML = '<div class="sloading">Writing the script for this stage\u2026</div>';
+    }
+  }
+
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext(); }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){

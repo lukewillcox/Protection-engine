@@ -508,6 +508,7 @@
     if(id==='en') return enBody();
     if(['ip','fib','life','cic'].includes(id)) return quoteBody(id);
     if(id==='intro'||id==='goals') return editClientsHint();
+    if(id==='close') return renderRatingReview();
     return '';
   }
 

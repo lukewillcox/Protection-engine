@@ -1076,9 +1076,12 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const filters = document.getElementById('deckFilters');
     if(m==='script'){
       if(deck) deck.style.display='none';
-      if(sbox) sbox.style.display='block';
-      renderScript();
-      if(!scriptCache[state.current]) fetchScript();
+      if(sbox){
+        sbox.style.display='block';
+        if(!scriptCache[state.current]) sbox.innerHTML = '<div class="sloading">Writing the script for this stage\u2026</div>';
+      }
+      if(scriptCache[state.current]) renderScript();
+      else fetchScript();
     } else {
       if(sbox) sbox.style.display='none';
       if(deck && deckCards.length) deck.style.display='block';
@@ -1286,9 +1289,12 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         const deck0 = document.getElementById('carddeck');
         if(deck0) deck0.style.display='none';
         const sbox0 = document.getElementById('scriptbox');
-        if(sbox0) sbox0.style.display='block';
-        renderScript();
-        if(!scriptCache[idx]) fetchScript();
+        if(sbox0){
+          sbox0.style.display='block';
+          if(!scriptCache[idx]) sbox0.innerHTML = '<div class="sloading">Writing the script for this stage\u2026</div>';
+        }
+        if(scriptCache[idx]) renderScript();
+        else fetchScript();
       } else {
         renderDeckCard();
       }

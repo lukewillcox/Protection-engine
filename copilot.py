@@ -122,20 +122,31 @@ You ALWAYS:
 Return ONLY valid JSON matching:
 {{
   "captured": {{"Dependants":"","Employment":"","Existing cover":"","Health / lifestyle":"","Budget & affordability":"","Protection need":""}},
-  "prompts": [
-    {{"headline":"5-8 WORD HEADLINE","detail":"one actionable sentence","severity":"green|amber|red"}}
-  ],
-  "flags": ["must-document compliance point, under 20 words"],
-  "relevant_facts": ["a short factual point with source in brackets"]
+  "questions": ["a direct question the adviser should ask the client next"],
+  "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
+  "relevant_facts": ["a short factual point with source in brackets"],
+  "flags": ["must-document compliance point, under 20 words"]
 }}
 For captured, fill only fields the notes evidence; leave others "".
-For prompts: 2-4 items. Each MUST be a JSON object with:
-  headline: 5-8 words MAX, caps, the broker scans this first
-  detail: one actionable sentence explaining why this matters
-  severity: green (informational), amber (gap/action needed), red (must document/compliance risk)
-  NOT EVERYTHING IS RED. Use green for factual prompts, amber for gaps, red only for compliance.
-For flags: must-document items only, under 20 words each. Always shown as red.
-Max 4 prompts, max 3 flags.
+
+FOUR DISTINCT CATEGORIES — keep them genuinely separate:
+
+"questions" (2-4): Direct questions to ASK the client at this step. Phrased as
+  questions the adviser says out loud. Specific to this client where possible.
+  e.g. "When exactly does your sick pay drop to half — is it definitely six months?"
+
+"prompts" (2-3): Phrases to SAY — how to explain, frame, or land a point. Not
+  questions. Use the client's real figures where you have them.
+  e.g. "After month nine there is £2,873 a month of income with nothing behind it."
+
+"relevant_facts" (0-3): Evidence and figures — provider knowledge, industry data,
+  or a calculation from their numbers. Put the source in brackets.
+  e.g. "Average IP claim runs 7 years 8 months [industry data]"
+
+"flags" (0-3): Compliance and must-document items only. Under 20 words each.
+  e.g. "Smoker status disclosed — must be recorded for underwriting."
+
+Never state a premium, a specific product, or a recommended cover amount.
 
 For "relevant_facts": include 0-3 SHORT factual points drawn ONLY from the
 provider knowledge supplied in the user message (if any is provided). Each

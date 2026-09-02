@@ -201,6 +201,63 @@
     .snap + .snap{padding-left:18px;}
     .g-cards{grid-template-columns:1fr;}
   }
+
+  /* ── split screen four-panel layout ── */
+  .layout{display:grid;grid-template-columns:236px 0.92fr 1.08fr;gap:0;align-items:start;}
+  .mindcol{background:#FBFAF7;padding:24px 26px 60px;overflow-y:auto;min-height:calc(100vh - 170px);border-left:1px solid var(--hair);}
+  .mind-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .mind-title{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);}
+  .mind-live{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--verd);}
+  .mind-live .d{width:6px;height:6px;border-radius:50%;background:var(--verd);animation:pulse 2.4s ease-in-out infinite;}
+  .mind-live.thinking{color:var(--signal);} .mind-live.thinking .d{background:var(--signal);}
+  .mind-refresh{background:none;border:none;font-family:var(--mono);font-size:10px;letter-spacing:0.06em;color:var(--verd);cursor:pointer;padding:2px 0;margin-left:10px;}
+  .mind-refresh:hover{text-decoration:underline;}
+
+  .qpanel{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+  .qpanel-head{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .qpanel-icon{width:25px;height:25px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none;font-weight:600;}
+  .qpanel-name{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;}
+  .qpanel-count{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:auto;}
+  .qpanel-empty{font-size:12.5px;color:var(--muted);font-style:italic;}
+
+  /* questions */
+  .panel-questions .qpanel-icon{background:var(--verd-soft);color:var(--verd);}
+  .panel-questions .qpanel-name{color:var(--verd);}
+  .qitem{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:13.5px;line-height:1.45;}
+  .qitem:last-child{border-bottom:none;}
+  .qitem .qnum{font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none;padding-top:2px;}
+
+  /* prompts */
+  .panel-prompts .qpanel-icon{background:#EDEAF6;color:#5B4B8A;}
+  .panel-prompts .qpanel-name{color:#5B4B8A;}
+  .sayitem{padding:9px 0 9px 14px;border-left:2px solid #C3B8DD;margin-bottom:8px;font-size:13.5px;line-height:1.5;font-style:italic;}
+  .sayitem:last-child{margin-bottom:0;}
+
+  /* facts */
+  .panel-facts .qpanel-icon{background:#EFF1F0;color:var(--ink);}
+  .panel-facts .qpanel-name{color:var(--ink);}
+  .factitem{display:flex;gap:9px;padding:7px 0;font-size:13px;line-height:1.5;}
+  .factitem .fdot{color:var(--verd);flex:none;}
+  .factsrc{font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+  /* flags */
+  .panel-flags{background:var(--signal-soft);border-color:#EBD3BE;}
+  .panel-flags .qpanel-icon{background:#F0C69A;color:var(--signal);}
+  .panel-flags .qpanel-name{color:var(--signal);}
+  .flagitem{display:flex;gap:9px;padding:7px 0;font-size:13px;line-height:1.45;color:#7A3908;border-bottom:1px solid #EBD3BE;}
+  .flagitem:last-child{border-bottom:none;}
+
+  /* open items */
+  .openpanel{margin-top:18px;padding-top:16px;border-top:1px solid var(--hair);}
+  .openpanel h5{font-family:var(--mono);font-size:9.5px;letter-spacing:0.13em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  .openitem{padding:8px 0 8px 12px;border-left:2px solid var(--signal);margin-bottom:8px;font-size:12.5px;line-height:1.45;}
+  .openitem .ostep{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:0.06em;}
+
+  @media (max-width:1200px){
+    .layout{grid-template-columns:1fr;}
+    .mindcol{border-left:none;border-top:1px solid var(--hair);min-height:auto;}
+  }
+
 </style>
 </head>
 <body>
@@ -288,23 +345,22 @@
       </div>
 
       <!-- GUIDANCE — inline below the step -->
-      <div class="guide-inline">
-        <div class="guide-bar">
-          <div class="guide-bar-left">
-            <span class="guide-pulse"></span>
-            <span class="guide-label">In the margin</span>
-            <span class="guide-step-label" id="guideStepLabel"></span>
-          </div>
-          <div class="guide-bar-right">
-            <div class="guide-status" id="guideStatus"><span class="d"></span> ready</div>
-            <button onclick="requestGuidance()" class="guide-refresh">↻ update</button>
-          </div>
-        </div>
-        <div class="g-passive" id="guidePassive">Notes for this stage appear here as you work, and stay put when you move on.</div>
-        <div id="guideBody"></div>
-      <div id="uwQuestions" style="max-width:700px;"></div>
       </div>
+
+    <!-- MIND COLUMN -->
+    <div class="mindcol">
+      <div class="mind-head">
+        <div class="mind-title">Co-pilot · <span id="guideStepLabel">stage 01</span></div>
+        <div style="display:flex;align-items:center;">
+          <div class="mind-live" id="guideStatus"><span class="d"></span> ready</div>
+          <button onclick="requestGuidance()" class="mind-refresh">↻ update</button>
+        </div>
+      </div>
+      <div class="qpanel-empty" id="guidePassive">Guidance for this stage appears here as you work, and stays put when you move on.</div>
+      <div id="guideBody"></div>
+      <div id="uwQuestions"></div>
     </div>
+  </div>
   </div>
 
 <script>
@@ -683,9 +739,9 @@
 
   function healthBody(){
     const block=(key,c)=>c.active===false?'':`<div class="miniclient" style="margin-bottom:12px"><h3>${c.name||(key==='c1'?'Client 1':'Client 2')}</h3>
-      <div class="fieldset"><label class="fl">Health history (last 5 yrs)</label><textarea class="fi" rows="2" placeholder="e.g. mild asthma, back pain 2023"></textarea></div>
-      <div class="fieldset"><label class="fl">Family history</label><textarea class="fi" rows="2" placeholder="e.g. father heart attack age 60"></textarea></div>
-      <div class="fieldset"><label class="fl">Lifestyle / hobbies (risk activities)</label><input class="fi" placeholder="e.g. rock climbing, motorcycling"></div>
+      <div class="fieldset"><label class="fl">Health history (last 5 yrs)</label><textarea class="fi" rows="2" placeholder="e.g. mild asthma, back pain 2023" oninput="setC('${key}','health',this.value);checkUWDebounced();">${c.health||''}</textarea></div>
+      <div class="fieldset"><label class="fl">Family history</label><textarea class="fi" rows="2" placeholder="e.g. father heart attack age 60" oninput="setC('${key}','familyHistory',this.value);checkUWDebounced();">${c.familyHistory||''}</textarea></div>
+      <div class="fieldset"><label class="fl">Lifestyle / hobbies (risk activities)</label><input class="fi" placeholder="e.g. rock climbing, motorcycling" value="${c.lifestyle||''}" oninput="setC('${key}','lifestyle',this.value);checkUWDebounced();"></div>
     </div>`;
     return `<div class="row2">${block('c1',state.c1)}${state.c2.active?block('c2',state.c2):''}</div>
       <p class="empty-note">These factors affect price and acceptance — capture live to pre-empt underwriting questions. Health notes here are for the fact-find; enter minimal detail and rely on your sourcing tool for full underwriting.</p>`;
@@ -833,41 +889,65 @@
 
   function renderGuide(out, stepIdx){
     let html='';
-    // new traffic-light format (prompts with headline+detail+severity)
-    const prompts=out.prompts||out.coverage_prompts||[];
+    const questions = out.questions || [];
+    const prompts = out.prompts || [];
+    const facts = out.relevant_facts || [];
+    const flags = out.flags || [];
+
+    // 1. QUESTIONS TO ASK
+    html += '<div class="qpanel panel-questions"><div class="qpanel-head"><div class="qpanel-icon">?</div><div class="qpanel-name">Questions to ask</div><div class="qpanel-count">'+questions.length+'</div></div>';
+    if(questions.length){
+      questions.forEach((q,i)=>{
+        const text = typeof q === 'string' ? q : (q.headline || q.detail || '');
+        html += '<div class="qitem"><span class="qnum">'+String(i+1).padStart(2,'0')+'</span><span>'+esc(text)+'</span></div>';
+      });
+    } else {
+      html += '<div class="qpanel-empty">No questions yet for this stage.</div>';
+    }
+    html += '</div>';
+
+    // 2. PROMPTS TO SAY
+    html += '<div class="qpanel panel-prompts"><div class="qpanel-head"><div class="qpanel-icon">&#8220;</div><div class="qpanel-name">Prompts to say</div><div class="qpanel-count">'+prompts.length+'</div></div>';
     if(prompts.length){
-      html+=`<div class="guide-section"><h5>Guidance</h5><div class="g-cards">`;
-      html+=prompts.map(p=>{
-        if(typeof p==='string') return `<div class="g-card g-green"><div class="g-head">${esc(p)}</div></div>`;
-        // handle both old format (observation/consider) and new (headline/detail/severity)
-        const sev=p.severity||'green';
-        const head=p.headline||p.observation||'';
-        const detail=p.detail||p.consider||'';
-        return `<div class="g-card g-${sev}"><div class="g-head">${esc(head)}</div><div class="g-detail">${esc(detail)}</div></div>`;
-      }).join('');
-      html+=`</div></div>`;
+      prompts.forEach(p=>{
+        const text = typeof p === 'string' ? p : (p.detail || p.headline || '');
+        html += '<div class="sayitem">&#8220;'+esc(text)+'&#8221;</div>';
+      });
+    } else {
+      html += '<div class="qpanel-empty">No prompts yet for this stage.</div>';
     }
-    // gaps (always amber)
-    if(out.gaps&&out.gaps.length){
-      html+=`<div class="guide-section"><h5>Gaps</h5><div class="g-cards">`;
-      html+=out.gaps.map(g=>`<div class="g-card g-amber"><div class="g-head">${esc(typeof g==='string'?g:g.headline||g)}</div>${typeof g==='object'&&g.detail?'<div class="g-detail">'+esc(g.detail)+'</div>':''}</div>`).join('');
-      html+=`</div></div>`;
+    html += '</div>';
+
+    // 3. FACTS & KNOWLEDGE
+    if(facts.length){
+      html += '<div class="qpanel panel-facts"><div class="qpanel-head"><div class="qpanel-icon">&#10022;</div><div class="qpanel-name">Facts &amp; knowledge</div><div class="qpanel-count">'+facts.length+'</div></div>';
+      facts.forEach(f=>{
+        html += '<div class="factitem"><span class="fdot">&bull;</span><span>'+esc(f)+'</span></div>';
+      });
+      html += '</div>';
     }
-    // relevant facts (always green, compact)
-    if(out.relevant_facts&&out.relevant_facts.length){
-      html+=`<div class="guide-section"><h5>Evidence</h5><div class="g-cards">`;
-      html+=out.relevant_facts.map(f=>`<div class="g-card g-fact-card"><div class="g-detail">${esc(f)}</div></div>`).join('');
-      html+=`</div></div>`;
+
+    // 4. FLAGS
+    if(flags.length){
+      html += '<div class="qpanel panel-flags"><div class="qpanel-head"><div class="qpanel-icon">!</div><div class="qpanel-name">Flags &middot; to document</div><div class="qpanel-count">'+flags.length+'</div></div>';
+      flags.forEach(f=>{
+        html += '<div class="flagitem"><span>&rarr;</span><span>'+esc(f)+'</span></div>';
+      });
+      html += '</div>';
     }
+
     return html;
   }
 
   function renderOpenItems(){
     if(!openItems.length) return '';
-    return `<div class="guide-section" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--hair)">
-      <h5>Open across this case (${openItems.length})</h5>`
-      +openItems.map(o=>`<div class="g-flag">${esc(o.text)}<span style="display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:0.06em">step ${o.step+1} · ${esc(STEPS[o.step]?STEPS[o.step].title:'')}</span></div>`).join('')
-      +`</div>`;
+    let h = '<div class="openpanel"><h5>Open across this case ('+openItems.length+')</h5>';
+    openItems.forEach(o=>{
+      const stepName = STEPS[o.step] ? STEPS[o.step].title : '';
+      h += '<div class="openitem">'+esc(o.text)+'<span class="ostep">step '+(o.step+1)+' &middot; '+esc(stepName)+'</span></div>';
+    });
+    h += '</div>';
+    return h;
   }
 
   // paint whatever is cached for the current step, plus the running open items
@@ -1183,6 +1263,8 @@
 
   // watch for health disclosures and render questions
   let uwTimer;
+  let uwDebounceTimer;
+  function checkUWDebounced(){ clearTimeout(uwDebounceTimer); uwDebounceTimer = setTimeout(checkUW, 500); }
   function checkUW(){
     const step = state.current;
     // only show on Eligibility & Health step (index 6) but scan ALL notes

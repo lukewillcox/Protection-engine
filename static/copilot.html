@@ -1019,6 +1019,31 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     flag:{icon:'!', name:'Flag \u00B7 to document'}
   };
 
+// Build a block of already-calculated figures so the AI never does its own maths
+  function calculatedFigures(){
+    try{
+      const h = household();
+      const a = state.assumptions || {};
+      const mortgage = num(state.mortgage.amount);
+      const lines = [];
+      if(mortgage) lines.push('Mortgage balance: ' + gm(mortgage));
+      if(state.mortgage.payment) lines.push('Monthly mortgage payment: ' + gm(num(state.mortgage.payment)));
+      if(h && h.netMonthly) lines.push('Household net income per month: ' + gm(h.netMonthly));
+      [['c1', state.c1], ['c2', state.c2]].forEach(([k, c])=>{
+        if(!c || (k==='c2' && !c.active)) return;
+        const nm = c.name || (k==='c1' ? 'Client 1' : 'Client 2');
+        const sick = num(k==='c1' ? a.c1sick : a.c2sick);
+        const sav = num(a.savings);
+        const salary = num(c.salary);
+        const dis = num(a.dis||0) * salary;
+        if(sick || sav) lines.push(nm + ' income lasts: ' + (sick + sav) + ' months total (' + sick + ' months sick pay + ' + sav + ' months savings)');
+        if(dis) lines.push(nm + ' death-in-service cover: ' + gm(dis));
+        if(dis && mortgage) lines.push(nm + ' life cover gap vs mortgage: ' + gm(Math.max(0, mortgage - dis)));
+      });
+      return lines.length ? 'CALCULATED FIGURES (these are correct - quote exactly, do not recompute):\n' + lines.join('\n') : '';
+    }catch(e){ return ''; }
+  }
+
   function buildDeck(out){
     const cards = [];
     (out.questions||[]).forEach(q=>{

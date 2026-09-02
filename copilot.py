@@ -156,6 +156,54 @@ vary by insurer [Zurich, L&G]". Put the provider/source in brackets. NEVER
 state a premium or recommend a specific product. If no provider knowledge is
 relevant or supplied, return an empty array"""
 
+SCRIPT_SYSTEM = """You write a read-aloud SCRIPT for a UK FCA-regulated protection
+adviser to use during a live client call. The adviser may not be a natural
+salesperson — they need something they can genuinely read from, almost verbatim.
+
+You are given: the step of the call they are on, that step's purpose, and
+everything captured about the client so far.
+
+Write a short script for THIS STEP ONLY. It must:
+- Sound like natural spoken English, not written prose. Short sentences.
+- Use the client's REAL details (name, job, figures, goals) wherever known.
+- Flow — each line should lead naturally to the next, with connective phrases.
+- Stay strictly within this step's purpose. Do not drift into later topics.
+- Include coaching notes for likely client reactions (silence, pushback,
+  confusion) — these are the most valuable part for a nervous adviser.
+
+ARITHMETIC — CRITICAL:
+- NEVER do your own arithmetic, sequencing, or timeline reasoning.
+  Do not work out when savings run out, how months stack up, or what
+  happens in which order. You get this wrong and the adviser may read
+  it aloud to a client.
+- If a CALCULATED FIGURES block is supplied below, quote those numbers
+  exactly as given. They are already correct.
+- If a figure you want is NOT supplied, describe the situation
+  qualitatively instead ("your income would drop significantly at that
+  point") rather than inventing a number or a sequence.
+
+STRICT COMPLIANCE BOUNDARIES (non-negotiable):
+- NEVER state a premium, a specific product, a provider name, or a
+  recommended cover amount.
+- NEVER use pressure or urgency tactics ("you need to act now", "this could
+  run out"). Frame needs honestly, let the client decide.
+- Reflecting the client's OWN figures back as exposure is fine.
+  Calculating a recommended cover amount is NOT.
+- This is needs discovery and education, not selling.
+
+Return ONLY valid JSON:
+{"blocks": [
+  {"cue": "SHORT CUE LABEL IN CAPS", "type": "say", "text": "what to say, verbatim"},
+  {"cue": "IF THEY GO QUIET", "type": "coach", "text": "what to do / how to handle it"}
+]}
+
+- "type":"say"   = words the adviser reads out loud
+- "type":"coach" = guidance TO the adviser, not spoken aloud
+- 4-7 blocks total. Cue labels like: OPEN, ASK, THEN ASK, LAND THE NUMBER,
+  LINK TO THEIR GOAL, IF THEY PUSH BACK, BEFORE MOVING ON.
+- Keep each "say" block to 1-3 sentences. Readable in one breath."""
+
+
 PROMPTS_SYSTEM = """You help a UK protection adviser during a live client call by
 generating 3 ready-to-say conversation prompts for the step they are about to move to.
 
@@ -274,6 +322,23 @@ def extract_lead_from_email(email_text: str) -> dict:
 def generate_prep(email_text: str) -> dict:
     return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE)
 
+
+STEP_PURPOSE = {
+    "Introduction": "Build rapport, explain who you are and the process, confirm who is in the room and why they are here. Do NOT ask about income breakdown, health, or run stress-test numbers yet - that comes later. Keep it warm and simple.",
+    "Goals & Motivations": "Understand their why - why this property, why now, what they want to protect. Stay on motivations, not detailed figures yet.",
+    "Confirm Factfind": "Confirm income, address, mortgage stage, job roles, children, future plans are captured accurately.",
+    "Existing Cover": "Establish what cover already exists - provider, type, sum, premium, portability.",
+    "Income Stress Test": "This IS the place for detailed what-if numbers, sick pay, savings runway, and cliff-edge questions.",
+    "Stress Test Questions": "Walk the client through what happens if income stops - make the risk concrete.",
+    "Eligibility & Health": "Ask health, lifestyle, family history for underwriting. This is the place for condition-specific follow-ups.",
+    "Essential vs Needed": "Split what is essential (goals at risk) from needed (nice to have).",
+    "Income Protection": "Focus on IP - deferred period, benefit level, own vs any occupation.",
+    "Family Income Benefit": "Focus on FIB - term length, dependants, why FIB vs lump sum.",
+    "Life Cover": "Focus on life cover - level vs decreasing, joint vs single, trust.",
+    "Critical Illness": "Focus on CIC - what it covers, how it differs from IP.",
+    "Close & Next Steps": "Agree actions, next steps, confirm documentation.",
+}
+
 def register_copilot_routes(app):
 
     @app.post("/copilot/analyze")
@@ -323,6 +388,35 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
+
+    @app.post("/copilot/script")
+    def copilot_script():
+        data = request.get_json(silent=True) or {}
+        notes = (data.get("notes") or "").strip()
+        step = (data.get("step") or "").strip()
+        if not step:
+            return jsonify({"blocks": []}), 200
+        try:
+            kb = get_relevant_knowledge(notes, k=4) if notes else ""
+            purpose = STEP_PURPOSE.get(step, "") if "STEP_PURPOSE" in dir() else ""
+            user_content = "Step of the call: " + step + "\n"
+            if purpose:
+                user_content += "This step is for: " + purpose + "\n"
+            user_content += "\n"
+            if notes:
+                user_content += "Everything captured about this client so far:\n\n" + notes
+            else:
+                user_content += "Nothing captured yet - write a sensible general script for this step."
+            if kb:
+                user_content += (
+                    "\n\n---\nRelevant factual knowledge (use only if genuinely "
+                    "relevant; never quote a premium or recommend a product):\n\n" + kb
+                )
+            return jsonify(claude_json(SCRIPT_SYSTEM, user_content, MODEL_ANALYZE))
+        except Exception:
+            log.exception("copilot script failed")
+            return jsonify({"blocks": []}), 200
+
 
     @app.post("/copilot/rate")
     def copilot_rate():

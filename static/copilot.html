@@ -1114,7 +1114,7 @@
   // ── Underwriting follow-up questions (deterministic, instant) ──
   const UW_CONDITIONS = {
     'diabetes':{
-      label:'Diabetes', color:'amber',
+      label:'Diabetes', color:'amber', insurability:'standard', insurabilityNote:'Type 2 with good control: standard market, often standard/near-standard terms. Type 1 or poorly controlled: may need a specialist insurer.',
       categories:[
         {name:'Diagnosis', items:['Type 1 or Type 2?','Age at diagnosis?','Date of diagnosis?','Was it gestational — has it resolved postpartum?']},
         {name:'Control', items:['Latest HbA1c reading and date?','HbA1c trend over last 2-3 readings — stable or rising?','Any severe hypoglycaemic episodes?','Any DKA (diabetic ketoacidosis) history?']},
@@ -1125,7 +1125,7 @@
       note:'Well-controlled (HbA1c <53 mmol/mol / 7%), no complications, healthy BMI, non-smoker = often standard or near-standard rates. Type 2 diagnosed later in life with good control is viewed favourably. Complications materially affect terms.'
     },
     'cancer':{
-      label:'Cancer history', color:'red',
+      label:'Cancer history', color:'red', insurability:'specialist', insurabilityNote:'Mainstream insurers often need 2-5+ years remission. Within that window, specialist/impaired-risk insurers are usually the route — cover is available, just not from every insurer.',
       categories:[
         {name:'Diagnosis', items:['Type and site of cancer?','Date of diagnosis?','Stage and grade at diagnosis?']},
         {name:'Control', items:['Current status — full remission?','Date of last follow-up and result?','Surveillance plan going forward?']},
@@ -1136,7 +1136,7 @@
       note:'Most insurers need 2-5 years post-treatment for life cover; longer for higher-risk cancers. CIC typically excludes related cancers. Clean follow-up letters and a documented remission trajectory materially speed underwriting.'
     },
     'mental health':{
-      label:'Mental health', color:'amber',
+      label:'Mental health', color:'amber', insurability:'loaded', insurabilityNote:'Mainstream market for most cases. Recent/severe episodes or hospitalisation may mean a loading or exclusion; long-stable history often gets close to standard.',
       categories:[
         {name:'Diagnosis', items:['Specific condition — depression, anxiety, PTSD, bipolar, other?','Date of first episode?']},
         {name:'Control', items:['Time since last significant episode?','Frequency and severity of episodes?']},
@@ -1147,7 +1147,7 @@
       note:'Around 2 years symptom-stable is a common informal threshold for standard rates. Treatment is read as management, not risk. Hospital admissions or self-harm history move underwriting most. CIC typically excludes mental health claims entirely; IP may carry an exclusion rather than a decline.'
     },
     'ms':{
-      label:'Multiple sclerosis', color:'red',
+      label:'Multiple sclerosis', color:'red', insurability:'specialist', insurabilityNote:'Life cover available via specialist insurers, usually with a loading. Income protection is very difficult — most insurers decline IP specifically for MS.',
       categories:[
         {name:'Diagnosis', items:['Date of diagnosis?','Type — relapsing-remitting, secondary progressive, primary progressive?']},
         {name:'Control', items:['Frequency and severity of relapses?','Date and details of last relapse?','MRI — number and location of lesions?']},
@@ -1158,7 +1158,7 @@
       note:'IP is very difficult — most insurers decline. Life cover possible with loading. CIC: MS itself excluded but cover for unrelated conditions (cancer, heart, stroke) remains available. Low relapse-rate RRMS gets materially better terms than progressive forms.'
     },
     'asthma':{
-      label:'Asthma', color:'green',
+      label:'Asthma', color:'green', insurability:'standard', insurabilityNote:'Well-controlled asthma is mainstream, standard-market territory. Only severe/hospitalised cases move toward loading.',
       categories:[
         {name:'Diagnosis', items:['Date of diagnosis or first symptoms?']},
         {name:'Control', items:['Frequency of reliever inhaler use?','Any oral steroid courses in the last 2 years?']},
@@ -1169,7 +1169,7 @@
       note:'Well-controlled on inhalers only, no admissions = usually standard terms. Hospital admissions or oral steroids attract loading. Smoking combined with asthma significantly worsens terms.'
     },
     'heart':{
-      label:'Heart / cardiovascular', color:'red',
+      label:'Heart / cardiovascular', color:'red', insurability:'loaded', insurabilityNote:'Mainstream market, but expect a loading proportional to severity. Recent events (heart attack, stroke) may need a waiting period before a mainstream insurer will quote.',
       categories:[
         {name:'Diagnosis', items:['Specific condition — high BP, high cholesterol, angina, heart attack, arrhythmia?','Date of diagnosis?']},
         {name:'Control', items:['Latest blood pressure reading?','Latest cholesterol reading (total + ratio)?']},
@@ -1180,7 +1180,7 @@
       note:'Well-controlled hypertension on medication = often standard or small loading. Post-heart attack: most insurers need 6-12 months, loading likely. Angina or multiple cardiac events = significant loading or decline for some products.'
     },
     'back':{
-      label:'Back / musculoskeletal', color:'green',
+      label:'Back / musculoskeletal', color:'green', insurability:'standard', insurabilityNote:'Mainstream market for most cases. Only chronic, disabling MSK conditions with work absence tend to need specialist placement or IP exclusions.',
       categories:[
         {name:'Diagnosis', items:['Specific condition — disc prolapse, sciatica, chronic pain, arthritis?','Date of onset or diagnosis?']},
         {name:'Control', items:['Current symptoms — constant or intermittent?']},
@@ -1189,7 +1189,30 @@
         {name:'Lifestyle', items:['Occupation involves manual work?']}
       ],
       note:'Intermittent pain with no work absence = usually standard. Chronic pain with absence = IP exclusion likely. Manual workers with MSK history face stricter IP underwriting — MSK is the #2 cause of IP claims (~25%).'
+    },
+    'terminal':{
+      label:'Terminal / life-limiting diagnosis', color:'red', insurability:'decline', insurabilityNote:'Prognosis under 12-24 months is a near-universal decline for new life cover at any mainstream or specialist insurer. Be direct with the client early — this protects the relationship and their time.',
+      categories:[
+        {name:'Diagnosis', items:['Condition and prognosis given by the consultant?','Date of diagnosis?']},
+        {name:'Control', items:['Current stage and trajectory?']},
+        {name:'Complications', items:['Any existing cover already in place that might still respond (e.g. terminal illness benefit on an old policy)?']},
+        {name:'Treatment', items:['Current treatment — palliative or active?']},
+        {name:'Lifestyle', items:['Any dependants whose needs should be addressed via other planning (will, POA, existing policies)?']}
+      ],
+      note:'New life/CIC/IP cover is very unlikely to be available. Redirect the conversation: check for existing terminal illness benefit on current policies, and consider whether other planning (will, LPA, estate) is the more useful conversation right now.'
+    },
+    'substance':{
+      label:'Current substance use', color:'red', insurability:'decline', insurabilityNote:'Current, untreated alcohol or drug misuse is a common decline reason. Insurers generally want a sustained period of abstinence/stability before considering an application.',
+      categories:[
+        {name:'Diagnosis', items:['Substance and pattern of use?','How long has this been going on?']},
+        {name:'Control', items:['Currently using, or in recovery? How long stable/abstinent?']},
+        {name:'Complications', items:['Any related health issues (liver, mental health)?','Any convictions related to use?']},
+        {name:'Treatment', items:['In a treatment programme? Support in place?']},
+        {name:'Lifestyle', items:['Current work and living stability?']}
+      ],
+      note:'Most insurers want 12+ months of documented stability/abstinence before quoting. Revisit the conversation once there is a track record — be honest with the client about the timeline rather than sourcing quotes that will likely decline.'
     }
+
   };
 
   // aliases so different phrasings trigger the right condition
@@ -1200,7 +1223,7 @@
     'multiple sclerosis':'ms','m.s.':'ms','m.s':'ms','relapsing':'ms',
     'asthma':'asthma','inhaler':'asthma','bronchitis':'asthma','respiratory':'asthma',
     'heart':'heart','cardiac':'heart','blood pressure':'heart','hypertension':'heart','cholesterol':'heart','angina':'heart','heart attack':'heart','arrhythmia':'heart','atrial fibrillation':'heart','af':'heart','stent':'heart',
-    'back pain':'back','sciatica':'back','disc':'back','prolapse':'back','arthritis':'back','joint':'back','musculoskeletal':'back','msk':'back','fibromyalgia':'back'
+    'back pain':'back', 'terminal':'terminal','terminal illness':'terminal','end of life':'terminal','palliative':'terminal','months to live':'terminal', 'alcoholic':'substance','alcohol dependency':'substance','drug use':'substance','substance abuse':'substance','addiction':'substance','sciatica':'back','disc':'back','prolapse':'back','arthritis':'back','joint':'back','musculoskeletal':'back','msk':'back','fibromyalgia':'back'
   };
 
   function detectConditions(text){
@@ -1264,8 +1287,18 @@ function setUWAnswer(condKey, qIdx, field, value){
       html += `<div onclick="toggleUW('${key}')" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;background:${bgColor};">
         <span id="uwarrow-${key}" style="display:inline-block;transition:transform .15s;color:${borderColor};font-size:11px;">▶</span>
         <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${borderColor};flex:1;">${cond.label}</span>
-        <span id="uwcount-${key}" style="font-family:var(--mono);font-size:10px;color:var(--muted);">${answeredNow} of ${totalQs} answered</span>
+        <span id="uwcount-${key}" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-right:10px;">${answeredNow} of ${totalQs} answered</span>
       </div>`;
+      // insurability badge row
+      const tierLabels = {standard:'STANDARD MARKET', loaded:'LOADED / EXCLUDED', specialist:'SPECIALIST MARKET', decline:'LIKELY DECLINE'};
+      const tierColors = {standard:'var(--verd)', loaded:'var(--signal)', specialist:'#B45309', decline:'#B91C1C'};
+      const tierBg = {standard:'var(--verd-soft)', loaded:'var(--signal-soft)', specialist:'#FBEEDB', decline:'rgba(185,28,28,0.08)'};
+      if(cond.insurability){
+        html += `<div style="padding:8px 18px 12px;background:${bgColor};display:flex;align-items:center;gap:10px;">
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:0.08em;font-weight:600;padding:3px 9px;border-radius:99px;background:${tierBg[cond.insurability]};color:${tierColors[cond.insurability]};">${tierLabels[cond.insurability]}</span>
+          <span style="font-size:11.5px;color:var(--ink-soft);line-height:1.4;">${cond.insurabilityNote||''}</span>
+        </div>`;
+      }
       html += `<div id="uwtree-${key}" style="display:none;padding:6px 18px 18px;">`;
       let qIdx = 0;
       for(const cat of cond.categories){

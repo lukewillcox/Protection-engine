@@ -258,6 +258,44 @@
     .mindcol{border-left:none;border-top:1px solid var(--hair);min-height:auto;}
   }
 
+
+  /* ── card deck ── */
+  .layout{display:grid;grid-template-columns:1fr 430px;gap:0;align-items:start;}
+  .rail{display:none;}
+  .deckfilters{display:flex;gap:5px;margin-bottom:11px;flex-wrap:wrap;}
+  .fchip{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 9px;border-radius:99px;border:1px solid var(--hair-strong);background:none;cursor:pointer;color:var(--muted);}
+  .fchip.on{background:var(--ink);color:var(--porcelain);border-color:var(--ink);}
+  .deck{display:flex;align-items:stretch;gap:8px;margin-bottom:11px;}
+  .dnav{flex:none;width:34px;border:1px solid var(--hair-strong);background:#fff;border-radius:10px;cursor:pointer;color:var(--muted);font-size:15px;display:flex;align-items:center;justify-content:center;transition:.12s;}
+  .dnav:hover:not(:disabled){border-color:var(--verd);color:var(--verd);}
+  .dnav:disabled{opacity:.3;cursor:default;}
+  .dcard{flex:1;min-width:0;background:#fff;border:1px solid var(--hair);border-radius:14px;padding:16px 18px;min-height:170px;display:flex;flex-direction:column;}
+  .dtype{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .dicon{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;font-weight:600;}
+  .dname{font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;}
+  .dbody{font-size:15px;line-height:1.55;flex:1;}
+  .dbody.say{font-style:italic;}
+  .dsrc{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;}
+  .t-question .dicon{background:var(--verd-soft);color:var(--verd);} .t-question .dname{color:var(--verd);}
+  .t-prompt .dicon{background:#EDEAF6;color:#5B4B8A;} .t-prompt .dname{color:#5B4B8A;}
+  .t-fact .dicon{background:#EFF1F0;color:var(--muted);} .t-fact .dname{color:var(--ink);}
+  .t-flag .dicon{background:#F0C69A;color:var(--signal);} .t-flag .dname{color:var(--signal);}
+  .ddots{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:8px;flex-wrap:wrap;}
+  .dd{width:6px;height:6px;border-radius:50%;background:var(--hair-strong);cursor:pointer;transition:.12s;}
+  .dd.on{background:var(--verd);width:18px;border-radius:99px;}
+  .dd.flagdot{background:#E8C8A6;} .dd.flagdot.on{background:var(--signal);}
+  .dkbd{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;}
+
+  /* ── bottom progress bar ── */
+  .btmbar{position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--hair);background:#fff;padding:8px 24px;display:flex;align-items:center;gap:14px;z-index:30;}
+  .btmsteps{display:flex;gap:4px;flex:1;overflow-x:auto;}
+  .bst{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;cursor:pointer;font-size:12px;color:var(--muted);white-space:nowrap;border:1px solid transparent;}
+  .bst:hover{background:#F4F2EB;}
+  .bst.on{background:var(--verd-soft);color:var(--verd);font-weight:600;border-color:#CBE0D9;}
+  .bst.done{color:var(--ink);}
+  .bst .bn{font-family:var(--mono);font-size:9.5px;opacity:.6;}
+  body{padding-bottom:52px;}
+
 </style>
 </head>
 <body>
@@ -357,7 +395,17 @@
         </div>
       </div>
       <div class="qpanel-empty" id="guidePassive">Guidance for this stage appears here as you work, and stays put when you move on.</div>
-      <div id="guideBody"></div>
+      <div id="carddeck" style="display:none;">
+        <div class="deckfilters" id="deckFilters"></div>
+        <div class="deck">
+          <button class="dnav" id="deckPrev" onclick="deckMove(-1)">&lsaquo;</button>
+          <div class="dcard" id="deckCard"></div>
+          <button class="dnav" id="deckNext" onclick="deckMove(1)">&rsaquo;</button>
+        </div>
+        <div class="ddots" id="deckDots"></div>
+        <div class="dkbd">&larr; &rarr; arrow keys to flick through</div>
+      </div>
+      <div id="guideBody" style="display:none;"></div>
       <div id="uwQuestions"></div>
     </div>
   </div>
@@ -962,6 +1010,89 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     pendingRatings.length = 0;
   }
 
+// ── card deck ──
+  let deckCards = [], deckIdx = 0, deckFilter = 'all';
+  const DECK_TYPES = {
+    question:{icon:'?', name:'Question to ask'},
+    prompt:{icon:'\u201C', name:'Prompt to say'},
+    fact:{icon:'\u2726', name:'Fact & knowledge'},
+    flag:{icon:'!', name:'Flag \u00B7 to document'}
+  };
+
+  function buildDeck(out){
+    const cards = [];
+    (out.questions||[]).forEach(q=>{
+      const t = typeof q === 'string' ? q : (q.headline||q.detail||'');
+      if(t) cards.push({type:'question', text:t});
+    });
+    (out.prompts||[]).forEach(p=>{
+      const t = typeof p === 'string' ? p : (p.detail||p.headline||'');
+      if(t) cards.push({type:'prompt', text:t});
+    });
+    (out.relevant_facts||[]).forEach(f=>{ if(f) cards.push({type:'fact', text:f}); });
+    (out.flags||[]).forEach(f=>{ if(f) cards.push({type:'flag', text:f}); });
+    return cards;
+  }
+
+  function deckVisible(){
+    return deckFilter === 'all' ? deckCards : deckCards.filter(c=>c.type===deckFilter);
+  }
+
+  function renderDeckFilters(){
+    const counts = {all: deckCards.length};
+    deckCards.forEach(c=>counts[c.type] = (counts[c.type]||0)+1);
+    const opts = [['all','All'],['question','Ask'],['prompt','Say'],['fact','Facts'],['flag','Flags']];
+    const el = document.getElementById('deckFilters');
+    if(el) el.innerHTML = opts.filter(o=>counts[o[0]]).map(([k,l])=>
+      `<button class="fchip ${deckFilter===k?'on':''}" onclick="setDeckFilter('${k}')">${l} ${counts[k]||0}</button>`).join('');
+  }
+  function setDeckFilter(f){ deckFilter=f; deckIdx=0; renderDeckFilters(); renderDeckCard(); }
+
+  function renderDeckCard(){
+    const list = deckVisible();
+    const card = document.getElementById('deckCard');
+    if(!card) return;
+    if(!list.length){
+      card.className='dcard';
+      card.innerHTML='<div class="dbody" style="color:var(--muted);font-style:italic;">Nothing here yet for this stage.</div>';
+      document.getElementById('deckDots').innerHTML='';
+      return;
+    }
+    if(deckIdx >= list.length) deckIdx = list.length-1;
+    const c = list[deckIdx], t = DECK_TYPES[c.type];
+    card.className = 'dcard t-'+c.type;
+    const safeText = esc(c.text).replace(/'/g, "&#39;");
+    card.innerHTML = `
+      <div class="dtype"><div class="dicon">${t.icon}</div><div class="dname">${t.name}</div></div>
+      <div class="dbody ${c.type==='prompt'?'say':''}">${c.type==='prompt'?'\u201C'+esc(c.text)+'\u201D':esc(c.text)}</div>
+      ${typeof rateBar === 'function' ? rateBar(c.type==='question'?'questions':c.type==='prompt'?'prompts':c.type==='fact'?'facts':'flags', c.text) : ''}`;
+    const label = document.getElementById('guideStepLabel');
+    if(label) label.textContent = `card ${deckIdx+1} of ${list.length}`;
+    document.getElementById('deckPrev').disabled = deckIdx===0;
+    document.getElementById('deckNext').disabled = deckIdx===list.length-1;
+    document.getElementById('deckDots').innerHTML = list.map((c,i)=>
+      `<span class="dd ${i===deckIdx?'on':''} ${c.type==='flag'?'flagdot':''}" onclick="deckIdx=${i};renderDeckCard()"></span>`).join('');
+  }
+  function deckMove(d){
+    const l = deckVisible();
+    deckIdx = Math.max(0, Math.min(l.length-1, deckIdx+d));
+    renderDeckCard();
+  }
+
+  document.addEventListener('keydown', e=>{
+    if(document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+    if(e.key==='ArrowLeft') deckMove(-1);
+    if(e.key==='ArrowRight') deckMove(1);
+  });
+
+  // ── bottom progress bar ──
+  function renderBottomBar(){
+    const el = document.getElementById('btmSteps');
+    if(!el) return;
+    el.innerHTML = STEPS.map((s,i)=>
+      `<div class="bst ${i===state.current?'on':''} ${state.complete[i]?'done':''}" onclick="goto(${i})"><span class="bn">${String(i+1).padStart(2,'0')}</span>${s.title}</div>`).join('');
+  }
+
   function renderGuide(out, stepIdx){
     let html='';
     const questions = out.questions || [];
@@ -1027,22 +1158,25 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
 
   // paint whatever is cached for the current step, plus the running open items
   function paintGuide(){
-    const idx=state.current;
-    const cached=guidanceCache[idx];
-    const body=document.getElementById('guideBody');
-    const passive=document.getElementById('guidePassive');
-    const label=document.getElementById('guideStepLabel');
-    if(label) label.textContent='stage '+String(idx+1).padStart(2,'0')+' notes';
-    if(!body) return;
-    // always show pre-made prompts first (instant, no delay)
-    let content = renderPremadePrompts(idx);
+    const idx = state.current;
+    const cached = guidanceCache[idx];
+    const passive = document.getElementById('guidePassive');
+    const deck = document.getElementById('carddeck');
+    const label = document.getElementById('guideStepLabel');
     if(cached){
-      passive.style.display='none';
-      content += renderGuide(cached, idx);
+      deckCards = buildDeck(cached);
+      deckIdx = 0; deckFilter = 'all';
+      if(passive) passive.style.display = 'none';
+      if(deck) deck.style.display = 'block';
+      renderDeckFilters();
+      renderDeckCard();
+    } else {
+      deckCards = [];
+      if(deck) deck.style.display = 'none';
+      if(passive) passive.style.display = 'block';
+      if(label) label.textContent = 'stage ' + String(idx+1).padStart(2,'0');
     }
-    content += renderOpenItems();
-    body.innerHTML = content;
-    passive.style.display = (cached || content.trim()) ? 'none' : 'block';
+    renderBottomBar();
   }
 
 
@@ -1608,8 +1742,12 @@ function setUWAnswer(condKey, qIdx, field, value){
     fetchPromptsFor(state.current);
   }
 
-    renderRail(); renderStep(); updateFIBVisibility(); prefetchNext();
+    renderRail(); renderStep(); renderBottomBar(); updateFIBVisibility(); prefetchNext();
   if(COPILOT_TOKEN){ hideLogin(); loadReferralList(); } else { showLogin(); }
 </script>
+
+<div class="btmbar">
+  <div class="btmsteps" id="btmSteps"></div>
+</div>
 </body>
 </html>

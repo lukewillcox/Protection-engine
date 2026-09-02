@@ -296,6 +296,20 @@
   .bst .bn{font-family:var(--mono);font-size:9.5px;opacity:.6;}
   body{padding-bottom:52px;}
 
+
+  /* ── script mode ── */
+  .modetoggle{display:flex;background:#EDEBE4;border-radius:99px;padding:3px;gap:2px;margin-right:10px;}
+  .mtbtn{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:99px;border:none;background:none;cursor:pointer;color:var(--muted);font-weight:600;}
+  .mtbtn.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .scriptbox{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:18px 20px;font-size:15px;line-height:1.65;max-height:calc(100vh - 340px);overflow-y:auto;}
+  .sblock{margin-bottom:16px;}
+  .sblock:last-child{margin-bottom:0;}
+  .scue{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--verd);display:block;margin-bottom:5px;}
+  .ssay{font-style:italic;}
+  .scoach{background:var(--signal-soft);border-left:2px solid var(--signal);padding:10px 13px;font-size:13.5px;line-height:1.55;border-radius:0 8px 8px 0;font-style:normal;}
+  .scoach .scue{color:var(--signal);}
+  .sloading{font-size:13px;color:var(--muted);font-style:italic;padding:20px 0;text-align:center;}
+
 </style>
 </head>
 <body>
@@ -389,6 +403,10 @@
     <div class="mindcol">
       <div class="mind-head">
         <div class="mind-title">Co-pilot · <span id="guideStepLabel">stage 01</span></div>
+        <div class="modetoggle">
+          <button class="mtbtn on" id="mtCards" onclick="setPanelMode('cards')">Cards</button>
+          <button class="mtbtn" id="mtScript" onclick="setPanelMode('script')">Script</button>
+        </div>
         <div style="display:flex;align-items:center;">
           <div class="mind-live" id="guideStatus"><span class="d"></span> ready</div>
           <button onclick="requestGuidance()" class="mind-refresh">↻ update</button>
@@ -405,6 +423,7 @@
         <div class="ddots" id="deckDots"></div>
         <div class="dkbd">&larr; &rarr; arrow keys to flick through</div>
       </div>
+      <div id="scriptbox" style="display:none;"></div>
       <div id="guideBody" style="display:none;"></div>
       <div id="uwQuestions"></div>
     </div>
@@ -1044,6 +1063,75 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     }catch(e){ return ''; }
   }
 
+// ── script mode ──
+  let scriptMode = 'cards';
+  const scriptCache = {};   // per-step generated scripts
+
+  function setPanelMode(m){
+    scriptMode = m;
+    document.getElementById('mtCards').classList.toggle('on', m==='cards');
+    document.getElementById('mtScript').classList.toggle('on', m==='script');
+    const deck = document.getElementById('carddeck');
+    const sbox = document.getElementById('scriptbox');
+    const filters = document.getElementById('deckFilters');
+    if(m==='script'){
+      if(deck) deck.style.display='none';
+      if(sbox) sbox.style.display='block';
+      renderScript();
+      if(!scriptCache[state.current]) fetchScript();
+    } else {
+      if(sbox) sbox.style.display='none';
+      if(deck && deckCards.length) deck.style.display='block';
+      renderDeckCard();
+    }
+  }
+
+  async function fetchScript(){
+    const idx = state.current;
+    const sbox = document.getElementById('scriptbox');
+    if(sbox) sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
+    try{
+      const ff = factFindContext();
+      const notes = allNotes();
+      const figures = calculatedFigures();
+      const combined = [ff, notes && 'CALL NOTES:\n'+notes, figures].filter(Boolean).join('\n\n');
+      const res = await authFetch(API_BASE+'/copilot/script',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({step: STEPS[idx].title, notes: combined})});
+      const out = await res.json();
+      if(out.blocks && out.blocks.length){
+        scriptCache[idx] = out.blocks;
+        if(state.current===idx && scriptMode==='script') renderScript();
+      } else {
+        if(sbox) sbox.innerHTML = '<div class="sloading">No script generated for this stage yet.</div>';
+      }
+    }catch(e){
+      console.error('script fetch failed', e);
+      if(sbox) sbox.innerHTML = '<div class="sloading">Could not generate a script just now.</div>';
+    }
+  }
+
+  function renderScript(){
+    const sbox = document.getElementById('scriptbox');
+    if(!sbox) return;
+    const blocks = scriptCache[state.current];
+    if(!blocks){
+      sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
+      return;
+    }
+    let h = '<div class="scriptbox">';
+    blocks.forEach(b=>{
+      if(b.type === 'coach'){
+        h += `<div class="sblock scoach"><span class="scue">${esc(b.cue||'note')}</span>${esc(b.text||'')}</div>`;
+      } else {
+        h += `<div class="sblock"><span class="scue">${esc(b.cue||'say')}</span><span class="ssay">"${esc(b.text||'')}"</span></div>`;
+      }
+    });
+    h += '</div>';
+    sbox.innerHTML = h;
+    const label = document.getElementById('guideStepLabel');
+    if(label) label.textContent = 'read-aloud script';
+  }
+
   function buildDeck(out){
     const cards = [];
     (out.questions||[]).forEach(q=>{
@@ -1194,7 +1282,16 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       if(passive) passive.style.display = 'none';
       if(deck) deck.style.display = 'block';
       renderDeckFilters();
-      renderDeckCard();
+      if(scriptMode === 'script'){
+        const deck0 = document.getElementById('carddeck');
+        if(deck0) deck0.style.display='none';
+        const sbox0 = document.getElementById('scriptbox');
+        if(sbox0) sbox0.style.display='block';
+        renderScript();
+        if(!scriptCache[idx]) fetchScript();
+      } else {
+        renderDeckCard();
+      }
     } else {
       deckCards = [];
       if(deck) deck.style.display = 'none';

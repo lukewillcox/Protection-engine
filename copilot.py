@@ -283,14 +283,34 @@ def register_copilot_routes(app):
         if not notes:
             return jsonify({"error": "no notes"}), 400
         step = (data.get("step") or "").strip()
+        STEP_PURPOSE = {
+            "Introduction": "Build rapport, explain who you are and the process, confirm who is in the room and why they are here. Do NOT ask about income breakdown, health, or run stress-test numbers yet - that comes later. Keep it warm and simple.",
+            "Goals & Motivations": "Understand their why - why this property, why now, what they want to protect. Stay on motivations, not detailed figures yet.",
+            "Confirm Factfind": "Confirm income, address, mortgage stage, job roles, children, future plans are captured accurately.",
+            "Existing Cover": "Establish what cover already exists - provider, type, sum, premium, portability.",
+            "Income Stress Test": "This IS the place for detailed what-if numbers, sick pay, savings runway, and cliff-edge questions.",
+            "Stress Test Questions": "Walk the client through what happens if income stops - make the risk concrete.",
+            "Eligibility & Health": "Ask health, lifestyle, family history for underwriting. This is the place for condition-specific follow-ups.",
+            "Essential vs Needed": "Split what is essential (goals at risk) from needed (nice to have).",
+            "Income Protection": "Focus on IP - deferred period, benefit level, own vs any occupation.",
+            "Family Income Benefit": "Focus on FIB - term length, dependants, why FIB vs lump sum.",
+            "Life Cover": "Focus on life cover - level vs decreasing, joint vs single, trust.",
+            "Critical Illness": "Focus on CIC - what it covers, how it differs from IP.",
+            "Close & Next Steps": "Agree actions, next steps, confirm documentation.",
+        }
         try:
             kb = get_relevant_knowledge(notes, k=5)
             user_content = ""
             if step:
+                purpose = STEP_PURPOSE.get(step, "")
                 user_content += (
                     "The adviser is currently on the '" + step + "' step of the call. "
-                    "Weight your guidance toward what matters at THIS step, while staying "
-                    "aware of the whole conversation.\n\n"
+                    + ("This step is specifically for: " + purpose + " " if purpose else "")
+                    + "ONLY generate questions/prompts that belong at THIS step. "
+                    "Do not jump ahead to later-step topics even if the notes contain "
+                    "rich detail that could support them - save that content for its own step. "
+                    "You may still use later-step facts for context, just do not surface them as "
+                    "this step's prompts.\n\n"
                 )
             user_content += "Fact-find notes so far (across all steps):\n\n" + notes
             if kb:

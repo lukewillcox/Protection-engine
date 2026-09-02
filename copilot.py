@@ -304,6 +304,34 @@ def register_copilot_routes(app):
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
 
+    @app.post("/copilot/rate")
+    def copilot_rate():
+        import json, os, datetime
+        data = request.get_json(silent=True) or {}
+        entry = {
+            "ts": datetime.datetime.utcnow().isoformat(),
+            "client_name": data.get("client_name", ""),
+            "step": data.get("step", ""),
+            "panel": data.get("panel", ""),      # questions | prompts | facts | flags
+            "text": data.get("text", ""),
+            "rating": data.get("rating", ""),    # "up" or "down"
+            "comment": data.get("comment", ""),
+        }
+        log_path = "ratings_log.json"
+        try:
+            existing = []
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    existing = json.load(f)
+            existing.append(entry)
+            with open(log_path, "w") as f:
+                json.dump(existing, f, indent=2)
+            return jsonify({"ok": True})
+        except Exception:
+            log.exception("copilot rate failed")
+            return jsonify({"ok": False}), 200
+
+
     @app.post("/copilot/prompts")
     def copilot_prompts():
         data = request.get_json(silent=True) or {}

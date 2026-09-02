@@ -888,6 +888,32 @@
     });
   }
 
+async function rateCard(panel, text, rating, btnEl){
+    let comment = '';
+    if(rating === 'down'){
+      comment = prompt('What\'s wrong with this? (optional, helps us improve)') || '';
+    }
+    try{
+      await authFetch(API_BASE+'/copilot/rate',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          client_name: state.c1.name||'', step: STEPS[state.current].title,
+          panel, text, rating, comment
+        })});
+    }catch(e){ console.error('rate failed', e); }
+    // visual feedback
+    if(btnEl){
+      const parent = btnEl.closest('.ratebar');
+      if(parent) parent.innerHTML = '<span style="font-size:11px;color:var(--muted);">Thanks — noted.</span>';
+    }
+  }
+  function rateBar(panel, text){
+    const safeText = esc(text).replace(/'/g, "&#39;");
+    return `<div class="ratebar" style="display:flex;gap:8px;margin-top:6px;">
+      <button onclick="rateCard('${panel}','${safeText}','up',this)" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.5;padding:2px 4px;" title="Helpful">👍</button>
+      <button onclick="rateCard('${panel}','${safeText}','down',this)" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.5;padding:2px 4px;" title="Not helpful">👎</button>
+    </div>`;
+  }
+
   function renderGuide(out, stepIdx){
     let html='';
     const questions = out.questions || [];
@@ -900,7 +926,7 @@
     if(questions.length){
       questions.forEach((q,i)=>{
         const text = typeof q === 'string' ? q : (q.headline || q.detail || '');
-        html += '<div class="qitem"><span class="qnum">'+String(i+1).padStart(2,'0')+'</span><span>'+esc(text)+'</span></div>';
+        html += '<div class="qitem"><span class="qnum">'+String(i+1).padStart(2,'0')+'</span><div style="flex:1;"><span>'+esc(text)+'</span>'+rateBar('questions', text)+'</div></div>';
       });
     } else {
       html += '<div class="qpanel-empty">No questions yet for this stage.</div>';
@@ -912,7 +938,7 @@
     if(prompts.length){
       prompts.forEach(p=>{
         const text = typeof p === 'string' ? p : (p.detail || p.headline || '');
-        html += '<div class="sayitem">&#8220;'+esc(text)+'&#8221;</div>';
+        html += '<div class="sayitem">&#8220;'+esc(text)+'&#8221;'+rateBar('prompts', text)+'</div>';
       });
     } else {
       html += '<div class="qpanel-empty">No prompts yet for this stage.</div>';
@@ -923,7 +949,7 @@
     if(facts.length){
       html += '<div class="qpanel panel-facts"><div class="qpanel-head"><div class="qpanel-icon">&#10022;</div><div class="qpanel-name">Facts &amp; knowledge</div><div class="qpanel-count">'+facts.length+'</div></div>';
       facts.forEach(f=>{
-        html += '<div class="factitem"><span class="fdot">&bull;</span><span>'+esc(f)+'</span></div>';
+        html += '<div class="factitem"><span class="fdot">&bull;</span><div style="flex:1;"><span>'+esc(f)+'</span>'+rateBar('facts', f)+'</div></div>';
       });
       html += '</div>';
     }

@@ -888,30 +888,69 @@
     });
   }
 
-async function rateCard(panel, text, rating, btnEl){
-    let comment = '';
-    if(rating === 'down'){
-      comment = prompt('What\'s wrong with this? (optional, helps us improve)') || '';
-    }
+const pendingRatings = [];  // down-votes queued for an optional comment, added at Step 13
+
+  async function sendRating(entry){
     try{
       await authFetch(API_BASE+'/copilot/rate',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          client_name: state.c1.name||'', step: STEPS[state.current].title,
-          panel, text, rating, comment
-        })});
+        body:JSON.stringify(entry)});
     }catch(e){ console.error('rate failed', e); }
-    // visual feedback
-    if(btnEl){
-      const parent = btnEl.closest('.ratebar');
-      if(parent) parent.innerHTML = '<span style="font-size:11px;color:var(--muted);">Thanks — noted.</span>';
-    }
   }
+
+  function rateCard(panel, text, rating, btnEl){
+    const bar = btnEl.closest('.ratebar');
+    const upBtn = bar.querySelector('.rate-up');
+    const downBtn = bar.querySelector('.rate-down');
+    if(rating === 'up'){
+      upBtn.style.background = 'var(--verd)'; upBtn.style.opacity = '1'; upBtn.style.color = '#fff';
+      downBtn.style.opacity = '.25';
+      sendRating({client_name: state.c1.name||'', step: STEPS[state.current].title, panel, text, rating:'up', comment:''});
+    } else {
+      downBtn.style.background = 'var(--signal)'; downBtn.style.opacity = '1'; downBtn.style.color = '#fff';
+      upBtn.style.opacity = '.25';
+      pendingRatings.push({
+        client_name: state.c1.name||'', step: STEPS[state.current].title,
+        panel, text, rating: 'down', comment: ''
+      });
+    }
+    bar.querySelectorAll('button').forEach(b=>b.disabled=true);
+    const note = document.createElement('span');
+    note.style.cssText = 'font-size:10.5px;color:var(--muted);margin-left:6px;';
+    note.textContent = rating === 'up' ? 'Noted, thanks' : 'Noted — add a note at the end if you like';
+    bar.appendChild(note);
+  }
+
   function rateBar(panel, text){
     const safeText = esc(text).replace(/'/g, "&#39;");
-    return `<div class="ratebar" style="display:flex;gap:8px;margin-top:6px;">
-      <button onclick="rateCard('${panel}','${safeText}','up',this)" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.5;padding:2px 4px;" title="Helpful">👍</button>
-      <button onclick="rateCard('${panel}','${safeText}','down',this)" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:.5;padding:2px 4px;" title="Not helpful">👎</button>
+    return `<div class="ratebar" style="display:flex;align-items:center;gap:6px;margin-top:7px;">
+      <button class="rate-up" onclick="rateCard('${panel}','${safeText}','up',this)" style="background:none;border:1px solid var(--hair-strong);border-radius:6px;cursor:pointer;font-size:12px;opacity:.55;padding:3px 7px;transition:all .12s;" title="Helpful">👍</button>
+      <button class="rate-down" onclick="rateCard('${panel}','${safeText}','down',this)" style="background:none;border:1px solid var(--hair-strong);border-radius:6px;cursor:pointer;font-size:12px;opacity:.55;padding:3px 7px;transition:all .12s;" title="Not helpful">👎</button>
     </div>`;
+  }
+
+  function renderRatingReview(){
+    if(!pendingRatings.length) return '';
+    let h = '<div class="stress" style="margin-top:18px;"><div class="stress-head"><h3>Review your ratings</h3></div>';
+    h += '<p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">You flagged '+pendingRatings.length+' item(s) as not helpful during the call. Add a quick note if you have a moment — totally optional.</p>';
+    pendingRatings.forEach((r,i)=>{
+      h += `<div style="padding:12px 0;border-bottom:1px solid var(--hair);">
+        <div style="font-size:9.5px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${esc(r.step)} &middot; ${esc(r.panel)}</div>
+        <div style="font-size:13px;margin-bottom:8px;">"${esc(r.text)}"</div>
+        <input type="text" placeholder="What was wrong with this? (optional)" oninput="pendingRatings[${i}].comment=this.value"
+          style="width:100%;border:none;border-bottom:1px solid var(--hair-strong);background:transparent;font-size:13px;padding:4px 1px 6px;">
+      </div>`;
+    });
+    h += `<button onclick="submitPendingRatings()" style="margin-top:14px;background:var(--ink);color:var(--porcelain);border:none;border-radius:99px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;">Submit feedback</button>
+      <span id="ratingSubmitMsg" style="margin-left:10px;font-size:12px;color:var(--verd);"></span>`;
+    h += '</div>';
+    return h;
+  }
+
+  async function submitPendingRatings(){
+    for(const r of pendingRatings){ await sendRating(r); }
+    const msgEl = document.getElementById('ratingSubmitMsg');
+    if(msgEl) msgEl.textContent = 'Thanks — feedback sent.';
+    pendingRatings.length = 0;
   }
 
   function renderGuide(out, stepIdx){

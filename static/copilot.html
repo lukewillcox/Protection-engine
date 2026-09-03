@@ -204,7 +204,7 @@
 
   /* ── split screen four-panel layout ── */
   .layout{display:grid;grid-template-columns:236px 0.92fr 1.08fr;gap:0;align-items:start;}
-  .mindcol{background:#FBFAF7;padding:24px 26px 60px;overflow-y:auto;min-height:calc(100vh - 170px);border-left:1px solid var(--hair);}
+  .mindcol{background:#FBFAF7;padding:24px 26px 60px;overflow-y:auto;border-left:1px solid var(--hair);position:sticky;top:0;align-self:start;height:100vh;box-sizing:border-box;}
   .mind-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
   .mind-title{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);}
   .mind-live{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--verd);}
@@ -255,7 +255,7 @@
 
   @media (max-width:1200px){
     .layout{grid-template-columns:1fr;}
-    .mindcol{border-left:none;border-top:1px solid var(--hair);min-height:auto;}
+    .mindcol{border-left:none;border-top:1px solid var(--hair);position:static;height:auto;}
   }
 
 
@@ -1161,8 +1161,8 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
             if(payload.delta){
               raw += payload.delta;
               if(!silent && state.current===idx && scriptMode==='script' && sbox){
-                sbox.innerHTML = '<div class="scriptbox"><div class="sblock"><span class="ssay">'+esc(raw)+'</span></div></div>';
-                sbox.scrollTop = sbox.scrollHeight;
+                const dots = '.'.repeat((raw.length % 12) < 4 ? 1 : (raw.length % 12) < 8 ? 2 : 3);
+                sbox.innerHTML = '<div class="sloading">Writing the script for this stage'+dots+'</div>';
               }
             }
           }catch(e){}

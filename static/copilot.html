@@ -310,6 +310,32 @@
   .scoach .scue{color:var(--signal);}
   .sloading{font-size:13px;color:var(--muted);font-style:italic;padding:20px 0;text-align:center;}
 
+
+  /* ── stacked mini-decks ── */
+  .deckstack{display:flex;flex-direction:column;gap:14px;}
+  .minideck{border:1px solid var(--hair);border-radius:14px;overflow:hidden;background:#fff;}
+  .minideck.empty{display:none;}
+  .mdhead{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--hair);}
+  .mdicon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;flex:none;font-weight:600;}
+  .mdname{font-family:var(--mono);font-size:9.5px;letter-spacing:0.11em;text-transform:uppercase;font-weight:600;flex:1;}
+  .mdpos{font-family:var(--mono);font-size:9px;color:var(--muted);}
+  .md-question .mdicon{background:var(--verd-soft);color:var(--verd);} .md-question .mdname{color:var(--verd);}
+  .md-prompt .mdicon{background:#EDEAF6;color:#5B4B8A;} .md-prompt .mdname{color:#5B4B8A;}
+  .md-fact .mdicon{background:#EFF1F0;color:var(--muted);} .md-fact .mdname{color:var(--ink);}
+  .md-flag .mdicon{background:#F0C69A;color:var(--signal);} .md-flag .mdname{color:var(--signal);}
+  .mdbody{display:flex;align-items:stretch;gap:6px;padding:12px 12px 8px;}
+  .mdnav{flex:none;width:26px;border:1px solid var(--hair-strong);background:#FBFAF7;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;transition:.12s;}
+  .mdnav:hover:not(:disabled){border-color:var(--verd);color:var(--verd);}
+  .mdnav:disabled{opacity:.25;cursor:default;}
+  .mdcontent{flex:1;min-width:0;font-size:13.5px;line-height:1.5;padding:2px 4px;min-height:44px;display:flex;align-items:center;}
+  .mdcontent.say{font-style:italic;}
+  .mdsrc{font-family:var(--mono);font-size:8.5px;color:var(--muted);display:block;margin-top:3px;}
+  .mddots{display:flex;align-items:center;justify-content:center;gap:4px;padding:0 12px 10px;}
+  .mdd{width:5px;height:5px;border-radius:50%;background:var(--hair-strong);cursor:pointer;}
+  .mdd.on{background:var(--verd);width:14px;border-radius:99px;}
+  .mdrate{display:flex;gap:5px;padding:0 12px 10px;}
+  .mdrate button{background:none;border:1px solid var(--hair-strong);border-radius:5px;cursor:pointer;font-size:10px;opacity:.5;padding:2px 5px;}
+
 </style>
 </head>
 <body>
@@ -414,14 +440,7 @@
       </div>
       <div class="qpanel-empty" id="guidePassive">Guidance for this stage appears here as you work, and stays put when you move on.</div>
       <div id="carddeck" style="display:none;">
-        <div class="deckfilters" id="deckFilters"></div>
-        <div class="deck">
-          <button class="dnav" id="deckPrev" onclick="deckMove(-1)">&lsaquo;</button>
-          <div class="dcard" id="deckCard"></div>
-          <button class="dnav" id="deckNext" onclick="deckMove(1)">&rsaquo;</button>
-        </div>
-        <div class="ddots" id="deckDots"></div>
-        <div class="dkbd">&larr; &rarr; arrow keys to flick through</div>
+        <div class="deckstack" id="deckStack"></div>
       </div>
       <div id="scriptbox" style="display:none;"></div>
       <div id="guideBody" style="display:none;"></div>
@@ -1183,6 +1202,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     });
     (out.relevant_facts||[]).forEach(f=>{ if(f) cards.push({type:'fact', text:f}); });
     (out.flags||[]).forEach(f=>{ if(f) cards.push({type:'flag', text:f}); });
+    Object.keys(miniIdx).forEach(k=>miniIdx[k]=0);
     return cards;
   }
 
@@ -1225,17 +1245,56 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     document.getElementById('deckDots').innerHTML = list.map((c,i)=>
       `<span class="dd ${i===deckIdx?'on':''} ${c.type==='flag'?'flagdot':''}" onclick="deckIdx=${i};renderDeckCard()"></span>`).join('');
   }
+// ── four stacked mini-decks (Questions / Prompts / Facts / Flags) ──
+  const MINI_TYPES = [
+    {key:'question', label:'Questions to ask', icon:'?'},
+    {key:'prompt',   label:'Prompts to say',   icon:'\u201C'},
+    {key:'fact',     label:'Facts & knowledge',icon:'\u2726'},
+    {key:'flag',     label:'Flags \u00B7 to document', icon:'!'}
+  ];
+  const miniIdx = {question:0, prompt:0, fact:0, flag:0};
+
+  function renderDeckStack(){
+    const stack = document.getElementById('deckStack');
+    if(!stack) return;
+    let html = '';
+    MINI_TYPES.forEach(t=>{
+      const items = deckCards.filter(c=>c.type===t.key);
+      if(!items.length){ html += `<div class="minideck empty" id="mini-${t.key}"></div>`; return; }
+      let i = miniIdx[t.key]; if(i>=items.length) i=0;
+      const c = items[i];
+      const isSay = t.key==='prompt';
+      html += `<div class="minideck md-${t.key}" id="mini-${t.key}">
+        <div class="mdhead">
+          <div class="mdicon">${t.icon}</div>
+          <div class="mdname">${t.label}</div>
+          <div class="mdpos">${i+1} / ${items.length}</div>
+        </div>
+        <div class="mdbody">
+          <button class="mdnav" onclick="miniMove('${t.key}',-1)" ${i===0?'disabled':''}>&lsaquo;</button>
+          <div class="mdcontent ${isSay?'say':''}">${isSay ? '\u201C'+esc(c.text)+'\u201D' : esc(c.text)}</div>
+          <button class="mdnav" onclick="miniMove('${t.key}',1)" ${i===items.length-1?'disabled':''}>&rsaquo;</button>
+        </div>
+        <div class="mddots">${items.map((x,ix)=>`<span class="mdd ${ix===i?'on':''}" onclick="miniGoto('${t.key}',${ix})"></span>`).join('')}</div>
+        <div class="mdrate">${typeof rateBar==='function' ? rateBar(t.key==='question'?'questions':t.key==='prompt'?'prompts':t.key==='fact'?'facts':'flags', c.text) : ''}</div>
+      </div>`;
+    });
+    stack.innerHTML = html;
+  }
+  function miniMove(key, d){
+    const items = deckCards.filter(c=>c.type===key);
+    miniIdx[key] = Math.max(0, Math.min(items.length-1, miniIdx[key]+d));
+    renderDeckStack();
+  }
+  function miniGoto(key, i){ miniIdx[key]=i; renderDeckStack(); }
+
   function deckMove(d){
     const l = deckVisible();
     deckIdx = Math.max(0, Math.min(l.length-1, deckIdx+d));
     renderDeckCard();
   }
 
-  document.addEventListener('keydown', e=>{
-    if(document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
-    if(e.key==='ArrowLeft') deckMove(-1);
-    if(e.key==='ArrowRight') deckMove(1);
-  });
+  
 
   // ── bottom progress bar ──
   function renderBottomBar(){

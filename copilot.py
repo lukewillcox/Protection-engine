@@ -172,6 +172,10 @@ Write a short script for THIS STEP ONLY. It must:
 - Stay strictly within this step's purpose. Do not drift into later topics.
 - Include coaching notes for likely client reactions (silence, pushback,
   confusion) — these are the most valuable part for a nervous adviser.
+- If a PREVIOUS STAGE SCRIPT is supplied, open with a short natural bridge
+  from it ("So that's the income side covered — now let's look at...").
+  Do NOT repeat its content, just connect to it so the call flows as one
+  conversation rather than disconnected sections.
 
 FACTS — CRITICAL (most important rule):
 - NEVER assert a fact about this client that was not explicitly supplied
@@ -427,6 +431,12 @@ def register_copilot_routes(app):
                 user_content += (
                     "\n\n---\nRelevant factual knowledge (use only if genuinely "
                     "relevant; never quote a premium or recommend a product):\n\n" + kb
+                )
+            prev_script = (data.get("prev_script") or "").strip()
+            if prev_script:
+                user_content += (
+                    "\n\n---\nPREVIOUS STAGE SCRIPT (bridge from this naturally, "
+                    "do not repeat it):\n\n" + prev_script
                 )
             return jsonify(claude_json(SCRIPT_SYSTEM, user_content, MODEL_ANALYZE))
         except Exception:

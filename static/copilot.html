@@ -1136,18 +1136,49 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const figures = calculatedFigures();
       const combined = [ff, notes && 'CALL NOTES:\n'+notes, figures].filter(Boolean).join('\n\n');
       const prevBlocks = idx > 0 ? scriptCache[idx-1] : null;
-      const res = await authFetch(API_BASE+'/copilot/script',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          step: STEPS[idx].title,
-          notes: combined,
-          prev_script: scriptToText(prevBlocks)
-        })});
-      const out = await res.json();
-      if(out.blocks && out.blocks.length){
-        scriptCache[idx] = out.blocks;
-        if(state.current===idx && scriptMode==='script') renderScript();
-      } else if(!silent && sbox){
-        sbox.innerHTML = '<div class="sloading">No script generated for this stage yet.</div>';
+      // stream the script as raw text, render it live, then parse into blocks at the end
+      const token = COPILOT_TOKEN;
+      const streamRes = await fetch(API_BASE+'/copilot/script-stream', {
+        method:'POST',
+        headers:{'Content-Type':'application/json', 'X-Copilot-Token': token},
+        body: JSON.stringify({ step: STEPS[idx].title, notes: combined, prev_script: scriptToText(prevBlocks) })
+      });
+      if(!streamRes.ok || !streamRes.body){ throw new Error('stream failed'); }
+      const reader = streamRes.body.getReader();
+      const decoder = new TextDecoder();
+      let raw = '';
+      let buf = '';
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buf += decoder.decode(value, {stream:true});
+        const parts = buf.split('\n\n');
+        buf = parts.pop();
+        for(const part of parts){
+          if(!part.startsWith('data: ')) continue;
+          try{
+            const payload = JSON.parse(part.slice(6));
+            if(payload.delta){
+              raw += payload.delta;
+              if(!silent && state.current===idx && scriptMode==='script' && sbox){
+                sbox.innerHTML = '<div class="scriptbox"><div class="sblock"><span class="ssay">'+esc(raw)+'</span></div></div>';
+                sbox.scrollTop = sbox.scrollHeight;
+              }
+            }
+          }catch(e){}
+        }
+      }
+      // once streaming is done, parse the raw JSON text into blocks
+      try{
+        const jsonStart = raw.indexOf('{');
+        const jsonEnd = raw.lastIndexOf('}');
+        const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd+1));
+        if(parsed.blocks && parsed.blocks.length){
+          scriptCache[idx] = parsed.blocks;
+          if(state.current===idx && scriptMode==='script') renderScript();
+        }
+      }catch(e){
+        console.error('could not parse streamed script', e, raw);
       }
     }catch(e){
       console.error('script fetch failed', e);

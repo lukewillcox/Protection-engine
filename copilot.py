@@ -4,7 +4,7 @@ from flask import request, jsonify
 from openai import OpenAI
 from config import OPENAI_API_KEY
 from rag import retrieve
-from llm import claude_json, claude_text, MODEL_ANALYZE, MODEL_PREPARE, MODEL_SUMMARY
+from llm import claude_json, claude_text, MODEL_ANALYZE, MODEL_PREPARE, MODEL_SUMMARY, anthropic_client
 
 log = logging.getLogger(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -408,6 +408,59 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
+
+    @app.post("/copilot/script-stream")
+    def copilot_script_stream():
+        from flask import Response
+        import json as _json
+        data = request.get_json(silent=True) or {}
+        notes = (data.get("notes") or "").strip()
+        step = (data.get("step") or "").strip()
+        if not step:
+            return jsonify({"blocks": []}), 200
+
+        def generate():
+            try:
+                kb = get_relevant_knowledge(notes, k=4) if notes else ""
+                purpose = STEP_PURPOSE.get(step, "") if "STEP_PURPOSE" in dir() else ""
+                user_content = "Step of the call: " + step + "\n"
+                if purpose:
+                    user_content += "This step is for: " + purpose + "\n"
+                user_content += "\n"
+                if notes:
+                    user_content += "Everything captured about this client so far:\n\n" + notes
+                else:
+                    user_content += "Nothing captured yet - write a sensible general script for this step."
+                if kb:
+                    user_content += (
+                        "\n\n---\nRelevant factual knowledge (use only if genuinely "
+                        "relevant; never quote a premium or recommend a product):\n\n" + kb
+                    )
+                prev_script = (data.get("prev_script") or "").strip()
+                if prev_script:
+                    user_content += (
+                        "\n\n---\nPREVIOUS STAGE SCRIPT (bridge from this naturally, "
+                        "do not repeat it):\n\n" + prev_script
+                    )
+
+                with anthropic_client.messages.stream(
+                    model=MODEL_ANALYZE,
+                    max_tokens=1500,
+                    system=SCRIPT_SYSTEM,
+                    messages=[{"role": "user", "content": user_content}],
+                ) as stream:
+                    for text in stream.text_stream:
+                        yield "data: " + _json.dumps({"delta": text}) + "\n\n"
+                    yield "data: " + _json.dumps({"done": True}) + "\n\n"
+            except Exception as e:
+                log.exception("script stream failed")
+                yield "data: " + _json.dumps({"error": str(e)}) + "\n\n"
+
+        return Response(generate(), mimetype="text/event-stream", headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        })
+
 
     @app.post("/copilot/script")
     def copilot_script():

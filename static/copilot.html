@@ -925,7 +925,7 @@ function clearScriptBox(){
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
 
   // ---------- AI guidance ----------
-  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateNextScript();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
+  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateDebounced();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
 
   function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
 
@@ -1197,6 +1197,11 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   function invalidateNextScript(){
     const nxt = state.current + 1;
     if(nxt < STEPS.length) delete scriptCache[nxt];
+  }
+  let invalidateTimer;
+  function invalidateDebounced(){
+    clearTimeout(invalidateTimer);
+    invalidateTimer = setTimeout(invalidateNextScript, 2500);
   }
 
   function renderScript(){

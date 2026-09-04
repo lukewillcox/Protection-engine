@@ -368,21 +368,6 @@ def register_copilot_routes(app):
         if not notes:
             return jsonify({"error": "no notes"}), 400
         step = (data.get("step") or "").strip()
-        STEP_PURPOSE = {
-            "Introduction": "Build rapport, explain who you are and the process, confirm who is in the room and why they are here. Do NOT ask about income breakdown, health, or run stress-test numbers yet - that comes later. Keep it warm and simple.",
-            "Goals & Motivations": "Understand their why - why this property, why now, what they want to protect. Stay on motivations, not detailed figures yet.",
-            "Confirm Factfind": "Confirm income, address, mortgage stage, job roles, children, future plans are captured accurately.",
-            "Existing Cover": "Establish what cover already exists - provider, type, sum, premium, portability.",
-            "Income Stress Test": "This IS the place for detailed what-if numbers, sick pay, savings runway, and cliff-edge questions.",
-            "Stress Test Questions": "Walk the client through what happens if income stops - make the risk concrete.",
-            "Eligibility & Health": "Ask health, lifestyle, family history for underwriting. This is the place for condition-specific follow-ups.",
-            "Essential vs Needed": "Split what is essential (goals at risk) from needed (nice to have).",
-            "Income Protection": "Focus on IP - deferred period, benefit level, own vs any occupation.",
-            "Family Income Benefit": "Focus on FIB - term length, dependants, why FIB vs lump sum.",
-            "Life Cover": "Focus on life cover - level vs decreasing, joint vs single, trust.",
-            "Critical Illness": "Focus on CIC - what it covers, how it differs from IP.",
-            "Close & Next Steps": "Agree actions, next steps, confirm documentation.",
-        }
         try:
             kb = get_relevant_knowledge(notes, k=5)
             user_content = ""
@@ -429,7 +414,7 @@ def register_copilot_routes(app):
         def generate():
             try:
                 kb = get_relevant_knowledge(notes, k=4) if notes else ""
-                purpose = STEP_PURPOSE.get(step, "") if "STEP_PURPOSE" in dir() else ""
+                purpose = STEP_PURPOSE.get(step, "")
                 user_content = "Step of the call: " + step + "\n"
                 if purpose:
                     user_content += "This step is for: " + purpose + "\n"
@@ -484,7 +469,7 @@ def register_copilot_routes(app):
             return jsonify({"blocks": []}), 200
         try:
             kb = get_relevant_knowledge(notes, k=4) if notes else ""
-            purpose = STEP_PURPOSE.get(step, "") if "STEP_PURPOSE" in dir() else ""
+            purpose = STEP_PURPOSE.get(step, "")
             user_content = "Step of the call: " + step + "\n"
             if purpose:
                 user_content += "This step is for: " + purpose + "\n"

@@ -17,7 +17,13 @@ from anthropic import Anthropic
 log = logging.getLogger(__name__)
 
 _key = os.getenv("ANTHROPIC_API_KEY")
-anthropic_client = Anthropic(api_key=_key)
+import httpx
+
+anthropic_client = Anthropic(
+    api_key=_key,
+    timeout=httpx.Timeout(90.0, connect=5.0),
+    max_retries=1,
+)
 
 # model roles
 MODEL_ANALYZE = "claude-sonnet-5"   # live, fires often — fast + economical

@@ -504,6 +504,7 @@
   ];
 
   const state = {
+    callPlan: '',
     uwAnswers: {},
     current: 0,
     complete: {},
@@ -966,7 +967,7 @@ function clearScriptBox(){
     const stepAtRequest=state.current;
     try{
       const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title})});
+        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title, call_plan:state.callPlan})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
       guidanceCache[stepAtRequest]=out;          // persist for this step
@@ -1141,7 +1142,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const streamRes = await fetch(API_BASE+'/copilot/script-stream', {
         method:'POST',
         headers:{'Content-Type':'application/json', 'X-Copilot-Token': token},
-        body: JSON.stringify({ step: STEPS[idx].title, notes: combined, prev_script: scriptToText(prevBlocks) })
+        body: JSON.stringify({ step: STEPS[idx].title, notes: combined, prev_script: scriptToText(prevBlocks), call_plan: state.callPlan })
       });
       if(!streamRes.ok || !streamRes.body){ throw new Error('stream failed'); }
       const reader = streamRes.body.getReader();
@@ -1554,6 +1555,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const res=await authFetch(API_BASE+'/copilot/load/'+id);
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
+      if(prep.call_plan) state.callPlan = prep.call_plan;
       applyPrep(prep);
       if(st) st.textContent='Loaded — fields pre-filled where known.';
     }catch(e){ if(st) st.textContent='Couldn\'t load this client.'; console.error(e); }

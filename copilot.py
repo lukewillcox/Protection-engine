@@ -397,14 +397,6 @@ def register_copilot_routes(app):
                     "You may still use later-step facts for context, just do not surface them as "
                     "this step's prompts.\n\n"
                 )
-            plan = (data.get("call_plan") or "").strip()
-            if plan:
-                user_content += (
-                    "ADVISER'S PLAN FOR THIS CALL (written by the adviser before "
-                    "starting - align your questions, prompts and framing to this "
-                    "stated approach; it reflects their judgement about this "
-                    "specific client):\n" + plan + "\n\n"
-                )
             user_content += "Fact-find notes so far (across all steps):\n\n" + notes
             if kb:
                 user_content += (
@@ -444,13 +436,7 @@ def register_copilot_routes(app):
                         "\n\n---\nRelevant factual knowledge (use only if genuinely "
                         "relevant; never quote a premium or recommend a product):\n\n" + kb
                     )
-                plan = (data.get("call_plan") or "").strip()
-            if plan:
-                user_content += (
-                    "\n\n---\nADVISER'S PLAN FOR THIS CALL (written by the adviser - "
-                    "align the script to this stated approach):\n" + plan
-                )
-            prev_script = (data.get("prev_script") or "").strip()
+                prev_script = (data.get("prev_script") or "").strip()
                 if prev_script:
                     user_content += (
                         "\n\n---\nPREVIOUS STAGE SCRIPT (bridge from this naturally, "
@@ -498,12 +484,6 @@ def register_copilot_routes(app):
                 user_content += (
                     "\n\n---\nRelevant factual knowledge (use only if genuinely "
                     "relevant; never quote a premium or recommend a product):\n\n" + kb
-                )
-            plan = (data.get("call_plan") or "").strip()
-            if plan:
-                user_content += (
-                    "\n\n---\nADVISER'S PLAN FOR THIS CALL (written by the adviser - "
-                    "align the script to this stated approach):\n" + plan
                 )
             prev_script = (data.get("prev_script") or "").strip()
             if prev_script:

@@ -580,7 +580,7 @@ def register_copilot_routes(app):
             elif notes:
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
-            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY).strip()})
+            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE).strip()})
         except Exception:
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200

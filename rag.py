@@ -58,18 +58,56 @@ KNOWLEDGE_CHUNKS = [
 ]
 
 
+import threading
+
+_cached_client = None
+_cached_collection = None
+_chroma_lock = threading.Lock()
+
+
+def _build_client():
+    return chromadb.CloudClient(
+        api_key=os.getenv("CHROMA_API_KEY"),
+        tenant=os.getenv("CHROMA_TENANT"),
+        database=os.getenv("CHROMA_DATABASE"),
+    )
+
+
+def clear_collection_cache():
+    """Drop the cached handles so the next call rebuilds them."""
+    global _cached_client, _cached_collection
+    with _chroma_lock:
+        _cached_client = None
+        _cached_collection = None
+
+
 def get_collection(reset=False):
-    db = chromadb.CloudClient(
-    api_key=os.getenv("CHROMA_API_KEY"),
-    tenant=os.getenv("CHROMA_TENANT"),
-    database=os.getenv("CHROMA_DATABASE"),
-)
+    global _cached_client, _cached_collection
+
+    # reset=True is used by the ingest scripts to rebuild the store -
+    # always take the slow path and invalidate the cache.
     if reset:
-        try:
-            db.delete_collection("protection_knowledge")
-        except Exception:
-            pass
-    return db.get_or_create_collection("protection_knowledge")
+        with _chroma_lock:
+            db = _build_client()
+            try:
+                db.delete_collection("protection_knowledge")
+            except Exception:
+                pass
+            _cached_client = db
+            _cached_collection = db.get_or_create_collection("protection_knowledge")
+            return _cached_collection
+
+    if _cached_collection is not None:
+        return _cached_collection
+
+    with _chroma_lock:
+        # re-check inside the lock in case another thread built it first
+        if _cached_collection is None:
+            _cached_client = _build_client()
+            _cached_collection = _cached_client.get_or_create_collection(
+                "protection_knowledge"
+            )
+    return _cached_collection
 
 
 def embed(texts):

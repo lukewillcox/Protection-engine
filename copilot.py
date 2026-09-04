@@ -336,11 +336,11 @@ Pull out the CLIENT's details (not the broker's). Return ONLY valid JSON:
 
 
 def extract_lead_from_email(email_text: str) -> dict:
-    return claude_json(LEAD_EXTRACT_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE)
+    return claude_json(LEAD_EXTRACT_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=400)
 
 
 def generate_prep(email_text: str) -> dict:
-    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE)
+    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=1000)
 
 
 STEP_PURPOSE = {
@@ -396,7 +396,7 @@ def register_copilot_routes(app):
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE))
+            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=700))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -495,7 +495,7 @@ def register_copilot_routes(app):
                     "\n\n---\nPREVIOUS STAGE SCRIPT (bridge from this naturally, "
                     "do not repeat it):\n\n" + prev_script
                 )
-            return jsonify(claude_json(SCRIPT_SYSTEM, user_content, MODEL_ANALYZE))
+            return jsonify(claude_json(SCRIPT_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1200))
         except Exception:
             log.exception("copilot script failed")
             return jsonify({"blocks": []}), 200
@@ -542,7 +542,7 @@ def register_copilot_routes(app):
                 user_content += "Everything captured so far:\n\n" + notes
             else:
                 user_content += "Nothing captured yet — give sensible general prompts for this step."
-            result = claude_json(PROMPTS_SYSTEM, user_content, MODEL_ANALYZE)
+            result = claude_json(PROMPTS_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=400)
             return jsonify(result)
         except Exception:
             log.exception("copilot prompts failed")
@@ -580,7 +580,7 @@ def register_copilot_routes(app):
             elif notes:
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
-            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE).strip()})
+            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1000).strip()})
         except Exception:
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200
@@ -620,7 +620,7 @@ def register_copilot_routes(app):
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
 
-            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE).strip()
+            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1000).strip()
 
             meta = {
                 "client": name,
@@ -655,7 +655,7 @@ def register_copilot_routes(app):
             elif notes:
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
-            result = claude_json(EMAIL_SYSTEM, user_content, MODEL_PREPARE)
+            result = claude_json(EMAIL_SYSTEM, user_content, MODEL_PREPARE, max_tokens=500)
             return jsonify(result)
         except Exception:
             log.exception("copilot summary-email failed")
@@ -678,7 +678,7 @@ def register_copilot_routes(app):
                     "documents (use only if genuinely relevant; never quote a "
                     "premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE))
+            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE, max_tokens=1000))
         except Exception:
             log.exception("copilot prepare failed")
             return jsonify({"error": "prepare failed"}), 200

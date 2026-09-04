@@ -52,11 +52,11 @@ def _strip_fences(text):
     return t
 
 
-def claude_text(system, user, model):
+def claude_text(system, user, model, max_tokens=1500):
     """Return Claude's plain text response."""
     resp = anthropic_client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=max_tokens,
         system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user}],
     )
@@ -64,12 +64,12 @@ def claude_text(system, user, model):
     return _extract_text(resp).strip()
 
 
-def claude_json(system, user, model):
+def claude_json(system, user, model, max_tokens=1500):
     """Return Claude's response parsed as JSON (handles fences)."""
     full_system = system + "\n\nReturn ONLY valid JSON. No preamble, no markdown, no code fences."
     resp = anthropic_client.messages.create(
         model=model,
-        max_tokens=1500,
+        max_tokens=max_tokens,
         system=[{"type": "text", "text": full_system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user}],
     )

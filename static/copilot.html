@@ -632,6 +632,10 @@ function clearScriptBox(){
       ${clientEditor('c1','Client 1')}
       ${state.c2.active?clientEditor('c2','Client 2'):`<div class="miniclient"><h3>Client 2</h3><button class="add-btn" onclick="addC2()">+ Add second client</button></div>`}
     </div>
+    <div class="assump" style="margin-top:14px"><h4>Plan for this call</h4>
+      <p class="empty-note" style="margin:0 0 8px">Jot down how you intend to approach this call - what you'll lead with, anything to be careful of, where you want to get to. The co-pilot will align its guidance to your approach. Not shown to the client.</p>
+      <textarea class="fi" rows="3" placeholder="e.g. Lead with income protection - he's reluctant so keep it educational. Get to the bonus/death-in-service gap early. Budget may be tight, phase CIC if needed." oninput="setCallPlan(this.value)">${state.callPlan}</textarea>
+    </div>
     <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
       <div class="row2">
         <div class="fieldset"><label class="fl">Mortgage amount</label><input class="fi" id="m_amount" value="${state.mortgage.amount}" oninput="setM('amount',this.value)"></div>
@@ -910,6 +914,11 @@ function clearScriptBox(){
   let guideTimer;
   function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 2500); updateFIBVisibility(); }
   function wireBody(id){ /* inputs use inline handlers */ }
+  function setCallPlan(v){
+    state.callPlan = v;
+    nudgeGuidance();
+  }
+
   window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();nudgeGuidance();};
   window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();nudgeGuidance();};
   window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();};
@@ -1555,7 +1564,6 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const res=await authFetch(API_BASE+'/copilot/load/'+id);
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
-      if(prep.call_plan) state.callPlan = prep.call_plan;
       applyPrep(prep);
       if(st) st.textContent='Loaded — fields pre-filled where known.';
     }catch(e){ if(st) st.textContent='Couldn\'t load this client.'; console.error(e); }

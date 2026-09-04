@@ -298,19 +298,6 @@ the EXPOSURE vivid — help the client SEE why protection matters. Examples of t
 - "Kids aged 4 and 6 mean roughly 15+ years of dependency to plan around."
 These illustrate the SIZE and SHAPE of the need using their numbers.
 
-CALL PLAN: also produce a short strategic plan for how to navigate THIS
-specific call - the kind of thing an experienced adviser jots down before
-dialling. Not a script, not maths - a plan. Consider:
-- Which protection areas are most likely to matter for this client and why
-- What order to approach things in, given what you know
-- Any likely objection or sensitivity to prepare for
-- Anything about their situation that should shape the tone (e.g. reluctant,
-  never had this conversation, recently bereaved, tight budget)
-- If they have bonus/variable income, note that employer death-in-service
-  usually covers base salary only, so that gap is worth surfacing
-Keep it to 4-6 short lines. This is internal guidance for the adviser's
-co-pilot, not read aloud to the client.
-
 CRITICAL: You NEVER compute or state a recommended cover amount, never quote or estimate a premium
 or cost, never recommend a product. You frame the NEED and the EXPOSURE only. The adviser sources
 real prices and makes the recommendation. Do arithmetic only to restate their own figures as
@@ -324,8 +311,7 @@ Return ONLY valid JSON:
   "situation": "one-line summary of their circumstances",
   "need_illustrations": ["plain-English exposure framing using their real figures"],
   "opening_questions": ["question tailored to a specific fact about them"],
-  "watch_for": ["need or risk area worth exploring given their specific situation"],
-  "call_plan": "4-6 short lines of strategy for navigating this specific call"
+  "watch_for": ["need or risk area worth exploring given their specific situation"]
 }}
 For key_facts, fill only what the email evidences; leave others "".
 Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each concise."""
@@ -414,9 +400,10 @@ def register_copilot_routes(app):
             plan = (data.get("call_plan") or "").strip()
             if plan:
                 user_content += (
-                    "CALL PLAN for this client (strategic guidance prepared at the "
-                    "start of this call - weigh it where relevant, deviate where the "
-                    "client's actual situation calls for it):\n" + plan + "\n\n"
+                    "ADVISER'S PLAN FOR THIS CALL (written by the adviser before "
+                    "starting - align your questions, prompts and framing to this "
+                    "stated approach; it reflects their judgement about this "
+                    "specific client):\n" + plan + "\n\n"
                 )
             user_content += "Fact-find notes so far (across all steps):\n\n" + notes
             if kb:
@@ -460,8 +447,8 @@ def register_copilot_routes(app):
                 plan = (data.get("call_plan") or "").strip()
             if plan:
                 user_content += (
-                    "\n\n---\nCALL PLAN for this client (strategic guidance from the "
-                    "start of the call - weigh it, don't force it):\n" + plan
+                    "\n\n---\nADVISER'S PLAN FOR THIS CALL (written by the adviser - "
+                    "align the script to this stated approach):\n" + plan
                 )
             prev_script = (data.get("prev_script") or "").strip()
                 if prev_script:
@@ -515,8 +502,8 @@ def register_copilot_routes(app):
             plan = (data.get("call_plan") or "").strip()
             if plan:
                 user_content += (
-                    "\n\n---\nCALL PLAN for this client (strategic guidance from the "
-                    "start of the call - weigh it, don't force it):\n" + plan
+                    "\n\n---\nADVISER'S PLAN FOR THIS CALL (written by the adviser - "
+                    "align the script to this stated approach):\n" + plan
                 )
             prev_script = (data.get("prev_script") or "").strip()
             if prev_script:

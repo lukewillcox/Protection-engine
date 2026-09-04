@@ -57,20 +57,37 @@ def claude_text(system, user, model):
     resp = anthropic_client.messages.create(
         model=model,
         max_tokens=1500,
-        system=system,
+        system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user}],
     )
+    _log_cache_usage(resp)
     return _extract_text(resp).strip()
 
 
 def claude_json(system, user, model):
     """Return Claude's response parsed as JSON (handles fences)."""
+    full_system = system + "\n\nReturn ONLY valid JSON. No preamble, no markdown, no code fences."
     resp = anthropic_client.messages.create(
         model=model,
         max_tokens=1500,
-        system=system + "\n\nReturn ONLY valid JSON. No preamble, no markdown, no code fences.",
+        system=[{"type": "text", "text": full_system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user}],
     )
+    _log_cache_usage(resp)
     raw = _extract_text(resp)
     cleaned = _strip_fences(raw)
     return _json.loads(cleaned)
+
+
+def _log_cache_usage(resp):
+    """Log whether the prompt cache was hit, so we can verify caching works."""
+    try:
+        u = resp.usage
+        created = getattr(u, "cache_creation_input_tokens", 0) or 0
+        read = getattr(u, "cache_read_input_tokens", 0) or 0
+        if read:
+            log.info("prompt cache HIT: %d tokens read from cache", read)
+        elif created:
+            log.info("prompt cache MISS (creating): %d tokens cached for next time", created)
+    except Exception:
+        pass

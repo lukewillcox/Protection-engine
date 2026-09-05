@@ -17,11 +17,12 @@ from anthropic import Anthropic
 log = logging.getLogger(__name__)
 
 _key = os.getenv("ANTHROPIC_API_KEY")
-import httpx
 
+from anthropic import Anthropic
+...
 anthropic_client = Anthropic(
     api_key=_key,
-    timeout=httpx.Timeout(90.0, connect=5.0),
+    timeout=90.0,
     max_retries=1,
 )
 

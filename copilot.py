@@ -127,26 +127,34 @@ Return ONLY valid JSON matching:
   "questions": ["a direct question the adviser should ask the client next"],
   "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
   "relevant_facts": ["a short factual point with source in brackets"],
-  "flags": ["must-document compliance point, under 20 words"]
+  "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
+  "relevant_facts": ["a short factual point with source in brackets"]
 }}
 For captured, fill only fields the notes evidence; leave others "".
 
-FOUR DISTINCT CATEGORIES — keep them genuinely separate:
+THREE DISTINCT CATEGORIES — keep them genuinely separate. Write EVERY item as a
+FULL, NATURAL, CONVERSATIONAL SENTENCE — the way an experienced adviser actually
+speaks, not a clipped fragment or keyword phrase. It should sound like real speech
+when read aloud, not a bullet point.
 
-"questions" (2-4): Direct questions to ASK the client at this step. Phrased as
-  questions the adviser says out loud. Specific to this client where possible.
-  e.g. "When exactly does your sick pay drop to half — is it definitely six months?"
+"questions" (2-4): Direct questions to ASK the client at this step, written as
+  complete sentences the adviser would actually say out loud. Specific to this
+  client where possible.
+  e.g. "When exactly does your sick pay drop down to half pay — is that definitely
+  at the six month mark, or does it vary?"
 
-"prompts" (2-3): Phrases to SAY — how to explain, frame, or land a point. Not
-  questions. Use the client's real figures where you have them.
-  e.g. "After month nine there is £2,873 a month of income with nothing behind it."
+"prompts" (2-3): Full sentences to SAY — how to explain, frame, or land a point,
+  written the way it would actually be spoken, with natural connective language.
+  Use the client's real figures where you have them.
+  e.g. "So once you get past month nine, there's £2,873 a month of income with
+  absolutely nothing behind it to replace it."
 
-"relevant_facts" (0-3): Evidence and figures — provider knowledge, industry data,
-  or a calculation from their numbers. Put the source in brackets.
-  e.g. "Average IP claim runs 7 years 8 months [industry data]"
-
-"flags" (0-3): Compliance and must-document items only. Under 20 words each.
-  e.g. "Smoker status disclosed — must be recorded for underwriting."
+"relevant_facts" (0-3): Evidence and figures written as a natural sentence, not
+  a fragment — provider knowledge, industry data, or a calculation from their
+  numbers. Put the source in brackets.
+  e.g. "It's worth knowing the average income protection claim actually runs for
+  around 7 years and 8 months, which is far longer than most people assume
+  [industry data]."
 
 Never state a premium, a specific product, or a recommended cover amount.
 

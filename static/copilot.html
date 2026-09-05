@@ -986,7 +986,7 @@ function clearScriptBox(){
       const out=await res.json();
       if(out.error) throw new Error(out.error);
       guidanceCache[stepAtRequest]=out;          // persist for this step
-      addOpenItems(out.flags, stepAtRequest);    // accumulate across the case
+      // flags removed - addOpenItems no longer called with out.flags
       if(state.current===stepAtRequest) paintGuide();
       status.className='guide-status'; status.innerHTML='<span class="d"></span> ready';
     }catch(e){ status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline'; console.error(e); }
@@ -1253,7 +1253,6 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       if(t) cards.push({type:'prompt', text:t});
     });
     (out.relevant_facts||[]).forEach(f=>{ if(f) cards.push({type:'fact', text:f}); });
-    (out.flags||[]).forEach(f=>{ if(f) cards.push({type:'flag', text:f}); });
     Object.keys(miniIdx).forEach(k=>miniIdx[k]=0);
     return cards;
   }
@@ -1301,10 +1300,9 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   const MINI_TYPES = [
     {key:'question', label:'Questions to ask', icon:'?'},
     {key:'prompt',   label:'Prompts to say',   icon:'\u201C'},
-    {key:'fact',     label:'Facts & knowledge',icon:'\u2726'},
-    {key:'flag',     label:'Flags \u00B7 to document', icon:'!'}
+    {key:'fact',     label:'Facts & knowledge',icon:'\u2726'}
   ];
-  const miniIdx = {question:0, prompt:0, fact:0, flag:0};
+  const miniIdx = {question:0, prompt:0, fact:0};
 
   function renderDeckStack(){
     const stack = document.getElementById('deckStack');
@@ -1361,7 +1359,6 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const questions = out.questions || [];
     const prompts = out.prompts || [];
     const facts = out.relevant_facts || [];
-    const flags = out.flags || [];
 
     // 1. QUESTIONS TO ASK
     html += '<div class="qpanel panel-questions"><div class="qpanel-head"><div class="qpanel-icon">?</div><div class="qpanel-name">Questions to ask</div><div class="qpanel-count">'+questions.length+'</div></div>';

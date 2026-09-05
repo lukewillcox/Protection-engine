@@ -726,7 +726,7 @@ function clearScriptBox(){
       const netMo=netAnnual(c)/12;
       const monthsToRetire=Math.max(0,(num(a.retire)-num(c.age)))*12;
       const earningsToRetire=netMo*monthsToRetire;
-      const lifeInPlace=grossOf(c)*num(a.dis);
+      const lifeInPlace=num(c.salary)*num(a.dis); // base salary only - DIS typically excludes bonus
       const mortgage=num(state.mortgage.amount);
       const lifeGap=Math.max(0,mortgage-lifeInPlace);
       const sick=key==='c1'?num(a.c1sick):num(a.c2sick);

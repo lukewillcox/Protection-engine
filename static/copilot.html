@@ -1039,7 +1039,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   }
 
   function rateBar(panel, text){
-    const safeText = esc(text).replace(/'/g, "&#39;");
+    const safeText = esc(text).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
     return `<div class="ratebar" style="display:flex;align-items:center;gap:6px;margin-top:7px;">
       <button class="rate-up" onclick="rateCard('${panel}','${safeText}','up',this)" style="background:none;border:1px solid var(--hair-strong);border-radius:6px;cursor:pointer;font-size:12px;opacity:.55;padding:3px 7px;transition:all .12s;" title="Helpful">👍</button>
       <button class="rate-down" onclick="rateCard('${panel}','${safeText}','down',this)" style="background:none;border:1px solid var(--hair-strong);border-radius:6px;cursor:pointer;font-size:12px;opacity:.55;padding:3px 7px;transition:all .12s;" title="Not helpful">👎</button>

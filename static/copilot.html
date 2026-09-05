@@ -493,7 +493,6 @@
     {id:'factfind', title:'Confirm Factfind', desc:"Income, current address, mortgage stage, job roles, children, future plans."},
     {id:'existing', title:'Existing Cover', desc:"What's already in place — provider, type, sum, premium."},
     {id:'stress', title:'Income Stress Test', desc:"Earnings to retirement, gap vs mortgage, how long income lasts."},
-    {id:'stressq', title:'Stress Test Questions', desc:"Walk the client through what happens if income stops."},
     {id:'health', title:'Eligibility & Health', desc:"Age, health, lifestyle, family history — ask and enter for underwriting."},
     {id:'en', title:'Essential vs Needed', desc:"Split recommendations: essential (goals at risk) vs needed. % of income, price/day."},
     {id:'ip', title:'Income Protection', desc:"Capture the IP quotes you've sourced. Mark essential or needed."},
@@ -1864,7 +1863,8 @@ function setUWAnswer(condKey, qIdx, field, value){
   const _origRenderStep = renderStep;
   function renderStepWithFIB(){
     _origRenderStep();
-    if(state.current === 9 && !hasDependants()){
+    const _fibIdx = STEPS.findIndex(s=>s.id==='fib');
+    if(state.current === _fibIdx && !hasDependants()){
       const body = document.getElementById('stepBody');
       if(body) body.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);">' +
         '<div style="font-size:40px;margin-bottom:14px;">👨‍👩‍👧</div>' +

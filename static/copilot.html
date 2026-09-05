@@ -918,7 +918,7 @@ function clearScriptBox(){
 
   // ---------- wiring ----------
   let guideTimer;
-  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 2500); updateFIBVisibility(); }
+  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 9000); updateFIBVisibility(); }
   function wireBody(id){ /* inputs use inline handlers */ }
   function setCallPlan(v){
     state.callPlan = v;
@@ -941,7 +941,7 @@ function clearScriptBox(){
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
 
   // ---------- AI guidance ----------
-  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateDebounced();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,2200);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
+  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateDebounced();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,9000);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
 
   function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
 

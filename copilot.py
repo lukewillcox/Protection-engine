@@ -396,7 +396,7 @@ def register_copilot_routes(app):
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=700))
+            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1500))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200

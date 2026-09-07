@@ -253,14 +253,16 @@
   .openitem{padding:8px 0 8px 12px;border-left:2px solid var(--signal);margin-bottom:8px;font-size:12.5px;line-height:1.45;}
   .openitem .ostep{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:0.06em;}
 
-  @media (max-width:1200px){
-    .layout{grid-template-columns:1fr;}
-    .mindcol{border-left:none;border-top:1px solid var(--hair);position:static;height:auto;}
-  }
+  
 
 
   /* ── card deck ── */
   .layout{display:grid;grid-template-columns:1fr 430px;gap:0;align-items:start;}
+
+  @media (max-width:1200px){
+    .layout{grid-template-columns:1fr;}
+    .mindcol{border-left:none;border-top:1px solid var(--hair);position:static;height:auto;}
+  }
   .rail{display:none;}
   .deckfilters{display:flex;gap:5px;margin-bottom:11px;flex-wrap:wrap;}
   .fchip{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 9px;border-radius:99px;border:1px solid var(--hair-strong);background:none;cursor:pointer;color:var(--muted);}

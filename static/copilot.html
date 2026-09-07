@@ -338,6 +338,122 @@
   .mdrate{display:flex;gap:5px;padding:0 12px 10px;}
   .mdrate button{background:none;border:1px solid var(--hair-strong);border-radius:5px;cursor:pointer;font-size:10px;opacity:.5;padding:2px 5px;}
 
+
+
+  /* ══════════════════════════════════════════════════════
+     PREVIEW-STYLE OVERRIDE — matches preview.html's visual
+     language (violet accent, dark glass guidance panel).
+     Appended after all existing rules; wins the cascade.
+     Zero HTML/JS changes - same class names throughout.
+     ══════════════════════════════════════════════════════ */
+
+  :root{
+    --verd:#6655CF; --verd-soft:#EFECFB;
+    --signal:#B4863F; --signal-soft:#F7EFDF;
+    --hair:#E3E7EF; --hair-strong:#CDD3E2;
+    --muted:#7A869B; --ink-soft:#5C6478;
+    --porcelain:#F3F5FA;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Instrument Sans",sans-serif;
+    --radius:12px;
+  }
+
+  body{
+    background:
+      radial-gradient(ellipse at 75% 0%, rgba(232,229,246,0.55), transparent 48%),
+      radial-gradient(ellipse at 0% 35%, rgba(228,240,245,0.5), transparent 48%),
+      var(--porcelain);
+  }
+
+  /* header: glass-blur */
+  header{
+    background:rgba(255,255,255,0.72);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(255,255,255,0.9);
+    box-shadow:0 1px 0 rgba(225,228,239,0.5);
+  }
+  #postcallBtn{background:linear-gradient(180deg,#7968D7,#6654C2);border-color:#7463CE;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.19),0 4px 9px rgba(102,85,207,0.2);}
+  #postcallBtn:hover{background:linear-gradient(180deg,#8577E0,#7563D0);border-color:#7463CE;}
+
+  /* step rail / active states -> violet */
+  .step-link.active .dot{box-shadow:0 0 0 5px var(--verd-soft);}
+  .snap.good .v,.snap.prem .v{color:var(--verd);}
+
+  /* headings: system sans, tight tracking, not serif */
+  .step-card h1{font-family:var(--sans);font-weight:700;letter-spacing:-0.02em;font-size:32px;}
+  .miniclient h3,.assump h4,.rail h4,.snapshot-head,.mind-title,.notes-label{font-family:var(--mono);}
+
+  /* primary buttons -> violet gradient */
+  #nextBtn{background:linear-gradient(180deg,#7968D7,#6654C2);color:#fff;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.19),0 4px 9px rgba(102,85,207,0.22);}
+  #nextBtn:hover{background:linear-gradient(180deg,#8577E0,#7563D0);}
+  .add-btn{border-color:var(--verd);color:var(--verd);}
+  .add-btn:hover{background:var(--verd);}
+
+  /* focus states -> violet, matches preview a11y treatment */
+  input.fi:focus,select.fi:focus,textarea.fi:focus{outline:2px solid var(--verd);outline-offset:2px;border-bottom-color:var(--verd);}
+  textarea.notes:focus{border-left-color:var(--verd);}
+  :focus-visible{outline-color:var(--verd);}
+
+  /* bottom bar: subtle glass + violet active */
+  .btmbar{background:rgba(255,255,255,0.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
+  .bst.on{background:var(--verd-soft);color:var(--verd);border-color:#D9D2F3;}
+
+  /* ── THE GUIDANCE PANEL: dark glassmorphic, matches preview's .ai-column ── */
+  .mindcol{
+    background:
+      radial-gradient(ellipse at 5% 0%, rgba(90,84,126,0.28), transparent 55%),
+      radial-gradient(ellipse at 100% 100%, rgba(32,87,83,0.18), transparent 60%),
+      linear-gradient(150deg,#1C233B,#141C2E);
+    color:#E9EDF9;
+    border-left:1px solid rgba(255,255,255,0.08);
+  }
+  .mind-title{color:#9AABC5;}
+  .mind-live{color:#A6EFDA;}
+  .mind-live .d{background:#A6EFDA;}
+  .mind-live.thinking{color:#E0B37A;} .mind-live.thinking .d{background:#E0B37A;}
+  .mind-refresh{color:#A6EFDA;}
+  .qpanel-empty,.dkbd{color:#8391AA;}
+
+  /* mode toggle -> dark segmented control */
+  .modetoggle{background:rgba(9,15,32,0.35);border:1px solid rgba(255,255,255,0.06);}
+  .mtbtn{color:#9FAAC0;}
+  .mtbtn.on{background:rgba(255,255,255,0.08);color:#EDEAF9;box-shadow:0 2px 4px rgba(0,0,0,0.15);}
+
+  /* stacked mini-decks -> dark glass cards */
+  .minideck{border:1px solid rgba(217,225,255,0.1);
+    background:linear-gradient(120deg,rgba(255,255,255,0.035),rgba(255,255,255,0.015));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
+  .mdhead{border-bottom:1px solid rgba(255,255,255,0.07);}
+  .mdpos{color:#8D9AB2;}
+  .mdcontent{color:#E1E6F3;}
+  .mdsrc{color:#8EA3C1;}
+  .mdnav{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#B8C3D8;}
+  .mdnav:hover:not(:disabled){background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);color:#E9EDF9;}
+  .mdd{background:#59627B;}
+  .mdrate button{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#B8C3D8;opacity:1;}
+  .mdrate button:hover{background:rgba(255,255,255,0.08);}
+
+  /* category colours: question=mint, prompt=violet, fact=blue, flag=gold */
+  .md-question .mdicon{background:rgba(166,239,218,0.1);color:#A6EFDA;} .md-question .mdname{color:#A6EFDA;} .md-question .mdd.on{background:#A6EFDA;}
+  .md-prompt .mdicon{background:rgba(196,180,255,0.1);color:#C4B4FF;} .md-prompt .mdname{color:#C4B4FF;} .md-prompt .mdd.on{background:#C4B4FF;}
+  .md-fact .mdicon{background:rgba(171,201,238,0.08);color:#ABC9EE;} .md-fact .mdname{color:#ABC9EE;} .md-fact .mdd.on{background:#ABC9EE;}
+  .md-flag .mdicon{background:rgba(220,184,130,0.12);color:#DCB882;} .md-flag .mdname{color:#DCB882;} .md-flag .mdd.on{background:#DCB882;}
+
+  /* script mode -> dark card matching preview's #script-view */
+  .scriptbox{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.09);}
+  .scue{color:#A6EFDA;}
+  .ssay{color:#E1E6F3;font-style:normal;}
+  .scoach{background:rgba(220,184,130,0.1);border-left-color:#DCB882;color:#E2C296;}
+  .scoach .scue{color:#DCB882;}
+  .sloading{color:#8391AA;}
+
+  /* open items list inside the dark panel */
+  .openpanel{border-top:1px solid rgba(255,255,255,0.09);}
+  .openpanel h5{color:#8D9AB2;}
+  .openitem{border-left-color:#DCB882;color:#D7DEF0;}
+  .openitem .ostep{color:#8391AA;}
+
 </style>
 </head>
 <body>

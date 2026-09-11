@@ -404,7 +404,7 @@ def register_copilot_routes(app):
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1500))
+            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=2400))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -451,7 +451,7 @@ def register_copilot_routes(app):
 
                 with anthropic_client.messages.stream(
                     model=MODEL_ANALYZE,
-                    max_tokens=1500,
+                    max_tokens=2400,
                     system=SCRIPT_SYSTEM,
                     messages=[{"role": "user", "content": user_content}],
                 ) as stream:

@@ -324,6 +324,7 @@
   .md-question .mdicon{background:var(--verd-soft);color:var(--verd);} .md-question .mdname{color:var(--verd);}
   .md-prompt .mdicon{background:#EDEAF6;color:#5B4B8A;} .md-prompt .mdname{color:#5B4B8A;}
   .md-fact .mdicon{background:#EFF1F0;color:var(--muted);} .md-fact .mdname{color:var(--ink);}
+  .md-maths .mdicon{background:#E4EDF7;color:#2563EB;} .md-maths .mdname{color:#2563EB;}
   .md-flag .mdicon{background:#F0C69A;color:var(--signal);} .md-flag .mdname{color:var(--signal);}
   .mdbody{display:flex;align-items:stretch;gap:6px;padding:12px 12px 8px;}
   .mdnav{flex:none;width:26px;border:1px solid var(--hair-strong);background:#FBFAF7;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;transition:.12s;}
@@ -621,6 +622,7 @@
   ];
 
   const state = {
+    salesArc: { outgoings:'', youngestAge:'' },
     callPlan: '',
     uwAnswers: {},
     current: 0,
@@ -1042,6 +1044,11 @@ function clearScriptBox(){
     nudgeGuidance();
   }
 
+  function setSalesArc(field, value){
+    state.salesArc[field] = value;
+    if(typeof nudgeGuidance === 'function') nudgeGuidance();
+  }
+
   window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();nudgeGuidance();};
   window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();nudgeGuidance();};
   window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();};
@@ -1210,6 +1217,40 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   };
 
 // Build a block of already-calculated figures so the AI never does its own maths
+  function salesArcFigures(){
+    try{
+      const outgoings = num(state.salesArc.outgoings);
+      const youngestAge = num(state.salesArc.youngestAge);
+      const lines = [];
+      let yearsToProtect = 0;
+      if(youngestAge > 0 && youngestAge < 23){
+        yearsToProtect = 23 - youngestAge;
+      }
+      if(outgoings > 0 && yearsToProtect > 0){
+        const need = outgoings * 12 * yearsToProtect;
+        lines.push('Years to protect (until youngest is 23): ' + yearsToProtect + ' years');
+        lines.push('Protection need: ' + gm(outgoings) + '/mo x 12 x ' + yearsToProtect + ' years = ' + gm(need));
+        const h = typeof household === 'function' ? household() : null;
+        if(h && h.gross){
+          const pct = Math.round((need / h.gross) * 100);
+          lines.push('That figure is roughly ' + pct + '% of one year of household gross income (' + gm(h.gross) + '/yr) - a way of sizing how significant the need is.');
+        }
+      }
+      [['c1', state.c1], ['c2', state.c2]].forEach(([k, c])=>{
+        if(!c || (k==='c2' && !c.active)) return;
+        const nm = c.name || (k==='c1' ? 'Client 1' : 'Client 2');
+        const salary = num(c.salary);
+        const bonus = num(c.bonus);
+        if(bonus > 0 && salary > 0){
+          const total = salary + bonus;
+          const bonusPct = Math.round((bonus/total)*100);
+          lines.push(nm + ': death-in-service cover is almost always based on BASE SALARY ONLY (' + gm(salary) + '), not the ' + gm(bonus) + ' bonus (' + bonusPct + '% of total pay). That bonus portion is typically completely unprotected through work.');
+        }
+      });
+      return lines;
+    }catch(e){ return []; }
+  }
+
   function calculatedFigures(){
     try{
       const h = household();
@@ -1372,6 +1413,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
 
   function buildDeck(out){
     const cards = [];
+    if(typeof salesArcFigures === 'function') salesArcFigures().forEach(m=>{ if(m) cards.push({type:'maths', text:m}); });
     (out.questions||[]).forEach(q=>{
       const t = typeof q === 'string' ? q : (q.headline||q.detail||'');
       if(t) cards.push({type:'question', text:t});

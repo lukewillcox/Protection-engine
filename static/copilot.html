@@ -2454,8 +2454,52 @@ function clearScriptBox(){
       // flags removed - addOpenItems no longer called with out.flags
       if(state.current===stepAtRequest) paintGuide();
       status.className='guide-status'; status.innerHTML='<span class="d"></span> ready';
-    }catch(e){ status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline'; console.error(e); }
+    }catch(e){
+      status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline';
+      console.error(e);
+      logFailure(STEPS[stepAtRequest].title, e);
+      const qs = fallbackQuestions(STEPS[stepAtRequest].title);
+      const fallbackOut = {
+        questions: qs,
+        prompts: [],
+        relevant_facts: []
+      };
+      guidanceCache[stepAtRequest] = fallbackOut;
+      if(state.current===stepAtRequest){
+        paintGuide();
+        const passive = document.getElementById('guidePassive');
+        const warning = document.createElement('div');
+        warning.style.cssText = 'background:var(--signal-soft);border-left:3px solid var(--signal);padding:10px 14px;border-radius:0 8px 8px 0;font-size:12.5px;color:#7A3908;margin-bottom:14px;';
+        warning.textContent = 'AI unavailable right now — showing standard questions for this stage.';
+        const body = document.getElementById('guideBody');
+        if(body) body.insertBefore(warning, body.firstChild);
+      }
+    }
   }
+function fallbackQuestions(stepTitle){
+    const generic = {
+      'Introduction': ['Can you confirm who is with us today, and who this advice covers?', 'What has brought you to look at protection now?'],
+      'Goals & Motivations': ['Why this property, why now?', 'What matters most to you about being protected?'],
+      'Confirm Factfind': ['Can we confirm your income, mortgage details, and dependants are accurate?'],
+      'Existing Cover': ['What cover do you already have in place, if any?', 'Is there any death-in-service or group cover through work?'],
+      'Income Stress Test': ['If your income stopped tomorrow, how long could you manage before things got difficult?'],
+      'Eligibility & Health': ['Are there any health conditions or lifestyle factors we should discuss?', 'Do you smoke or use any nicotine products?'],
+      'Essential vs Needed': ['What would you consider essential to protect versus nice to have?'],
+      'Income Protection': ['How long could you go without income before it became a serious problem?'],
+      'Family Income Benefit': ['How long would your dependants need ongoing financial support?'],
+      'Life Cover': ['What debts or ongoing costs would need clearing if you passed away?'],
+      'Critical Illness': ['If you were diagnosed with a serious illness, what costs would you face beyond lost income?'],
+      'Close & Next Steps': ['Do you have any questions before we wrap up?', 'What would you like to happen next?'],
+    };
+    return generic[stepTitle] || ['What matters most to the client at this stage of the conversation?'];
+  }
+  async function logFailure(step, error){
+    try{
+      await authFetch(API_BASE+'/copilot/log-failure',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({step, error: String(error)})});
+    }catch(e){ /* logging failure shouldn't itself break anything */ }
+  }
+
   function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
   // guidance cache: one entry per step, persists when navigating

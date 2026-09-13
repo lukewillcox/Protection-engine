@@ -463,6 +463,30 @@ def register_copilot_routes(app):
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
 
+    @app.post("/copilot/log-failure")
+    def copilot_log_failure():
+        import json, os, datetime
+        data = request.get_json(silent=True) or {}
+        entry = {
+            "ts": datetime.datetime.utcnow().isoformat(),
+            "step": data.get("step", ""),
+            "error": data.get("error", ""),
+        }
+        log_path = "failure_log.json"
+        try:
+            existing = []
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    existing = json.load(f)
+            existing.append(entry)
+            with open(log_path, "w") as f:
+                json.dump(existing, f, indent=2)
+            return jsonify({"ok": True})
+        except Exception:
+            log.exception("failure log write failed")
+            return jsonify({"ok": False}), 200
+
+
     @app.post("/copilot/script-stream")
     def copilot_script_stream():
         from flask import Response

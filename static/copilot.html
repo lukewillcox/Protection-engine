@@ -1963,6 +1963,7 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   ];
 
   const state = {
+    referralSource: '',
     salesArc: { outgoings:'', youngestAge:'' },
     callPlan: '',
     uwAnswers: {},
@@ -2101,6 +2102,9 @@ function clearScriptBox(){
     <div class="assump" style="margin-top:14px"><h4>Plan for this call</h4>
       <p class="empty-note" style="margin:0 0 8px">Jot down how you intend to approach this call - what you'll lead with, anything to be careful of, where you want to get to. The co-pilot will align its guidance to your approach. Not shown to the client.</p>
       <textarea class="fi" rows="3" placeholder="e.g. Lead with income protection - he's reluctant so keep it educational. Get to the bonus/death-in-service gap early. Budget may be tight, phase CIC if needed." oninput="setCallPlan(this.value)">${state.callPlan}</textarea>
+    </div>
+    <div class="assump" style="margin-top:14px"><h4>Referral source</h4>
+      <div class="fieldset"><label class="fl">Where did this lead come from?</label><input class="fi" placeholder="e.g. Smith Mortgages, existing client Sarah J, website enquiry" value="${state.referralSource}" oninput="setReferralSource(this.value)"></div>
     </div>
     <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
       <div class="row2">
@@ -2387,6 +2391,11 @@ function clearScriptBox(){
 
   function setSalesArc(field, value){
     state.salesArc[field] = value;
+    if(typeof nudgeGuidance === 'function') nudgeGuidance();
+  }
+
+  function setReferralSource(v){
+    state.referralSource = v;
     if(typeof nudgeGuidance === 'function') nudgeGuidance();
   }
 

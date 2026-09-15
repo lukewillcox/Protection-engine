@@ -333,6 +333,36 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}
 The body should use \n for line breaks, ready to paste into an email."""
 
 
+PICTURE_SYSTEM = """You help lay out a "Your Picture" screen for a UK protection
+adviser tool. You are given a client's own goal statement and some ALREADY-CALCULATED
+figures (never compute or estimate anything yourself - use only what is given).
+
+TASK 1 - split the goal into two parts for display:
+- "highlight": a short phrase (3-8 words) from WITHIN the goal text that captures its
+  emotional core (e.g. "settled in this home").
+- "rest": the remaining text of the goal, so that rest + highlight, read in order,
+  reproduces the original goal text (with natural spacing/punctuation).
+Both parts MUST be built only from words that appear in the supplied goal text. Do not
+add, remove, or paraphrase words - you are splitting the client's own sentence, not
+rewriting it.
+
+TASK 2 - for each client and each risk (illness, death), write ONE short sentence
+(under 25 words) connecting the supplied gap figure to the goal - e.g. "This monthly
+gap is what could get in the way of {a phrase from their goal}." Use ONLY the figures
+and names given to you. NEVER state a number that was not supplied. NEVER invent a
+fact about the client. If a figure is 0 or missing, write a neutral sentence noting
+more detail is needed rather than inventing a number.
+
+Return ONLY valid JSON matching:
+{{
+  "goalRest": "...",
+  "goalHighlight": "...",
+  "links": [
+    {{"clientKey": "c1", "illnessSentence": "...", "deathSentence": "..."}}
+  ]
+}}"""
+
+
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
 referral email from a mortgage broker.
 
@@ -462,6 +492,27 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
+
+    @app.post("/copilot/picture-links")
+    def copilot_picture_links():
+        data = request.get_json(silent=True) or {}
+        goal_text = (data.get("goal_text") or "").strip()
+        clients = data.get("clients") or []
+        if not goal_text and not clients:
+            return jsonify({"goalRest": "", "goalHighlight": "", "links": []}), 200
+        try:
+            user_content = f"Goal text (verbatim, split this): {goal_text}\n\n"
+            user_content += "Clients and their already-calculated figures:\n"
+            for c in clients:
+                user_content += (
+                    f"- {c.get('name','Client')}: illness monthly shortfall = "
+                    f"{c.get('illnessShortfall','not supplied')}, "
+                    f"death mortgage gap = {c.get('deathGap','not supplied')}\n"
+                )
+            return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=800))
+        except Exception:
+            log.exception("copilot picture-links failed")
+            return jsonify({"goalRest": goal_text, "goalHighlight": "", "links": []}), 200
 
     @app.post("/copilot/log-failure")
     def copilot_log_failure():

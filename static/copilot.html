@@ -1796,7 +1796,62 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   .mind-live .d{animation:none;}
   *{transition:none;}
 }
-  </style>
+  
+  /* -- Your Picture step: radial mind-map design (Astra) -- */
+  .picture-screen,.picture-screen *,.picture-screen *::before,.picture-screen *::after{box-sizing:border-box;}
+  .picture-screen{--picture-background:var(--porcelain,#F6F5F1);--picture-ink:var(--ink,#151B26);--picture-muted:var(--muted,#7A8290);--picture-hairline:var(--hair,#E4E2DB);--picture-hairline-strong:var(--hair-strong,#D6D3C9);--picture-positive:var(--verd,#0E6B5C);--picture-positive-soft:var(--verd-soft,#E3EFEA);--picture-risk:var(--signal,#B4540A);--picture-risk-soft:var(--signal-soft,#F7E8DC);--picture-column-gap:56px;--picture-row-gap:48px;--picture-card-gap:24px;width:100%;min-width:0;padding:8px 0 32px;background:var(--picture-background);color:var(--picture-ink);font-family:"Instrument Sans",-apple-system,sans-serif;font-size:16px;line-height:1.5;isolation:isolate;}
+  .picture-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px 40px;max-width:1400px;margin:0 auto 28px;}
+  .picture-eyebrow{margin:0 0 12px;color:var(--picture-muted);font-family:"Spline Sans Mono",monospace;font-size:11px;font-weight:400;line-height:1.6;letter-spacing:0.07em;text-transform:uppercase;}
+  .picture-title{margin:0;font-size:28px;font-weight:600;line-height:1.2;letter-spacing:-0.025em;font-family:"Fraunces",Georgia,serif;}
+  .picture-intro{max-width:650px;margin:12px 0 0;font-size:15px;color:var(--picture-muted);}
+  .picture-scroll-hint{display:none;margin:0 0 12px;color:var(--picture-muted);font-size:13px;}
+  .picture-viewport{max-width:1400px;margin:0 auto;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--picture-hairline);border-radius:14px;}
+  .picture-viewport:focus-visible{outline:2px solid var(--picture-positive);outline-offset:4px;}
+  .picture-map{display:grid;grid-template-columns:minmax(240px,1fr) minmax(280px,1.1fr) minmax(240px,1fr);grid-template-rows:auto auto;column-gap:var(--picture-column-gap);row-gap:var(--picture-row-gap);align-items:center;min-width:940px;padding:32px;position:relative;}
+  .picture-branch{position:relative;display:grid;grid-auto-rows:1fr;gap:var(--picture-card-gap);min-width:0;}
+  .picture-branch--illness{grid-column:1;grid-row:1;}
+  .picture-branch--death{grid-column:3;grid-row:1;}
+  .picture-branch::after{content:"";position:absolute;top:50%;width:calc(var(--picture-column-gap) / 2);height:1px;background:var(--picture-hairline-strong);pointer-events:none;}
+  .picture-branch--illness::after{left:calc(100% + var(--picture-column-gap) / 2);}
+  .picture-branch--death::after{right:calc(100% + var(--picture-column-gap) / 2);}
+  .picture-card{position:relative;min-width:0;margin:0;padding:20px;border:1px solid var(--picture-hairline);border-radius:12px;background:var(--picture-background);overflow-wrap:anywhere;}
+  .picture-card--risk{border-top:3px solid var(--picture-risk);}
+  .picture-branch>.picture-card::after{content:"";position:absolute;top:50%;width:calc(var(--picture-column-gap) / 2 + 1px);height:1px;background:var(--picture-hairline-strong);pointer-events:none;}
+  .picture-branch--illness>.picture-card::after{left:100%;}
+  .picture-branch--death>.picture-card::after{right:100%;}
+  .picture-branch>.picture-card::before{content:"";position:absolute;width:1px;height:calc(50% + var(--picture-card-gap) / 2 + 2px);background:var(--picture-hairline-strong);pointer-events:none;}
+  .picture-branch--illness>.picture-card::before{left:calc(100% + var(--picture-column-gap) / 2);}
+  .picture-branch--death>.picture-card::before{right:calc(100% + var(--picture-column-gap) / 2);}
+  .picture-branch>.picture-card:first-child::before{top:50%;}
+  .picture-branch>.picture-card:last-child::before{bottom:50%;}
+  .picture-branch>.picture-card:only-child::before{display:none;}
+  .picture-client{margin:0 0 10px;color:var(--picture-risk);font-family:"Spline Sans Mono",monospace;font-size:12px;line-height:1.5;}
+  .picture-card-title{margin:0 0 18px;font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-0.015em;}
+  .picture-facts{display:grid;gap:12px;margin:0;}
+  .picture-fact{display:grid;gap:4px;min-width:0;}
+  .picture-fact-label{margin:0;font-size:12.5px;color:var(--picture-muted);}
+  .picture-fact-value{margin:0;font-family:"Spline Sans Mono",monospace;font-size:19px;font-weight:400;line-height:1.35;font-variant-numeric:tabular-nums;letter-spacing:-0.025em;}
+  .picture-unit{font-family:"Instrument Sans",-apple-system,sans-serif;font-size:13px;letter-spacing:0;color:var(--picture-muted);}
+  .picture-fact--gap{padding:10px 12px;border-radius:10px;background:var(--picture-risk-soft);color:var(--picture-risk);}
+  .picture-context{margin:16px 0 0;font-size:12.5px;line-height:1.6;color:var(--picture-muted);}
+  .picture-goal-link{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--picture-hairline);font-size:13.5px;line-height:1.6;font-style:italic;}
+  .picture-centre{position:relative;display:grid;grid-column:2;grid-row:1;align-self:stretch;align-items:center;min-width:0;}
+  .picture-centre::after{content:"";position:absolute;z-index:0;top:50%;bottom:calc(-1 * var(--picture-row-gap));left:50%;width:1px;background:var(--picture-hairline-strong);pointer-events:none;}
+  .picture-goal{position:relative;z-index:1;width:100%;padding:32px 24px;border:1px solid var(--picture-hairline-strong);border-radius:14px;background:var(--picture-background);text-align:center;overflow-wrap:anywhere;}
+  .picture-goal-title{margin:18px 0;font-family:"Fraunces",Georgia,serif;font-size:28px;font-weight:500;line-height:1.25;letter-spacing:-0.02em;}
+  .picture-goal-caption{margin:0;color:var(--picture-muted);font-size:12.5px;}
+  .picture-card--covered{grid-column:2;grid-row:2;align-self:start;border-color:var(--picture-hairline-strong);border-top:3px solid var(--picture-positive);background:var(--picture-positive-soft);}
+  .picture-card--covered .picture-eyebrow{color:var(--picture-positive);}
+  .picture-card--covered .picture-card-title{margin-bottom:10px;}
+  .picture-card--covered .picture-goal-link{border-color:var(--picture-hairline-strong);}
+  .picture-cover-total{margin:0;color:var(--picture-positive);font-family:"Spline Sans Mono",monospace;font-size:26px;font-weight:400;line-height:1.35;font-variant-numeric:tabular-nums;letter-spacing:-0.03em;}
+  .picture-footer{display:flex;align-items:baseline;gap:12px 24px;max-width:1400px;margin:22px auto 0;}
+  .picture-footer-label{flex-shrink:0;margin:0;color:var(--picture-muted);font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:0.07em;text-transform:uppercase;}
+  .picture-footer-question{margin:0;font-size:14.5px;line-height:1.5;}
+  @media (max-width:1100px){.picture-header{flex-direction:column;gap:20px;} .picture-scroll-hint{display:block;}}
+  @media (max-width:600px){.picture-title{font-size:24px;} .picture-footer{flex-direction:column;gap:8px;}}
+
+</style>
 </head>
 <body>
   <div id="loginOverlay" style="display:flex;position:fixed;inset:0;z-index:100;background:rgba(21,27,38,0.45);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
@@ -2058,56 +2113,80 @@ function clearScriptBox(){
   }
 
 function yourPictureBody(){
-    const goalText = (state.notes[1]||'').trim(); // step 2 = Goals & Motivations, verbatim
+    const goalText = (state.notes[1]||'').trim();
+    const goalDisplay = goalText || "Not yet captured on Goals & Motivations";
     const mortgage = num(state.mortgage.amount);
     const a = state.assumptions;
     const persons = [['c1', state.c1]]; if(state.c2.active) persons.push(['c2', state.c2]);
 
-    let cards = '';
-    let totalDis = 0;
+    let illnessCards = '', deathCards = '', totalDis = 0;
 
     persons.forEach(([key, c])=>{
       const netMo = netAnnual(c)/12;
       const sick = key==='c1' ? num(a.c1sick) : num(a.c2sick);
-      const essentials = num(state.mortgage.payment) + 0; // essentials baseline = mortgage payment; broker can read alongside notes
       const lifeInPlace = num(c.salary) * num(a.dis);
       const lifeGap = Math.max(0, mortgage - lifeInPlace);
+      const nm = esc(c.name || (key==='c1' ? 'Client 1' : 'Client 2'));
       totalDis += lifeInPlace;
 
-      cards += `<div class="qpanel" style="border-left:3px solid var(--signal);">
-        <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--signal-soft);color:var(--signal);">!</div>
-          <div class="qpanel-name" style="color:var(--signal);">If ${esc(c.name||(key==='c1'?'Client 1':'Client 2'))} can't work</div></div>
-        <div style="font-size:13.5px;line-height:1.55;margin-bottom:10px;">
-          Sick pay covers ${sick} months, then income drops. Net monthly income is ${gm(netMo)}.
-        </div>
-        ${goalText ? `<div style="background:var(--signal-soft);border-left:2px solid var(--signal);padding:8px 12px;border-radius:0 8px 8px 0;font-size:13px;font-style:italic;color:#7A3908;">This is the gap behind: "${esc(goalText.slice(0,140))}${goalText.length>140?'…':''}"</div>` : ''}
-      </div>
-      <div class="qpanel" style="border-left:3px solid var(--signal);margin-top:10px;">
-        <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--signal-soft);color:var(--signal);">!</div>
-          <div class="qpanel-name" style="color:var(--signal);">If ${esc(c.name||(key==='c1'?'Client 1':'Client 2'))} dies</div></div>
-        <div style="font-size:13.5px;line-height:1.55;margin-bottom:6px;">
-          Death-in-service: ${gm(lifeInPlace)} vs mortgage of ${gm(mortgage)}.
-        </div>
-        <div style="font-family:var(--mono);font-size:19px;font-weight:500;color:${lifeGap>0?'var(--signal)':'var(--verd)'};">${gm(lifeGap)}<span style="font-size:11px;color:var(--muted);font-family:var(--sans);"> still to fund</span></div>
-      </div>`;
+      illnessCards += `<article class="picture-card picture-card--risk">
+        <p class="picture-client">${nm}</p>
+        <h2 class="picture-card-title">If illness interrupts income</h2>
+        <dl class="picture-facts">
+          <div class="picture-fact"><dt class="picture-fact-label">Recorded sick-pay period</dt><dd class="picture-fact-value">${sick} <span class="picture-unit">months</span></dd></div>
+          <div class="picture-fact"><dt class="picture-fact-label">Monthly take-home income</dt><dd class="picture-fact-value">${gm(netMo)}</dd></div>
+        </dl>
+        <p class="picture-context">If sick pay ends before a return to work, household income could fall.</p>
+        ${goalText ? `<p class="picture-goal-link">An income interruption could make this harder to sustain: "${esc(goalText)}"</p>` : ''}
+      </article>`;
+
+      deathCards += `<article class="picture-card picture-card--risk">
+        <p class="picture-client">${nm}</p>
+        <h2 class="picture-card-title">If you were no longer here</h2>
+        <dl class="picture-facts">
+          <div class="picture-fact"><dt class="picture-fact-label">Mortgage amount</dt><dd class="picture-fact-value">${gm(mortgage)}</dd></div>
+          <div class="picture-fact"><dt class="picture-fact-label">Death-in-service cover</dt><dd class="picture-fact-value">${gm(lifeInPlace)}</dd></div>
+          <div class="picture-fact picture-fact--gap"><dt class="picture-fact-label">Shortfall against mortgage</dt><dd class="picture-fact-value">${gm(lifeGap)}</dd></div>
+        </dl>
+        <p class="picture-context">This compares the mortgage with recorded death-in-service cover only.</p>
+        ${goalText ? `<p class="picture-goal-link">Any mortgage shortfall could put pressure on this goal: "${esc(goalText)}"</p>` : ''}
+      </article>`;
     });
 
-    return `<div class="assump" style="background:var(--verd-soft);border:none;border-radius:14px;padding:26px 28px;margin-bottom:22px;">
-      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--verd);margin-bottom:10px;">What we're protecting</div>
-      ${goalText
-        ? `<div style="font-family:var(--serif);font-size:24px;font-weight:600;line-height:1.3;color:var(--ink);">${esc(goalText)}</div>
-           <div style="font-size:12px;color:var(--muted);margin-top:10px;">Your family's goal, from Goals &amp; Motivations</div>`
-        : `<div style="font-size:14px;color:var(--muted);font-style:italic;">No goal captured yet on the Goals &amp; Motivations step - go back and add it in the client's own words, and it will appear here.</div>`
-      }
-    </div>
-    <div class="row2">${cards}</div>
-    <div class="qpanel" style="margin-top:14px;border-left:3px solid var(--verd);">
-      <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--verd-soft);color:var(--verd);">✓</div>
-        <div class="qpanel-name" style="color:var(--verd);">Already working for you</div></div>
-      <div style="font-size:13.5px;line-height:1.6;">
-        Combined death-in-service across the household: <b>${gm(totalDis)}</b>. This is a real head start - not a gap to fill twice.
+    return `<section class="picture-screen" aria-labelledby="picture-title">
+      <header class="picture-header">
+        <div>
+          <p class="picture-eyebrow">Protection review &middot; guided call</p>
+          <h1 class="picture-title" id="picture-title">Your picture</h1>
+          <p class="picture-intro">What you want to protect, what could interrupt it, and what you already have.</p>
+        </div>
+      </header>
+      <p class="picture-scroll-hint">Scroll horizontally to explore the whole picture.</p>
+      <div class="picture-viewport" role="region" aria-label="Your protection picture" tabindex="0">
+        <div class="picture-map">
+          <div class="picture-branch picture-branch--illness" role="group" aria-label="Illness and income">${illnessCards}</div>
+          <div class="picture-centre">
+            <article class="picture-goal" aria-labelledby="picture-goal-title">
+              <p class="picture-eyebrow">At the centre of your picture</p>
+              <h2 class="picture-goal-title" id="picture-goal-title">"${esc(goalDisplay)}"</h2>
+              <p class="picture-goal-caption">${goalText ? "Your goal, in your words" : "Go back to Goals & Motivations to capture this"}</p>
+            </article>
+          </div>
+          <div class="picture-branch picture-branch--death" role="group" aria-label="Death and mortgage">${deathCards}</div>
+          <article class="picture-card picture-card--covered">
+            <p class="picture-eyebrow">Already in place &middot; Household</p>
+            <h2 class="picture-card-title">Existing death-in-service cover</h2>
+            <p class="picture-cover-total">${gm(totalDis)}</p>
+            <p class="picture-context">Combined recorded cover across the household. Each client's benefit applies separately, subject to scheme terms and eligibility.</p>
+            ${goalText ? `<p class="picture-goal-link">This is part of the support already behind: "${esc(goalText)}"</p>` : ''}
+          </article>
+        </div>
       </div>
-    </div>`;
+      <footer class="picture-footer">
+        <p class="picture-footer-label">Check together</p>
+        <p class="picture-footer-question">Does this reflect what matters most to you before we look at cover?</p>
+      </footer>
+    </section>`;
   }
 
   function bodyFor(id){

@@ -1858,6 +1858,177 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   body.picture-fullscreen-active .main{width:100%;max-width:none;padding:0;margin:0;}
   body.picture-fullscreen-active .yp-page{min-height:100vh;}
 
+
+    :root {
+      --background: #F6F5F1;
+      --surface: #FFFFFF;
+      --ink: #151B26;
+      --muted: #7A8290;
+      --border: #E4E2DB;
+      --green: #0E6B5C;
+      --amber-bg: #F7E8DC;
+      --amber: #B4540A;
+      --serif: "Fraunces", Georgia, serif;
+      --sans: "Instrument Sans", sans-serif;
+      --mono: "Spline Sans Mono", monospace;
+    }
+    .ypf-page {
+      min-height: 100svh;
+      max-width: 1600px;
+      margin: auto;
+      padding: 35px 48px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .ypf-page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding-bottom: 27px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ypf-eyebrow {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .ypf-page-header h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 450;
+      letter-spacing: -.8px;
+    }
+    .ypf-client {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+    .ypf-client-icon {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--green);
+    }
+    .ypf-client-name { font-size: 14px; font-weight: 600; }
+    .ypf-client-note { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .ypf-page main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .ypf-map-intro {
+      margin: 24px 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .ypf-map {
+      position: relative;
+      width: 100%;
+      max-width: 1320px;
+      height: 665px;
+      margin: 0 auto;
+      isolation: isolate;
+    }
+    .ypf-connections {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      inset: 0;
+      z-index: -1;
+      overflow: visible;
+    }
+    .ypf-connections path {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 1.5;
+      vector-effect: non-scaling-stroke;
+    }
+    .ypf-connections .ypf-positive-line { stroke: var(--green); opacity: .4; }
+    .ypf-connections circle { fill: var(--background); stroke: var(--border); stroke-width: 1.5; }
+    .ypf-connections .ypf-positive-dot { stroke: var(--green); }
+    .ypf-income {
+      position: absolute; top: 27px; left: 50%;
+      transform: translateX(-50%); text-align: center; white-space: nowrap;
+    }
+    .ypf-small-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: .11em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .ypf-income-value { margin-top: 7px; font-family: var(--mono); font-size: 19px; letter-spacing: -.7px; }
+    .ypf-income-value span { font-family: var(--sans); font-size: 12px; color: var(--muted); letter-spacing: 0; }
+    .ypf-goal { position: absolute; top: 143px; left: 31%; width: 38%; text-align: center; }
+    .ypf-goal-marker {
+      display: inline-flex; align-items: center; gap: 7px; margin-bottom: 19px;
+      color: var(--green); font-family: var(--mono); font-size: 10px;
+      letter-spacing: .14em; text-transform: uppercase;
+    }
+    .ypf-goal h2 {
+      max-width: 465px; margin: 0 auto; font-family: var(--serif);
+      font-size: clamp(33px, 3.15vw, 44px); font-weight: 450;
+      letter-spacing: -1.65px; line-height: 1.17; text-wrap: balance;
+    }
+    .ypf-goal-caption { margin: 20px 0 0; font-size: 12px; color: var(--muted); }
+    .ypf-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 15px;
+      box-shadow: 0 3px 5px rgba(21,27,38,0.02), 0 16px 34px -18px rgba(21,27,38,0.15);
+    }
+    .ypf-risk { position: absolute; top: 171px; width: 26%; padding: 24px; }
+    .ypf-illness { left: 0; }
+    .ypf-death { right: 0; }
+    .ypf-node-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 17px; }
+    .ypf-icon-box { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 9px; background: var(--amber-bg); color: var(--amber); font-weight:700; }
+    .ypf-node-index { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+    .ypf-risk h3 { margin: 0 0 18px; font-family: var(--serif); font-size: 23px; font-weight: 450; letter-spacing: -.6px; line-height: 1.2; }
+    .ypf-figure-block { padding: 14px 15px 13px; border-radius: 9px; background: var(--amber-bg); color: var(--amber); }
+    .ypf-figure { font-family: var(--mono); font-size: clamp(25px, 2.45vw, 33px); font-weight: 450; letter-spacing: -1.6px; line-height: 1.15; }
+    .ypf-figure-unit { font-family: var(--sans); font-size: 12px; font-weight: 400; letter-spacing: 0; margin-left: 3px; }
+    .ypf-figure-description { margin-top: 7px; font-size: 11px; font-weight: 550; }
+    .ypf-consequence { margin: 16px 0; font-size: 13px; line-height: 1.6; }
+    .ypf-existing { position: absolute; width: 450px; top: 502px; left: 50%; transform: translateX(-50%); padding: 20px 24px; }
+    .ypf-existing-heading { display: flex; align-items: center; gap: 8px; color: var(--green); font-size: 12px; font-weight: 600; }
+    .ypf-existing-figures { display: grid; grid-template-columns: 1fr 1fr; margin: 16px 0 12px; }
+    .ypf-cover-person + .ypf-cover-person { padding-left: 23px; border-left: 1px solid var(--border); }
+    .ypf-person-label { display: block; margin-bottom: 6px; font-size: 11px; color: var(--muted); }
+    .ypf-cover-value { font-family: var(--mono); font-size: 23px; font-weight: 450; letter-spacing: -1px; color: var(--green); }
+    .ypf-existing p { margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
+    .ypf-page-footer { border-top: 1px solid var(--border); padding-top: 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; }
+    .ypf-legend { display: flex; gap: 22px; flex-shrink: 0; padding-top: 2px; }
+    .ypf-legend-item { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; color: var(--muted); }
+    .ypf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .ypf-dot.ypf-amber { background: var(--amber); }
+    .ypf-disclaimer { max-width: 620px; margin: 0; text-align: right; font-size: 10px; line-height: 1.6; color: var(--muted); }
+    .ypf-missing { color: var(--muted); font-style: italic; }
+    @media (max-width: 1100px) {
+      .ypf-page { padding: 28px; }
+      .ypf-risk { width: 27%; padding: 19px; }
+      .ypf-goal { left: 30%; width: 40%; }
+      .ypf-goal h2 { font-size: 34px; }
+    }
+    @media (max-width: 860px) {
+      .ypf-page { padding: 25px 22px; }
+      .ypf-client-icon { display: none; }
+      .ypf-map { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 25px 0 30px; }
+      .ypf-connections { display: none; }
+      .ypf-income, .ypf-goal, .ypf-risk, .ypf-existing { position: relative; top: auto; left: auto; right: auto; transform: none; width: auto; }
+      .ypf-income { grid-column: 1 / -1; }
+      .ypf-goal { grid-column: 1 / -1; padding: 24px 12px 35px; }
+      .ypf-goal h2 { max-width: 490px; font-size: 40px; }
+      .ypf-existing { grid-column: 1 / -1; width: min(450px, 100%); margin: 8px auto 0; }
+      .ypf-page-footer { flex-direction: column; gap: 14px; }
+      .ypf-disclaimer { text-align: left; max-width: none; }
+    }
+
 </style>
 </head>
 <body>
@@ -2147,86 +2318,119 @@ function yourPictureBody(){
     const mortgage = num(state.mortgage.amount);
     const a = state.assumptions;
     const persons = [['c1', state.c1]]; if(state.c2.active) persons.push(['c2', state.c2]);
+    const primary = persons[0][1];
+    const primarySalary = num(primary.salary);
+    const primaryDis = num(a.dis) * primarySalary;
+    const householdNet = persons.reduce((sum,[k,c])=>sum+netAnnual(c)/12,0);
 
-    let illnessCards = '', deathCards = '', coverItems = '';
-    const clientData = [];
+    const hasGoal = !!goalText;
+    const hasMortgage = mortgage > 0;
+    const hasIncome = householdNet > 0;
 
+    const goalHtml = hasGoal
+      ? esc(goalText)
+      : '<span class="ypf-missing">Not yet captured — add this on Goals &amp; Motivations</span>';
+
+    const illnessShortfall = (hasMortgage && num(state.mortgage.payment) > 0)
+      ? Math.max(0, num(state.mortgage.payment) - Math.round(householdNet*0.55))
+      : 0;
+    const illnessFigureHtml = (hasMortgage && num(state.mortgage.payment) > 0)
+      ? gm(illnessShortfall) + '<span class="ypf-figure-unit">/ month</span>'
+      : '<span class="ypf-missing">Add mortgage payment to calculate</span>';
+
+    const deathGap = hasMortgage ? Math.max(0, mortgage - primaryDis) : 0;
+    const deathFigureHtml = hasMortgage
+      ? (primaryDis > 0 ? gm(deathGap) : gm(mortgage) + ' <span class="ypf-missing">(no death-in-service recorded)</span>')
+      : '<span class="ypf-missing">Add mortgage amount to calculate</span>';
+
+    let secondaryNote = '';
+    if(persons.length > 1){
+      const c2 = persons[1][1];
+      const c2Salary = num(c2.salary);
+      const c2Dis = num(a.dis) * c2Salary;
+      if(hasMortgage){
+        const c2Gap = Math.max(0, mortgage - c2Dis);
+        secondaryNote = c2Dis > 0
+          ? `If ${esc(c2.name||'Client 2')} dies, the gap is ${gm(c2Gap)} after their ${gm(c2Dis)} cover.`
+          : `${esc(c2.name||'Client 2')} has no death-in-service cover recorded yet.`;
+      }
+    }
+
+    let coverFigures = '';
     persons.forEach(([key, c])=>{
-      const netMo = netAnnual(c)/12;
-      const sick = key==='c1' ? num(a.c1sick) : num(a.c2sick);
-      const essentialMo = num(state.mortgage.payment);
-      const illnessShortfall = Math.max(0, essentialMo - 0);
-      const lifeInPlace = num(c.salary) * num(a.dis);
-      const lifeGap = Math.max(0, mortgage - lifeInPlace);
-      const nm = esc(c.name || (key==='c1' ? 'Client 1' : 'Client 2'));
-      clientData.push({key, name: c.name || (key==='c1'?'Client 1':'Client 2'), illnessShortfall, deathGap: lifeGap});
-
-      illnessCards += `<article class="yp-card yp-risk-card">
-        <p class="yp-label">Income at risk</p>
-        <h2 class="yp-card-title">If illness stops ${nm} working</h2>
-        <div class="yp-gap">
-          <p class="yp-gap-label">Monthly essentials</p>
-          <p class="yp-figure"><span class="yp-amount">${gm(illnessShortfall)}</span><span class="yp-figure-unit">/ month</span></p>
-        </div>
-        <p class="yp-link-sentence loading" id="yp-link-illness-${key}">Loading…</p>
-      </article>`;
-
-      deathCards += `<article class="yp-card yp-risk-card">
-        <p class="yp-label">Home at risk</p>
-        <h2 class="yp-card-title">If ${nm} dies</h2>
-        <div class="yp-gap">
-          <p class="yp-gap-label">Mortgage gap</p>
-          <p class="yp-figure"><span class="yp-amount">${gm(lifeGap)}</span><span class="yp-figure-unit">remaining</span></p>
-        </div>
-        <p class="yp-link-sentence loading" id="yp-link-death-${key}">Loading…</p>
-      </article>`;
-
-      coverItems += `<div class="yp-cover-item"><dt class="yp-cover-name">${nm}</dt><dd class="yp-cover-detail">${gm(lifeInPlace)} death-in-service</dd></div>`;
+      const salary = num(c.salary);
+      const dis = num(a.dis) * salary;
+      coverFigures += `<div class="ypf-cover-person">
+        <span class="ypf-person-label">${esc(c.name || (key==='c1'?'Client 1':'Client 2'))}'s cover</span>
+        <span class="ypf-cover-value">${dis > 0 ? gm(dis) : '<span class="ypf-missing">Not recorded</span>'}</span>
+      </div>`;
     });
 
-    setTimeout(()=>fetchPictureLinks(goalText, clientData), 50);
-
-    return `<div class="yp-page"><section class="yp-screen" aria-labelledby="yp-title">
-      <header class="yp-header">
-        <nav class="yp-progress" aria-label="Planning progress">
-          <ol class="yp-breadcrumb">
-            <li class="yp-breadcrumb-item"><span>Discovery</span><span class="yp-breadcrumb-arrow">&rarr;</span></li>
-            <li class="yp-breadcrumb-item yp-breadcrumb-item--current"><span>Your picture</span><span class="yp-breadcrumb-arrow">&rarr;</span></li>
-            <li class="yp-breadcrumb-item"><span>Explore options</span></li>
-          </ol>
-        </nav>
-        <div class="yp-heading">
-          <p class="yp-eyebrow">What matters. What could get in the way.</p>
-          <h1 class="yp-title" id="yp-title">Your picture</h1>
-          <p class="yp-intro">Your goal, the gaps that could put it at risk, and the protection already helping.</p>
+    return `<div class="ypf-page">
+      <header class="ypf-page-header">
+        <div>
+          <p class="ypf-eyebrow">Protection, with purpose</p>
+          <h1>Your protection picture</h1>
+        </div>
+        <div class="ypf-client">
+          <div class="ypf-client-icon" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5a5.5 5.5 0 0 1 11 0V19M16 5.5a3 3 0 0 1 0 5.5M17 14a4.5 4.5 0 0 1 3.5 4.5V19"/>
+            </svg>
+          </div>
+          <div>
+            <div class="ypf-client-name">${esc((state.c1.name||'Client 1') + (state.c2.active?' & '+(state.c2.name||'Client 2'):''))}</div>
+            <div class="ypf-client-note">Family protection</div>
+          </div>
         </div>
       </header>
-      <div class="yp-grid">
-        <section class="yp-card yp-goal">
-          <p class="yp-label">At the heart of your plan</p>
-          <h2 class="yp-card-title">Your goal</h2>
-          <p class="yp-goal-statement" id="yp-goal-statement">${goalText ? esc(goalText) : 'Not yet captured on Goals &amp; Motivations'}</p>
-          <p class="yp-goal-caption">This is what your protection needs to support.</p>
+      <main>
+        <p class="ypf-map-intro">Start with what matters. See what could put it at risk — and what's already helping.</p>
+        <section class="ypf-map" aria-label="Family protection map">
+          <svg class="ypf-connections" viewBox="0 0 1320 665" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M660 89 V137"/>
+            <path d="M410 287 H390 C365 287 374 319 347 319"/>
+            <path d="M910 287 H930 C955 287 946 319 973 319"/>
+            <path class="ypf-positive-line" d="M660 413 V502"/>
+            <circle cx="347" cy="319" r="4"/><circle cx="973" cy="319" r="4"/>
+            <circle cx="660" cy="137" r="3"/><circle class="ypf-positive-dot" cx="660" cy="502" r="4"/>
+          </svg>
+          <div class="ypf-income">
+            <div class="ypf-small-label">The household today</div>
+            <div class="ypf-income-value">${hasIncome ? gm(householdNet) : '<span class="ypf-missing">£0</span>'}<span> / month net income</span></div>
+          </div>
+          <section class="ypf-goal">
+            <div class="ypf-goal-marker">What matters most</div>
+            <h2>${goalHtml}</h2>
+            <p class="ypf-goal-caption">The life you're protecting. Not just the numbers.</p>
+          </section>
+          <article class="ypf-card ypf-risk ypf-illness">
+            <div class="ypf-node-top"><span class="ypf-icon-box">!</span><span class="ypf-node-index">01 / INCOME</span></div>
+            <h3>If illness stops work</h3>
+            <div class="ypf-figure-block"><div class="ypf-figure">${illnessFigureHtml}</div><div class="ypf-figure-description">Illustrative mortgage shortfall</div></div>
+            <p class="ypf-consequence">A gap in the monthly payment could make staying in this home harder.</p>
+          </article>
+          <article class="ypf-card ypf-risk ypf-death">
+            <div class="ypf-node-top"><span class="ypf-icon-box">!</span><span class="ypf-node-index">02 / MORTGAGE</span></div>
+            <h3>If ${esc(primary.name || 'the main earner')} dies</h3>
+            <div class="ypf-figure-block"><div class="ypf-figure">${deathFigureHtml}</div><div class="ypf-figure-description">Mortgage gap</div></div>
+            <p class="ypf-consequence">${secondaryNote || 'The remaining household would still have this gap to fund.'}</p>
+          </article>
+          <article class="ypf-card ypf-existing">
+            <div class="ypf-existing-heading">Already helping · Death-in-service cover</div>
+            <div class="ypf-existing-figures">${coverFigures}</div>
+            <p>A head start towards keeping the home, not the whole answer.</p>
+          </article>
         </section>
-        <section class="yp-risk-stack yp-risk-stack--illness">${illnessCards}</section>
-        <section class="yp-risk-stack yp-risk-stack--death">${deathCards}</section>
-        <section class="yp-card yp-existing">
-          <p class="yp-label yp-label--positive">Already helping</p>
-          <h2 class="yp-card-title">You're not starting from scratch</h2>
-          <p class="yp-supporting-copy">The cover you already have is part of the picture.</p>
-          <dl class="yp-cover-list">${coverItems}</dl>
-        </section>
-        <section class="yp-card yp-outcomes">
-          <p class="yp-label">Before we explore options</p>
-          <h2 class="yp-card-title">What would close the gaps</h2>
-          <p class="yp-supporting-copy">Two outcomes to work towards, rather than products to choose yet.</p>
-          <ol class="yp-outcome-list">
-            <li class="yp-outcome-item"><h3 class="yp-outcome-title">Keep the monthly essentials covered</h3><p class="yp-outcome-copy">Replace the income shortfall if illness stops work.</p></li>
-            <li class="yp-outcome-item"><h3 class="yp-outcome-title">Leave enough to clear the mortgage</h3><p class="yp-outcome-copy">Close the remaining mortgage gap if either client dies.</p></li>
-          </ol>
-        </section>
-      </div>
-    </section></div>`;
+      </main>
+      <footer class="ypf-page-footer">
+        <div class="ypf-legend">
+          <span class="ypf-legend-item"><span class="ypf-dot"></span>What matters &amp; what helps</span>
+          <span class="ypf-legend-item"><span class="ypf-dot ypf-amber"></span>Gaps to explore</span>
+        </div>
+        <p class="ypf-disclaimer">A conversation starter, not a recommendation. Assumes the relevant death-in-service benefit is available in full. Benefits depend on employment and scheme terms.</p>
+      </footer>
+    </div>\`;
   }
 
   async function fetchPictureLinks(goalText, clientData){

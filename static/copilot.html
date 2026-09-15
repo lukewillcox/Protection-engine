@@ -1954,6 +1954,7 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
     {id:'existing', title:'Existing Cover', desc:"What's already in place — provider, type, sum, premium."},
     {id:'stress', title:'Income Stress Test', desc:"Earnings to retirement, gap vs mortgage, how long income lasts."},
     {id:'health', title:'Eligibility & Health', desc:"Age, health, lifestyle, family history — ask and enter for underwriting."},
+    {id:'picture', title:'Your Picture', desc:"Bring it together - the goal, the risks to it, and what's already helping."},
     {id:'en', title:'Essential vs Needed', desc:"Split recommendations: essential (goals at risk) vs needed. % of income, price/day."},
     {id:'ip', title:'Income Protection', desc:"Capture the IP quotes you've sourced. Mark essential or needed."},
     {id:'fib', title:'Family Income Benefit', desc:"Capture FIB quotes. Often fits replacing income for dependants."},
@@ -2056,11 +2057,65 @@ function clearScriptBox(){
     requestGuidance();
   }
 
+function yourPictureBody(){
+    const goalText = (state.notes[1]||'').trim(); // step 2 = Goals & Motivations, verbatim
+    const mortgage = num(state.mortgage.amount);
+    const a = state.assumptions;
+    const persons = [['c1', state.c1]]; if(state.c2.active) persons.push(['c2', state.c2]);
+
+    let cards = '';
+    let totalDis = 0;
+
+    persons.forEach(([key, c])=>{
+      const netMo = netAnnual(c)/12;
+      const sick = key==='c1' ? num(a.c1sick) : num(a.c2sick);
+      const essentials = num(state.mortgage.payment) + 0; // essentials baseline = mortgage payment; broker can read alongside notes
+      const lifeInPlace = num(c.salary) * num(a.dis);
+      const lifeGap = Math.max(0, mortgage - lifeInPlace);
+      totalDis += lifeInPlace;
+
+      cards += `<div class="qpanel" style="border-left:3px solid var(--signal);">
+        <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--signal-soft);color:var(--signal);">!</div>
+          <div class="qpanel-name" style="color:var(--signal);">If ${esc(c.name||(key==='c1'?'Client 1':'Client 2'))} can't work</div></div>
+        <div style="font-size:13.5px;line-height:1.55;margin-bottom:10px;">
+          Sick pay covers ${sick} months, then income drops. Net monthly income is ${gm(netMo)}.
+        </div>
+        ${goalText ? `<div style="background:var(--signal-soft);border-left:2px solid var(--signal);padding:8px 12px;border-radius:0 8px 8px 0;font-size:13px;font-style:italic;color:#7A3908;">This is the gap behind: "${esc(goalText.slice(0,140))}${goalText.length>140?'…':''}"</div>` : ''}
+      </div>
+      <div class="qpanel" style="border-left:3px solid var(--signal);margin-top:10px;">
+        <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--signal-soft);color:var(--signal);">!</div>
+          <div class="qpanel-name" style="color:var(--signal);">If ${esc(c.name||(key==='c1'?'Client 1':'Client 2'))} dies</div></div>
+        <div style="font-size:13.5px;line-height:1.55;margin-bottom:6px;">
+          Death-in-service: ${gm(lifeInPlace)} vs mortgage of ${gm(mortgage)}.
+        </div>
+        <div style="font-family:var(--mono);font-size:19px;font-weight:500;color:${lifeGap>0?'var(--signal)':'var(--verd)'};">${gm(lifeGap)}<span style="font-size:11px;color:var(--muted);font-family:var(--sans);"> still to fund</span></div>
+      </div>`;
+    });
+
+    return `<div class="assump" style="background:var(--verd-soft);border:none;border-radius:14px;padding:26px 28px;margin-bottom:22px;">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--verd);margin-bottom:10px;">What we're protecting</div>
+      ${goalText
+        ? `<div style="font-family:var(--serif);font-size:24px;font-weight:600;line-height:1.3;color:var(--ink);">${esc(goalText)}</div>
+           <div style="font-size:12px;color:var(--muted);margin-top:10px;">Your family's goal, from Goals &amp; Motivations</div>`
+        : `<div style="font-size:14px;color:var(--muted);font-style:italic;">No goal captured yet on the Goals &amp; Motivations step - go back and add it in the client's own words, and it will appear here.</div>`
+      }
+    </div>
+    <div class="row2">${cards}</div>
+    <div class="qpanel" style="margin-top:14px;border-left:3px solid var(--verd);">
+      <div class="qpanel-head"><div class="qpanel-icon" style="background:var(--verd-soft);color:var(--verd);">✓</div>
+        <div class="qpanel-name" style="color:var(--verd);">Already working for you</div></div>
+      <div style="font-size:13.5px;line-height:1.6;">
+        Combined death-in-service across the household: <b>${gm(totalDis)}</b>. This is a real head start - not a gap to fill twice.
+      </div>
+    </div>`;
+  }
+
   function bodyFor(id){
     if(id==='factfind') return factfindBody();
     if(id==='stress') return stressBody();
     if(id==='health') return healthBody();
     if(id==='existing') return existingBody();
+    if(id==='picture') return yourPictureBody();
     if(id==='en') return enBody();
     if(['ip','fib','life','cic'].includes(id)) return quoteBody(id);
     if(id==='intro') return introBody();

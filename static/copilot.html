@@ -1849,6 +1849,15 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   @media (max-width:1100px){.yp-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .yp-goal{grid-column:1/-1;grid-row:1;} .yp-risk-stack--illness{grid-column:1;grid-row:2;} .yp-risk-stack--death{grid-column:2;grid-row:2;} .yp-existing{grid-column:1;grid-row:3;} .yp-outcomes{grid-column:2;grid-row:3;}}
   @media (max-width:680px){.yp-grid{grid-template-columns:1fr;} .yp-goal,.yp-risk-stack--illness,.yp-risk-stack--death,.yp-existing,.yp-outcomes{grid-column:1;grid-row:auto;}}
 
+
+  /* -- Your Picture fullscreen takeover -- */
+  body.picture-fullscreen-active{overflow-x:hidden;}
+  body.picture-fullscreen-active .layout{display:block;grid-template-columns:none;}
+  body.picture-fullscreen-active .layout .rail,
+  body.picture-fullscreen-active .layout>*:not(.main){display:none;}
+  body.picture-fullscreen-active .main{width:100%;max-width:none;padding:0;margin:0;}
+  body.picture-fullscreen-active .yp-page{min-height:100vh;}
+
 </style>
 </head>
 <body>
@@ -2093,7 +2102,30 @@ function clearScriptBox(){
     }
   }
 
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); }
+  function enterPictureFullscreen(){
+    const header = document.querySelector('header');
+    const snapshot = document.querySelector('.snapshot');
+    const mindcol = document.querySelector('.mindcol');
+    const btmbar = document.querySelector('.btmbar');
+    if(header) header.style.display = 'none';
+    if(snapshot) snapshot.style.display = 'none';
+    if(mindcol) mindcol.style.display = 'none';
+    if(btmbar) btmbar.style.display = 'none';
+    document.body.classList.add('picture-fullscreen-active');
+  }
+  function exitPictureFullscreen(){
+    const header = document.querySelector('header');
+    const snapshot = document.querySelector('.snapshot');
+    const mindcol = document.querySelector('.mindcol');
+    const btmbar = document.querySelector('.btmbar');
+    if(header) header.style.display = '';
+    if(snapshot) snapshot.style.display = '';
+    if(mindcol) mindcol.style.display = '';
+    if(btmbar) btmbar.style.display = '';
+    document.body.classList.remove('picture-fullscreen-active');
+  }
+
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); } else { exitPictureFullscreen(); } }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){

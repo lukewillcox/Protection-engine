@@ -341,14 +341,15 @@ only what is given). You may also be given extracts from the adviser's own metho
 use these ONLY to match his tone, pacing and persuasion tactics, NEVER as a source of
 facts about this client.
 
-TASK 1 - split the goal into two parts for display:
-- "highlight": a short phrase (3-8 words) from WITHIN the goal text that captures its
-  emotional core (e.g. "settled in this home").
-- "rest": the remaining text of the goal, so that rest + highlight, read in order,
-  reproduces the original goal text (with natural spacing/punctuation).
-Both parts MUST be built only from words that appear in the supplied goal text. Do not
-add, remove, or paraphrase words - you are splitting the client's own sentence, not
-rewriting it.
+TASK 1 - write a clear one-sentence summary of the client's goal/motivation for
+display as the headline of this screen:
+- "goalSummary": ONE clear, natural sentence (12-20 words) in your own words that captures
+  what genuinely matters to the client and why - not a verbatim quote of their notes, a
+  proper summary a human adviser would say back to them. Base it only on what is actually
+  in the goal text and, where useful, the introduction notes - never invent a motivation
+  they did not express.
+- "goalHighlight": a short phrase (2-5 words) taken from WITHIN goalSummary itself (an
+  exact substring of it) that captures its emotional core, for visual emphasis.
 
 TASK 2 - write ONE illness sentence and ONE death sentence (covering the household as a
 whole, not one per client - there is a single illness card and a single death card on
@@ -371,7 +372,7 @@ than inventing a number or a person.
 
 Return ONLY valid JSON matching:
 {{
-  "goalRest": "...",
+  "goalSummary": "...",
   "goalHighlight": "...",
   "illnessSentence": "...",
   "deathSentence": "..."
@@ -520,7 +521,7 @@ def register_copilot_routes(app):
         death_gap = data.get("death_gap")
         primary_cover = data.get("primary_cover")
         if not goal_text and illness_gap is None and death_gap is None:
-            return jsonify({"goalRest": "", "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
+            return jsonify({"goalSummary": "", "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
         try:
             situation_text = " ".join(filter(None, [
                 goal_text, intro_notes, existing_notes,
@@ -528,7 +529,7 @@ def register_copilot_routes(app):
             ]))
             methodology = get_relevant_knowledge(situation_text, k=4)
 
-            user_content = f"Goal text (verbatim, split this): {goal_text}\n\n"
+            user_content = f"Goal text (client's own words - summarize this, do not quote it verbatim): {goal_text}\n\n"
             if intro_notes:
                 user_content += f"Introduction notes: {intro_notes}\n\n"
             if existing_notes:
@@ -548,7 +549,7 @@ def register_copilot_routes(app):
             return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1200))
         except Exception:
             log.exception("copilot picture-links failed")
-            return jsonify({"goalRest": goal_text, "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
+            return jsonify({"goalSummary": goal_text, "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
 
     @app.post("/copilot/log-failure")
     def copilot_log_failure():

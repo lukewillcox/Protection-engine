@@ -2628,7 +2628,7 @@ function yourPictureBody(){
               </svg>
               What matters most
             </div>
-            <h2 id="ypf-goal-heading">${goalHtml}</h2>
+            <h2 id="ypf-goal-heading" data-fallback-html="${goalHtml.replace(/"/g,'&quot;')}">${goalHtml}</h2>
             <p class="ypf-goal-caption">The life you’re protecting. Not just the numbers.</p>
           </section>
           <article class="ypf-card ypf-risk ypf-illness" aria-labelledby="ypf-illness-heading">
@@ -2739,6 +2739,15 @@ function yourPictureBody(){
       if(illEl && out.illnessSentence) illEl.textContent = out.illnessSentence;
       const deathEl = document.getElementById('ypf-death-consequence');
       if(deathEl && out.deathSentence) deathEl.textContent = out.deathSentence;
+      const goalEl = document.getElementById('ypf-goal-heading');
+      if(goalEl && out.goalSummary){
+        const idx = out.goalHighlight ? out.goalSummary.toLowerCase().indexOf(out.goalHighlight.toLowerCase()) : -1;
+        if(idx >= 0){
+          goalEl.innerHTML = esc(out.goalSummary.slice(0, idx)) + '<em>' + esc(out.goalSummary.slice(idx, idx + out.goalHighlight.length)) + '</em>' + esc(out.goalSummary.slice(idx + out.goalHighlight.length));
+        } else {
+          goalEl.textContent = out.goalSummary;
+        }
+      }
     }catch(e){
       console.error('picture links enrichment failed', e);
       // fail-safe: leave the existing deterministic sentence in place

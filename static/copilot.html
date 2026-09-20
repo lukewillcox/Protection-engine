@@ -2483,7 +2483,7 @@ function clearScriptBox(){
     document.body.classList.remove('picture-fullscreen-active');
   }
 
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); } else { exitPictureFullscreen(); } }
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); } else { exitPictureFullscreen(); } }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -2574,6 +2574,17 @@ function yourPictureBody(){
       <span class="ypf-cover-value">${money(covers[i])}</span>
     </div>`).join('');
 
+    state._pictureCalc = {
+      goalText,
+      introNotes: String(state.notes[0]||'').trim(),
+      existingNotes: String(state.notes[3]||'').trim(),
+      primaryName: nameOf(persons[0]),
+      secondaryName: persons.length > 1 ? nameOf(persons[1]) : '',
+      illnessGap,
+      deathGap,
+      primaryCover: covers[0] === undefined ? null : covers[0]
+    };
+
     return `<div class="ypf-page">
       <header class="ypf-page-header">
         <div>
@@ -2634,7 +2645,7 @@ function yourPictureBody(){
               <div class="ypf-figure">${money(illnessGap)}${illnessGap !== null ? '<span class="ypf-figure-unit">/ month</span>' : ''}</div>
               <div class="ypf-figure-description">Illustrative mortgage shortfall</div>
             </div>
-            <p class="ypf-consequence">${illnessConsequence}</p>
+            <p class="ypf-consequence" id="ypf-illness-consequence">${illnessConsequence}</p>
             <div class="ypf-calculation">
               <strong>${money(payment)} mortgage payment − ${money(continuingIncome)} continuing income.</strong><br>
               Illustrates ${primaryName} unable to work after sick pay ends.${persons.length > 1 ?
@@ -2656,7 +2667,7 @@ function yourPictureBody(){
               <div class="ypf-figure">${money(deathGap)}</div>
               <div class="ypf-figure-description">Mortgage gap if ${primaryName} dies</div>
             </div>
-            <p class="ypf-consequence">${deathConsequence}</p>
+            <p class="ypf-consequence" id="ypf-death-consequence">${deathConsequence}</p>
             <div class="ypf-calculation">
               <strong>${money(mortgage)} mortgage − ${money(covers[0])} cover.</strong><br>
               ${secondaryNote}
@@ -2705,6 +2716,32 @@ function yourPictureBody(){
     }catch(e){
       console.error('picture links failed', e);
       document.querySelectorAll('.yp-link-sentence.loading').forEach(el=>{ el.textContent=''; el.classList.remove('loading'); });
+    }
+  }
+
+  async function enrichPictureLinks(){
+    const calc = state._pictureCalc;
+    if(!calc) return;
+    try{
+      const res = await authFetch(API_BASE+'/copilot/picture-links',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          goal_text: calc.goalText,
+          intro_notes: calc.introNotes,
+          existing_notes: calc.existingNotes,
+          primary_name: calc.primaryName,
+          secondary_name: calc.secondaryName,
+          illness_gap: calc.illnessGap,
+          death_gap: calc.deathGap,
+          primary_cover: calc.primaryCover
+        })});
+      const out = await res.json();
+      const illEl = document.getElementById('ypf-illness-consequence');
+      if(illEl && out.illnessSentence) illEl.textContent = out.illnessSentence;
+      const deathEl = document.getElementById('ypf-death-consequence');
+      if(deathEl && out.deathSentence) deathEl.textContent = out.deathSentence;
+    }catch(e){
+      console.error('picture links enrichment failed', e);
+      // fail-safe: leave the existing deterministic sentence in place
     }
   }
 

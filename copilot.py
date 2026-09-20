@@ -333,9 +333,13 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}
 The body should use \n for line breaks, ready to paste into an email."""
 
 
-PICTURE_SYSTEM = """You help lay out a "Your Picture" screen for a UK protection
-adviser tool. You are given a client's own goal statement and some ALREADY-CALCULATED
-figures (never compute or estimate anything yourself - use only what is given).
+PICTURE_SYSTEM = """You help write the persuasive "putting it in perspective" content for
+a UK protection adviser's "Your Picture" screen, shown to the client themselves. You are
+given: the client's own goal statement, notes from the Introduction and Existing Cover
+steps, and ALREADY-CALCULATED figures (never compute or estimate anything yourself - use
+only what is given). You may also be given extracts from the adviser's own methodology -
+use these ONLY to match his tone, pacing and persuasion tactics, NEVER as a source of
+facts about this client.
 
 TASK 1 - split the goal into two parts for display:
 - "highlight": a short phrase (3-8 words) from WITHIN the goal text that captures its
@@ -346,20 +350,31 @@ Both parts MUST be built only from words that appear in the supplied goal text. 
 add, remove, or paraphrase words - you are splitting the client's own sentence, not
 rewriting it.
 
-TASK 2 - for each client and each risk (illness, death), write ONE short sentence
-(under 25 words) connecting the supplied gap figure to the goal - e.g. "This monthly
-gap is what could get in the way of {a phrase from their goal}." Use ONLY the figures
-and names given to you. NEVER state a number that was not supplied. NEVER invent a
-fact about the client. If a figure is 0 or missing, write a neutral sentence noting
-more detail is needed rather than inventing a number.
+TASK 2 - write ONE illness sentence and ONE death sentence (covering the household as a
+whole, not one per client - there is a single illness card and a single death card on
+this screen). Each should put the supplied gap figure in real human perspective, the way
+an adviser would say it face to face: name the primary client, state the supplied figure,
+and name who is actually affected (the secondary client by name if one is supplied,
+otherwise keep it about the primary client and their own goal). Tie it back to the
+client's own goal where it reads naturally. Draw on the adviser methodology extracts for
+TONE and STRUCTURE only - never lift a fact or figure from them. Each sentence should be
+30-45 words.
+
+You NEVER:
+- state a number that was not supplied
+- invent a fact, name, or relationship about the client that was not supplied
+- claim any underwriting outcome is certain, or that any insurer will definitely pay out
+- use "FCA-regulated"/"FCA regulated" in any form, "there's no fee for this"/"no fee to
+  you", or "you'd have recourse"/"proper recourse"
+If a figure is 0 or missing, write a neutral sentence noting more detail is needed rather
+than inventing a number or a person.
 
 Return ONLY valid JSON matching:
 {{
   "goalRest": "...",
   "goalHighlight": "...",
-  "links": [
-    {{"clientKey": "c1", "illnessSentence": "...", "deathSentence": "..."}}
-  ]
+  "illnessSentence": "...",
+  "deathSentence": "..."
 }}"""
 
 
@@ -497,22 +512,43 @@ def register_copilot_routes(app):
     def copilot_picture_links():
         data = request.get_json(silent=True) or {}
         goal_text = (data.get("goal_text") or "").strip()
-        clients = data.get("clients") or []
-        if not goal_text and not clients:
-            return jsonify({"goalRest": "", "goalHighlight": "", "links": []}), 200
+        intro_notes = (data.get("intro_notes") or "").strip()
+        existing_notes = (data.get("existing_notes") or "").strip()
+        primary_name = (data.get("primary_name") or "the client").strip()
+        secondary_name = (data.get("secondary_name") or "").strip()
+        illness_gap = data.get("illness_gap")
+        death_gap = data.get("death_gap")
+        primary_cover = data.get("primary_cover")
+        if not goal_text and illness_gap is None and death_gap is None:
+            return jsonify({"goalRest": "", "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
         try:
+            situation_text = " ".join(filter(None, [
+                goal_text, intro_notes, existing_notes,
+                "putting protection need in perspective for the client, urgency, cost of no cover",
+            ]))
+            methodology = get_relevant_knowledge(situation_text, k=4)
+
             user_content = f"Goal text (verbatim, split this): {goal_text}\n\n"
-            user_content += "Clients and their already-calculated figures:\n"
-            for c in clients:
-                user_content += (
-                    f"- {c.get('name','Client')}: illness monthly shortfall = "
-                    f"{c.get('illnessShortfall','not supplied')}, "
-                    f"death mortgage gap = {c.get('deathGap','not supplied')}\n"
-                )
-            return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=800))
+            if intro_notes:
+                user_content += f"Introduction notes: {intro_notes}\n\n"
+            if existing_notes:
+                user_content += f"Existing cover notes: {existing_notes}\n\n"
+            user_content += f"Primary client: {primary_name}\n"
+            if secondary_name:
+                user_content += f"Secondary client: {secondary_name}\n"
+            user_content += (
+                f"Illness monthly gap (household): {illness_gap if illness_gap is not None else 'not supplied'}\n"
+                f"Death mortgage gap: {death_gap if death_gap is not None else 'not supplied'}\n"
+                f"Existing death-in-service cover for {primary_name}: "
+                f"{primary_cover if primary_cover is not None else 'not supplied'}\n"
+            )
+            if methodology:
+                user_content += f"\nAdviser methodology extracts (tone/tactics only, never a source of facts):\n{methodology}\n"
+
+            return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1200))
         except Exception:
             log.exception("copilot picture-links failed")
-            return jsonify({"goalRest": goal_text, "goalHighlight": "", "links": []}), 200
+            return jsonify({"goalRest": goal_text, "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
 
     @app.post("/copilot/log-failure")
     def copilot_log_failure():

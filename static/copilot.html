@@ -1858,6 +1858,9 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   .ypf-guide-actions{display:flex;gap:8px;}
   .ypf-guide-btn{font:500 12px var(--sans);padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer;}
   .ypf-guide-btn:hover{border-color:var(--green);color:var(--green);}
+  .ypf-trunk-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+  .ypf-guide-btn-primary{background:var(--green);border-color:var(--green);color:#fff;}
+  .ypf-guide-btn-primary:hover{background:var(--green);color:#fff;opacity:.9;}
   .ypf-guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;}
   .ypf-guide-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:12px;padding:16px 18px;}
   .ypf-guide-card.ypf-guide-illness,.ypf-guide-card.ypf-guide-death{border-left-color:var(--amber);}
@@ -1883,6 +1886,11 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   .ypf-leaf-numbers .ypf-leaf-kind{color:var(--amber);}
   .ypf-leaf-ask{font-weight:500;}
   .ypf-leaf-ask .ypf-leaf-kind{color:var(--green);}
+  .ypf-leaf-why{display:block;margin-top:7px;padding-top:6px;border-top:1px dashed rgba(122,130,144,.28);font-size:11px;line-height:1.45;font-style:italic;font-weight:400;color:var(--muted);}
+  .ypf-leaf-numbers .ypf-leaf-why{border-top-color:rgba(180,84,10,.22);}
+  .ypf-leaf-aim{font-size:11.5px;line-height:1.45;color:var(--ink);padding:0 2px 2px;}
+  .ypf-leaf-aim span{margin-right:7px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);}
+  .ypf-leaves-group .ypf-leaf-aim span{color:var(--green);}
   .ypf-leaf-loading{color:var(--muted);font-style:italic;background:transparent;border-style:dashed;box-shadow:none;}
   .ypf-leaves-centre{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-top:30px;min-width:0;}
   .ypf-leaves-centre::before{content:"";position:absolute;left:50%;top:0;height:30px;width:1px;background:var(--green);opacity:.4;}
@@ -2652,6 +2660,8 @@ function yourPictureBody(){
       if(pos(illnessGap)) pictureStats.illness.push(`The ${fmt(illnessGap)} a month mortgage shortfall is ${fmt(illnessGap*12)} a year`);
       // if one of them dies
       if(pos(mortgage) && pos(primaryNetM)) pictureStats.death.push(`The ${fmt(mortgage)} mortgage is ${yrs(mortgage/(primaryNetM*12))} years of ${pName}'s take-home pay`);
+      const age1 = num(state.c1.age);
+      if(pos(primaryNetM) && age1 > 16 && age1 < 67) pictureStats.death.push(`${pName} has ${67-age1} working years left to age 67 - ${fmt(primaryNetM*12*(67-age1))} of take-home pay at today's level`);
       if(pos(mortgage) && pos(householdNet) && sName) pictureStats.death.push(`The ${fmt(mortgage)} mortgage is ${yrs(mortgage/(householdNet*12))} years of the whole household's take-home pay`);
       if(pos(mortgage) && pos(payment) && !pos(termYrs)) pictureStats.death.push(`The ${fmt(mortgage)} balance is the same as ${Math.round(mortgage/payment).toLocaleString('en-GB')} of today's ${fmt(payment)} monthly payments`);
       if(pos(termYrs) && pos(payment)) pictureStats.death.push(`On the recorded ${termYrs}-year term that is ${(termYrs*12).toLocaleString('en-GB')} monthly payments of ${fmt(payment)}`);
@@ -2672,6 +2682,7 @@ function yourPictureBody(){
       illnessGap,
       deathGap,
       primaryCover: covers[0] === undefined ? null : covers[0],
+      secondaryCover: covers[1] === undefined ? null : covers[1],
       mortgage,
       monthlyPayment: payment,
       continuingIncome,
@@ -2792,7 +2803,10 @@ function yourPictureBody(){
             </div>
             <div class="ypf-trunk-end">
               <p class="ypf-bridge" id="ypf-bridge"></p>
-              <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Refresh prompts</button>
+              <div class="ypf-trunk-actions">
+                <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Refresh prompts</button>
+                <button type="button" class="ypf-guide-btn ypf-guide-btn-primary" id="ypfOpenCanvas" onclick="if(window.openPictureCanvas) openPictureCanvas();">Open whiteboard view &#8599;</button>
+              </div>
             </div>
           </div>
         </section>
@@ -2847,6 +2861,7 @@ function yourPictureBody(){
           continuing_income: calc.continuingIncome
         })});
       const out = await res.json();
+      window._pictureLinksData = out;
       const illEl = document.getElementById('ypf-illness-consequence');
       if(illEl && out.illnessSentence) illEl.textContent = out.illnessSentence;
       const deathEl = document.getElementById('ypf-death-consequence');
@@ -2868,9 +2883,16 @@ function yourPictureBody(){
 
   const pictureGuideCache = {key:null, out:null};
   const PICTURE_LEAF_KINDS = {picture:'Picture it', numbers:'In numbers', ask:'Ask'};
+  const PICTURE_BRANCH_AIMS = {
+    goal: 'Re-anchor everything to why they bought this home.',
+    illness: 'Get them to say how long they could keep going without the income.',
+    death: 'Let them picture the family keeping the home without them.',
+    existing: 'Don\'t let work cover be taken at face value.'
+  };
   function pictureLeafHTML(leaf){
     const kind = PICTURE_LEAF_KINDS[leaf.kind] ? leaf.kind : 'picture';
-    return `<div class="ypf-leaf ypf-leaf-${kind}"><span class="ypf-leaf-kind">${PICTURE_LEAF_KINDS[kind]}</span>${esc(leaf.text||'')}</div>`;
+    const why = leaf.why ? `<span class="ypf-leaf-why">${esc(leaf.why)}</span>` : '';
+    return `<div class="ypf-leaf ypf-leaf-${kind}"><span class="ypf-leaf-kind">${PICTURE_LEAF_KINDS[kind]}</span>${esc(leaf.text||'')}${why}</div>`;
   }
   function normalisePictureBranches(out){
     const b = (out && out.branches) || {};
@@ -2890,7 +2912,8 @@ function yourPictureBody(){
       const el = document.getElementById('ypf-leaves-'+k);
       if(!el) return;
       const leaves = Array.isArray(b[k]) ? b[k].filter(l=>l && l.text) : [];
-      el.innerHTML = leaves.map(pictureLeafHTML).join('');
+      el.innerHTML = leaves.length ?
+        `<div class="ypf-leaf-aim"><span>Aim</span>${PICTURE_BRANCH_AIMS[k]}</div>` + leaves.map(pictureLeafHTML).join('') : '';
     });
     const bridge = document.getElementById('ypf-bridge');
     if(bridge) bridge.innerHTML = out && out.bridge ? `<span>Next</span>${esc(out.bridge)}` : '';
@@ -4472,5 +4495,846 @@ function setUWAnswer(condKey, qIdx, field, value){
 <div class="btmbar">
   <div class="btmsteps" id="btmSteps"></div>
 </div>
+
+<style>
+/* ===== Picture Canvas (whiteboard view) — fully scoped under #pcOverlay ===== */
+#pcOverlay {
+  --pc-background:#F6F5F1; --pc-surface:#FFFFFF; --pc-ink:#151B26;
+  --pc-muted:#596371; --pc-border:#E4E2DB; --pc-green:#0E6B5C;
+  --pc-green-bg:#EDF4EF; --pc-amber-bg:#F7E8DC; --pc-amber:#A24B09;
+  --pc-serif:"Fraunces",Georgia,serif;
+  --pc-sans:"Instrument Sans",Arial,sans-serif;
+  --pc-mono:"Spline Sans Mono","Courier New",monospace;
+  position:fixed; inset:0; z-index:90; display:none;
+  font-family:var(--pc-sans); font-size:14px; color:var(--pc-ink);
+}
+#pcOverlay.pc-open { display:block; }
+#pcOverlay * { box-sizing:border-box; }
+#pcOverlay button, #pcOverlay a { -webkit-tap-highlight-color:transparent; }
+#pcOverlay button { font:inherit; color:inherit; cursor:pointer; border:0; background:none; }
+#pcOverlay button:disabled { cursor:default; opacity:.4; }
+#pcOverlay button:focus-visible, #pcOverlay a:focus-visible, #pcOverlay [tabindex]:focus-visible {
+  outline:3px solid #226EAD; outline-offset:4px;
+}
+#pcOverlay .pc-app { position:absolute; inset:0; height:100%; display:flex; flex-direction:column; background:var(--pc-background); }
+#pcOverlay .pc-header {
+  padding:18px 28px 16px; display:flex; align-items:center; justify-content:space-between;
+  gap:24px; border-bottom:1px solid var(--pc-border); background:var(--pc-background); z-index:3;
+}
+#pcOverlay .pc-eyebrow { font:11px var(--pc-mono); letter-spacing:.13em; text-transform:uppercase; color:var(--pc-green); margin:0 0 6px; }
+#pcOverlay h1 { font:400 25px/1.12 var(--pc-serif); letter-spacing:-.6px; margin:0; }
+#pcOverlay .pc-header-right, #pcOverlay .pc-client, #pcOverlay .pc-actions,
+#pcOverlay .pc-toolbar, #pcOverlay .pc-tools-left, #pcOverlay .pc-tools-right { display:flex; align-items:center; gap:12px; }
+#pcOverlay .pc-client { padding-right:18px; border-right:1px solid var(--pc-border); gap:10px; }
+#pcOverlay .pc-avatar { width:35px; height:35px; border:1px solid #C8D6CD; border-radius:50%; display:grid; place-items:center; color:var(--pc-green); font:14px var(--pc-serif); flex-shrink:0; }
+#pcOverlay .pc-client strong { display:block; font-size:13px; }
+#pcOverlay .pc-small { color:var(--pc-muted); font-size:11px; line-height:1.5; }
+#pcOverlay .pc-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; padding:7px 12px; border:1px solid var(--pc-border); border-radius:7px; background:white; font-size:12px; font-weight:600; white-space:nowrap; }
+#pcOverlay .pc-button:hover { border-color:#8B9D93; background:#F8FAF8; }
+#pcOverlay .pc-button.pc-primary { background:var(--pc-green); border-color:var(--pc-green); color:white; }
+#pcOverlay .pc-button.pc-primary:hover { background:#085548; }
+#pcOverlay .pc-button.pc-quiet { background:transparent; }
+#pcOverlay .pc-icon { width:16px; height:16px; display:inline-block; vertical-align:middle; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+#pcOverlay .pc-toolbar { justify-content:space-between; gap:16px; padding:10px 28px; border-bottom:1px solid var(--pc-border); z-index:3; background:var(--pc-background); }
+#pcOverlay .pc-toolbar-label { font:10px var(--pc-mono); color:var(--pc-muted); text-transform:uppercase; letter-spacing:.1em; margin-right:4px; }
+#pcOverlay .pc-branch-tabs { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+#pcOverlay .pc-tab { min-height:34px; padding:7px 11px; font-size:12px; border-radius:6px; color:#4C5660; border:1px solid transparent; white-space:nowrap; }
+#pcOverlay .pc-tab:hover { background:#ECECE5; }
+#pcOverlay .pc-tab[aria-pressed="true"] { background:white; color:var(--pc-green); border-color:#CDD7CF; box-shadow:0 2px 4px #151b2605; font-weight:600; }
+#pcOverlay .pc-tab-symbol { font-size:13px; margin-right:5px; }
+#pcOverlay .pc-segment { display:flex; padding:3px; background:#EAEAE3; border:1px solid #E0E0D7; border-radius:7px; }
+#pcOverlay .pc-segment button { padding:6px 11px; font-size:12px; border-radius:4px; min-height:28px; }
+#pcOverlay .pc-segment button[aria-pressed="true"] { background:white; box-shadow:0 1px 4px #151b2610; font-weight:600; }
+#pcOverlay .pc-workspace { position:relative; flex:1; min-height:0; overflow:hidden; }
+#pcOverlay .pc-viewport { position:absolute; inset:0; overflow:hidden; touch-action:none; cursor:grab; background-color:var(--pc-background); background-image:radial-gradient(#D9D9D0 .7px, transparent .7px); background-size:24px 24px; }
+#pcOverlay .pc-viewport:focus-visible { outline-offset:-4px; }
+#pcOverlay .pc-viewport.pc-dragging { cursor:grabbing; user-select:none; }
+#pcOverlay .pc-world { position:absolute; transform-origin:0 0; will-change:transform; }
+#pcOverlay .pc-wires { position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+#pcOverlay .pc-wire { fill:none; stroke:#94AEA1; stroke-width:2; }
+#pcOverlay .pc-wire.pc-risk { stroke:#BA9274; }
+#pcOverlay .pc-wire.pc-dashed { stroke-dasharray:7 7; stroke:#A6ADA4; }
+#pcOverlay .pc-world-kicker { position:absolute; top:44px; left:1000px; width:600px; text-align:center; font:14px var(--pc-mono); color:var(--pc-green); letter-spacing:.14em; text-transform:uppercase; }
+#pcOverlay .pc-card {
+  position:absolute; padding:24px 27px; background:var(--pc-surface);
+  border:1.5px solid #D8D9CF; border-radius:15px;
+  box-shadow:0 12px 35px -23px #151b2640; cursor:default;
+  transition:opacity .2s,box-shadow .2s; overflow:hidden;
+}
+#pcOverlay .pc-card:hover { box-shadow:0 14px 38px -20px #151b2650; }
+#pcOverlay .pc-card.pc-is-muted { opacity:.27; }
+#pcOverlay .pc-card.pc-is-current { outline:4px solid #0E6B5C; outline-offset:7px; }
+#pcOverlay .pc-card.pc-root { border:2px solid #79998A; background:#FFF; padding:30px 33px; }
+#pcOverlay .pc-card.pc-root h2 { font:400 32px/1.32 var(--pc-serif); letter-spacing:-.5px; margin:15px 0 0; }
+#pcOverlay .pc-card.pc-root em { background:linear-gradient(transparent 58%,#DCEADE 58%); color:inherit; font-style:normal; padding:0 2px; }
+#pcOverlay .pc-card.pc-risk-head { background:#FBF3EC; border-color:#DCC4B1; border-radius:4px 16px 16px 16px; }
+#pcOverlay .pc-card.pc-support { background:var(--pc-green-bg); border-color:#C8D7CB; }
+#pcOverlay .pc-card h3 { font:400 27px/1.25 var(--pc-serif); margin:12px 0 14px; letter-spacing:-.2px; }
+#pcOverlay .pc-card-label { display:flex; align-items:center; gap:8px; font:12px var(--pc-mono); letter-spacing:.1em; color:var(--pc-green); text-transform:uppercase; line-height:1.4; }
+#pcOverlay .pc-risk-head .pc-card-label { color:var(--pc-amber); }
+#pcOverlay .pc-symbol { width:25px; height:25px; display:inline-grid; place-items:center; flex-shrink:0; border:1.3px solid currentColor; border-radius:50%; font-family:var(--pc-sans); font-size:15px; letter-spacing:0; }
+#pcOverlay .pc-risk-head .pc-symbol { border-radius:5px; }
+#pcOverlay .pc-card .pc-figure { font:400 37px/1.1 var(--pc-serif); margin:15px 0 9px; letter-spacing:-.7px; }
+#pcOverlay .pc-card .pc-sub { font-size:17px; color:#4F5962; line-height:1.45; margin:0; }
+#pcOverlay .pc-card .pc-qualification { margin:10px 0 0; font-size:14px; line-height:1.4; color:#744B2E; }
+#pcOverlay .pc-leaf { display:flex; flex-direction:column; padding:22px 25px 18px; }
+#pcOverlay .pc-leaf.pc-numbers { background:#FCF7F1; border-color:#DFCDBD; }
+#pcOverlay .pc-leaf.pc-goal-branch.pc-numbers { background:#F0F5EF; border-color:#CAD8C9; }
+#pcOverlay .pc-leaf .pc-leaf-text { font-size:20px; line-height:1.42; letter-spacing:-.1px; margin:14px 0; }
+#pcOverlay .pc-leaf.pc-ask .pc-leaf-text { font-weight:500; }
+#pcOverlay .pc-leaf .pc-leaf-text strong { font-weight:650; }
+#pcOverlay .pc-leaf-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; padding-top:12px; border-top:1px solid #E6E6DE; flex-wrap:wrap; }
+#pcOverlay .pc-source-button { display:flex; align-items:center; gap:6px; font-size:13px; color:#4A555E; padding:6px 0; text-align:left; text-decoration:underline; text-decoration-color:#B7BDB7; text-underline-offset:4px; }
+#pcOverlay .pc-source-button:hover { color:var(--pc-green); }
+#pcOverlay .pc-cover-button { display:flex; align-items:center; gap:6px; font-size:13px; padding:6px 0 6px 6px; color:#525D65; white-space:nowrap; }
+#pcOverlay .pc-tick-box { display:grid; place-items:center; width:19px; height:19px; border:1.5px solid #9BA79E; border-radius:50%; font-size:13px; color:transparent; }
+#pcOverlay .pc-cover-button[aria-pressed="true"] { color:var(--pc-green); }
+#pcOverlay .pc-cover-button[aria-pressed="true"] .pc-tick-box { background:var(--pc-green); border-color:var(--pc-green); color:white; }
+#pcOverlay .pc-support dl { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:18px 0 0; }
+#pcOverlay .pc-support dt { font-size:17px; font-weight:600; margin-bottom:5px; }
+#pcOverlay .pc-support dd { margin:0; font-size:16px; color:#53635B; display:flex; align-items:center; gap:6px; }
+#pcOverlay .pc-unknown { width:7px; height:7px; border:1.5px solid #687A6E; border-radius:50%; display:inline-block; }
+#pcOverlay .pc-next-card { background:transparent; box-shadow:none; border:0; border-top:1.5px solid #C6CEC2; border-radius:0; padding:22px 22px 10px; text-align:center; }
+#pcOverlay .pc-next-card p { font:400 24px/1.4 var(--pc-serif); margin:10px 0; }
+#pcOverlay .pc-next-card .pc-card-label { justify-content:center; }
+#pcOverlay .pc-next-card .pc-source-button { justify-content:center; margin:auto; font-size:13px; }
+#pcOverlay .pc-corner-note { position:absolute; top:16px; left:22px; max-width:320px; pointer-events:none; background:#F6F5F1ED; border:1px solid #E5E3DA; padding:10px 13px; border-radius:8px; box-shadow:0 3px 12px #151b2604; z-index:1; }
+#pcOverlay .pc-corner-note strong { display:block; font-size:12px; margin-bottom:4px; font-weight:600; }
+#pcOverlay .pc-corner-note span { color:var(--pc-muted); font-size:11px; line-height:1.5; }
+#pcOverlay .pc-overview {
+  position:absolute; bottom:20px; right:22px; z-index:2; width:174px;
+  border:1px solid #DCDDD3; border-radius:10px; background:#FFFFFFF5;
+  box-shadow:0 8px 25px #151b2609; overflow:hidden;
+}
+#pcOverlay .pc-overview-head { display:flex; align-items:center; justify-content:space-between; padding:9px 11px 5px; }
+#pcOverlay .pc-overview-head span { font:9px var(--pc-mono); text-transform:uppercase; letter-spacing:.1em; color:#52605B; }
+#pcOverlay .pc-overview-head button { font-size:11px; text-decoration:underline; text-underline-offset:3px; color:var(--pc-green); padding:4px; }
+#pcOverlay .pc-minimap { display:block; width:156px; height:128px; margin:2px 8px 8px; cursor:crosshair; touch-action:none; border-radius:4px; background:#F6F5F1; }
+#pcOverlay .pc-zoom-panel { display:flex; align-items:center; padding:5px; border-top:1px solid var(--pc-border); gap:3px; }
+#pcOverlay .pc-zoom-panel button { width:30px; height:30px; display:grid; place-items:center; border-radius:5px; font-size:18px; }
+#pcOverlay .pc-zoom-panel button:hover { background:var(--pc-green-bg); }
+#pcOverlay .pc-zoom-readout { flex:1; text-align:center; font:11px var(--pc-mono); color:#4D5B55; }
+#pcOverlay .pc-zoom-panel .pc-fit-button { width:32px; border-left:1px solid var(--pc-border); border-radius:0; }
+#pcOverlay .pc-bottom-bar { display:flex; align-items:center; justify-content:space-between; padding:11px 28px; gap:20px; border-top:1px solid var(--pc-border); background:var(--pc-surface); z-index:3; min-height:64px; }
+#pcOverlay .pc-conversation { display:flex; align-items:center; gap:13px; min-width:0; }
+#pcOverlay .pc-progress-ring { height:30px; width:30px; border:3px solid #D8E3DB; border-radius:50%; display:grid; place-items:center; font-size:10px; font-weight:700; color:var(--pc-green); flex-shrink:0; }
+#pcOverlay .pc-progress-copy strong { font-size:12px; display:block; margin-bottom:2px; }
+#pcOverlay .pc-progress-copy span { display:block; font-size:11px; color:var(--pc-muted); }
+#pcOverlay .pc-nav-step { display:flex; align-items:center; gap:6px; }
+#pcOverlay .pc-nav-step .pc-arrow { min-width:34px; padding:7px; }
+#pcOverlay .pc-keyboard-hint { font-size:11px; color:var(--pc-muted); text-align:right; line-height:1.7; }
+#pcOverlay kbd { background:#F4F4EF; border:1px solid #DDDCD3; border-radius:3px; font:10px var(--pc-mono); padding:1px 4px; }
+#pcOverlay .pc-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+#pcOverlay .pc-toast { position:absolute; bottom:20px; left:22px; max-width:390px; padding:11px 15px; background:var(--pc-ink); color:white; border-radius:7px; font-size:12px; z-index:5; box-shadow:0 5px 20px #151b2625; }
+#pcOverlay .pc-toast[hidden] { display:none; }
+#pcOverlay dialog { width:min(550px,calc(100vw - 32px)); max-height:calc(100vh - 48px); border:1px solid var(--pc-border); border-radius:16px; padding:0; color:var(--pc-ink); background:var(--pc-background); box-shadow:0 30px 100px #151b2630; }
+#pcOverlay dialog::backdrop { background:#151B264B; backdrop-filter:blur(3px); }
+#pcOverlay .pc-dialog-inner { padding:28px; overflow-y:auto; max-height:calc(100vh - 48px); }
+#pcOverlay .pc-dialog-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+#pcOverlay .pc-dialog-heading h2 { font:400 26px/1.2 var(--pc-serif); letter-spacing:-.3px; margin:8px 0 18px; }
+#pcOverlay .pc-close { width:32px; height:32px; border:1px solid var(--pc-border); border-radius:50%; background:white; flex-shrink:0; font-size:21px; line-height:1; }
+#pcOverlay dialog p { font-size:14px; line-height:1.7; color:#47545F; margin:0 0 16px; }
+#pcOverlay .pc-provenance-block { padding:15px 16px; background:white; border:1px solid var(--pc-border); border-radius:9px; margin:12px 0; }
+#pcOverlay .pc-provenance-block h3 { font-size:13px; line-height:1.5; margin:0 0 6px; display:flex; gap:8px; align-items:center; }
+#pcOverlay .pc-provenance-block p { font-size:13px; margin:0; line-height:1.65; }
+#pcOverlay .pc-source-tag { font:10px var(--pc-mono); color:var(--pc-green); display:inline-block; padding:5px 7px; border:1px solid #C8D7CB; border-radius:4px; background:#EDF4EF; white-space:nowrap; }
+#pcOverlay .pc-source-tag.pc-calc { color:var(--pc-amber); background:var(--pc-amber-bg); border-color:#E5CEBB; }
+#pcOverlay .pc-source-tag.pc-ai { color:#59466E; background:#F2EDF6; border-color:#D9CFE4; }
+#pcOverlay .pc-dialog-quote { border-left:2px solid #87A08D; padding:2px 0 2px 16px; font:19px/1.5 var(--pc-serif); margin:2px 0 20px; }
+#pcOverlay .pc-notice { border-top:1px solid var(--pc-border); padding-top:16px; margin-top:20px; }
+#pcOverlay .pc-notice p { font-size:12px; color:#5D6368; margin:0; }
+#pcOverlay .pc-dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:22px; flex-wrap:wrap; }
+@media (max-width:1100px) {
+  #pcOverlay .pc-header, #pcOverlay .pc-toolbar, #pcOverlay .pc-bottom-bar { padding-left:18px; padding-right:18px; }
+  #pcOverlay .pc-client { display:none; }
+  #pcOverlay .pc-toolbar-label { display:none; }
+  #pcOverlay .pc-tab { padding:7px 8px; }
+  #pcOverlay .pc-keyboard-hint { display:none; }
+}
+@media (max-width:720px) {
+  #pcOverlay .pc-header { padding:13px 14px; gap:10px; }
+  #pcOverlay h1 { font-size:20px; }
+  #pcOverlay .pc-header-right .pc-export-action { display:none; }
+  #pcOverlay .pc-header-right .pc-button { font-size:11px; padding:7px; }
+  #pcOverlay .pc-toolbar { flex-wrap:wrap; padding:8px 10px; gap:7px; justify-content:center; }
+  #pcOverlay .pc-tools-left { width:100%; overflow:auto; justify-content:center; }
+  #pcOverlay .pc-tab { font-size:11px; padding:6px; min-height:32px; }
+  #pcOverlay .pc-tab-symbol { display:none; }
+  #pcOverlay .pc-tools-right { width:100%; justify-content:space-between; }
+  #pcOverlay .pc-corner-note { left:10px; top:10px; max-width:220px; padding:8px 10px; }
+  #pcOverlay .pc-corner-note span { display:none; }
+  #pcOverlay .pc-overview { right:10px; bottom:10px; width:126px; }
+  #pcOverlay .pc-minimap { width:110px; height:90px; }
+  #pcOverlay .pc-bottom-bar { padding:9px 10px; gap:7px; }
+  #pcOverlay .pc-progress-ring { display:none; }
+  #pcOverlay .pc-progress-copy span { font-size:10px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #pcOverlay .pc-toast { left:10px; bottom:10px; max-width:calc(100% - 150px); }
+}
+@media (prefers-reduced-motion:reduce) { #pcOverlay * { transition:none!important; } }
+
+</style>
+
+<div id="pcOverlay" aria-hidden="true">
+  <div class="pc-app">
+    <header class="pc-header">
+      <div>
+        <p class="pc-eyebrow">The conversation, brought together</p>
+        <h1>Your family protection picture</h1>
+      </div>
+      <div class="pc-header-right">
+        <div class="pc-client">
+          <span class="pc-avatar" id="pcAvatar" aria-hidden="true">--</span>
+          <div><strong id="pcClientName">&nbsp;</strong><span class="pc-small">Live case &middot; from this call</span></div>
+        </div>
+        <div class="pc-actions">
+          <button type="button" class="pc-button pc-quiet" id="pcAboutButton">About this view <span aria-hidden="true">&#8599;</span></button>
+          <button type="button" class="pc-button pc-quiet pc-export-action" id="pcExportButton" title="Download discussion notes as a text file">Save notes</button>
+          <button type="button" class="pc-button" id="pcCloseButton">Close &times;</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="pc-toolbar" aria-label="Picture controls">
+      <div class="pc-tools-left">
+        <span class="pc-toolbar-label">Explore</span>
+        <div class="pc-branch-tabs" id="pcBranchTabs" aria-label="Focus a branch"></div>
+      </div>
+      <div class="pc-tools-right">
+        <span class="pc-small" id="pcModeHint">Prompts &amp; their sources</span>
+        <div class="pc-segment" aria-label="Choose view">
+          <button type="button" id="pcAdviserMode" aria-pressed="true">Adviser</button>
+          <button type="button" id="pcClientMode" aria-pressed="false">Client</button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="pc-workspace" aria-label="Family protection whiteboard">
+      <div class="pc-viewport" id="pcViewport" tabindex="0" aria-label="Pannable protection picture. Use arrow keys to move, plus and minus to zoom, and 0 to fit the whole picture." aria-describedby="pcCanvasHelp">
+        <div class="pc-world" id="pcWorld">
+          <svg class="pc-wires" id="pcWires" aria-hidden="true"></svg>
+          <div class="pc-world-kicker" id="pcWorldKicker">Start with the life, not the policy</div>
+          <div id="pcCards"></div>
+        </div>
+      </div>
+      <div class="pc-corner-note">
+        <strong id="pcFocusTitle">What matters most</strong>
+        <span id="pcFocusHint">Drag the space to explore. Select a card to read closer.</span>
+      </div>
+
+      <aside class="pc-overview" aria-label="Overview and zoom controls">
+        <div class="pc-overview-head"><span>You're here</span><button type="button" id="pcResetButton" title="Fit the whole picture (0)">Reset</button></div>
+        <svg class="pc-minimap" id="pcMinimap" preserveAspectRatio="none" tabindex="0" role="button" aria-label="Picture overview. Click to move to a location. Press Enter to fit the whole picture.">
+          <g id="pcMiniWires" fill="none" stroke="#B4BBAE" stroke-width="9"></g>
+          <g id="pcMiniCards"></g>
+          <rect id="pcMiniViewport" x="0" y="0" width="100" height="100" fill="#0E6B5C" fill-opacity=".07" stroke="#0E6B5C" stroke-width="20" />
+        </svg>
+        <div class="pc-zoom-panel">
+          <button type="button" id="pcZoomOut" aria-label="Zoom out" title="Zoom out (&minus;)">&minus;</button>
+          <output class="pc-zoom-readout" id="pcZoomLevel" aria-label="Zoom level">100%</output>
+          <button type="button" id="pcZoomIn" aria-label="Zoom in" title="Zoom in (+)">+</button>
+          <button type="button" class="pc-fit-button" id="pcFitButton" aria-label="Fit the whole picture" title="Fit the whole picture (0)">
+            <svg class="pc-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
+          </button>
+        </div>
+      </aside>
+      <div class="pc-toast" id="pcToast" role="status" hidden></div>
+      <div id="pcLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--pc-background);z-index:4;font:15px var(--pc-serif);color:var(--pc-muted);">Reading the picture&hellip;</div>
+    </main>
+
+    <footer class="pc-bottom-bar">
+      <div class="pc-conversation">
+        <div class="pc-progress-ring" id="pcProgressRing" aria-hidden="true">0</div>
+        <div class="pc-progress-copy">
+          <strong id="pcProgressText">0 prompts discussed</strong>
+          <span id="pcCurrentStep">A guide, not a script. Go at their pace.</span>
+        </div>
+      </div>
+      <div class="pc-nav-step">
+        <button type="button" class="pc-button pc-arrow" id="pcPrevStep" aria-label="Previous conversation prompt" disabled>&larr;</button>
+        <button type="button" class="pc-button pc-primary" id="pcNextStep">Begin conversation <span aria-hidden="true">&rarr;</span></button>
+      </div>
+      <div class="pc-keyboard-hint" id="pcCanvasHelp">
+        Drag to pan &middot; scroll or pinch to zoom<br>
+        Focus canvas: <kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>&larr;</kbd> <kbd>&rarr;</kbd> move &middot; <kbd>+</kbd> <kbd>&minus;</kbd> zoom &middot; <kbd>0</kbd> fit
+      </div>
+    </footer>
+  </div>
+
+  <dialog id="pcAboutDialog" aria-labelledby="pcAboutTitle">
+    <div class="pc-dialog-inner">
+      <div class="pc-dialog-heading">
+        <div><p class="pc-eyebrow">About this view</p><h2 id="pcAboutTitle">From understanding the risk<br>to agreeing what to protect.</h2></div>
+        <button type="button" class="pc-close" data-pc-close aria-label="Close about this view">&times;</button>
+      </div>
+      <p>This is the turning point in the conversation. It brings this family&rsquo;s priorities, the financial consequences and the support already in place into one picture &mdash; so you and the client can agree what matters before discussing products.</p>
+      <div class="pc-provenance-block">
+        <h3><span class="pc-source-tag">01 &middot; Their story</span> This live fact-find</h3>
+        <p>The home, the children, income and spending come from what this client has shared and the figures already on record for this case. Missing information stays visibly missing.</p>
+      </div>
+      <div class="pc-provenance-block">
+        <h3><span class="pc-source-tag">02 &middot; Adviser bank</span> Proven words, not a generic script</h3>
+        <p>Picture and ask prompts are drawn live from Andrew&rsquo;s own prompt bank, distilled from his real call recordings and 100 real practice cases. Claude selects a relevant line for this client and adapts it &mdash; it does not invent sales lines of its own. Each prompt below keeps its bank reference.</p>
+      </div>
+      <div class="pc-provenance-block">
+        <h3><span class="pc-source-tag pc-calc">03 &middot; Exact code</span> Figures are never guessed by AI</h3>
+        <p>Every figure on this page &mdash; the mortgage gap, the percentages, the years of income &mdash; is calculated by the app from what has been recorded for this case. Claude may phrase the explanation, but never invents or recalculates a number. Select &ldquo;Behind this card&rdquo; on any leaf to see its source.</p>
+      </div>
+      <div class="pc-notice">
+        <p><strong>This view reflects the real, live case open in the co-pilot right now.</strong> Discussion ticks stay in this browser tab until it is reloaded &mdash; they are not saved anywhere and are not client consent or a recommendation. &ldquo;Save notes&rdquo; downloads a local text file. Client view hides the coaching prompts, not the financial facts.</p>
+      </div>
+      <div class="pc-dialog-actions"><button type="button" class="pc-button pc-primary" data-pc-close>Back to the picture</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="pcSourceDialog" aria-labelledby="pcSourceTitle">
+    <div class="pc-dialog-inner">
+      <div class="pc-dialog-heading">
+        <div><p class="pc-eyebrow">Behind this card</p><h2 id="pcSourceTitle">Where this comes from</h2></div>
+        <button type="button" class="pc-close" data-pc-close aria-label="Close source details">&times;</button>
+      </div>
+      <div id="pcSourceContent"></div>
+      <div class="pc-dialog-actions"><button type="button" class="pc-button pc-primary" data-pc-close>Back to the conversation</button></div>
+    </div>
+  </dialog>
+  <div class="pc-sr-only" role="status" aria-live="polite" id="pcAnnouncer"></div>
+</div>
+
+
+<script>
+/* ===== Picture Canvas (whiteboard view) =====
+   Ports the liked Astra pan/zoom design onto the REAL case open in the co-pilot.
+   Reads: state._pictureCalc (set by yourPictureBody()), window._pictureLinksData
+   (set by enrichPictureLinks()), pictureGuideCache.out (set by loadPictureGuidance()).
+   On open it re-runs enrichPictureLinks()/loadPictureGuidance() so the view always
+   reflects this exact case's current notes and figures - never sample content. */
+(function(){
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+
+  const overlay = document.getElementById('pcOverlay');
+  if(!overlay) return; // markup not present on this page
+  const viewport = document.getElementById('pcViewport');
+  const world = document.getElementById('pcWorld');
+  const loadingEl = document.getElementById('pcLoading');
+
+  const HEAD = {
+    goal:     {x:1000,y:610, w:600,h:320},
+    illness:  {x:100, y:650, w:600,h:280},
+    death:    {x:1900,y:650, w:600,h:280},
+    existing: {x:1000,y:1110,w:600,h:245}
+  };
+  const WORLD_W = 2600;
+  const branchNames = {all:'Whole family picture', goal:'What matters most', illness:'If illness stops work', death:'If one of them dies', existing:'Already helping'};
+  const branchLabels = {all:{sym:'⌘',label:'Whole picture'}, goal:{sym:'◎',label:'What matters'}, illness:{sym:'△',label:'Illness'}, death:{sym:'△',label:'Death'}, existing:{sym:'＋',label:'Already helping'}};
+  const kindLabels = {picture:'Picture the impact', numbers:'Make it tangible', ask:'Ask, then listen'};
+  const branchAims = {
+    goal: 'Re-anchor everything to why they bought this home.',
+    illness: 'Get them to say how long they could keep going without the income.',
+    death: 'Let them picture the family keeping the home without them.',
+    existing: "Don't let work cover be taken at face value."
+  };
+
+  let pcData = null, nodes = [], leafOrder = [];
+  let mode = 'adviser', branch = 'goal', step = -1, scale = .6, tx = 0, ty = 0, worldH = 2200;
+  const checked = new Set();
+  let toastTimer, panning = false, lastPinch = null, panPoint = null, hasMoved = false, miniDragging = false;
+  const pointers = new Map();
+
+  function pcMoney(v){ return (v === null || v === undefined) ? 'not yet recorded' : gm(v); }
+  function plainText(html){ const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+
+  // ---------------------------------------------------------------- build data from the live app
+  function pcBuildData(){
+    const calc = state._pictureCalc || {};
+    const links = window._pictureLinksData || {};
+    const guideOut = (typeof pictureGuideCache !== 'undefined' && pictureGuideCache.out) || {};
+    const branches = normalisePictureBranches(guideOut) || {};
+    const clean = k => (Array.isArray(branches[k]) ? branches[k] : []).filter(l => l && l.text).slice(0, 6).map((l, i) => ({
+      domId: 'leaf-' + k + '-' + i, branch: k,
+      kind: (l.kind === 'numbers' || l.kind === 'ask') ? l.kind : 'picture',
+      bankId: l.id || null, text: String(l.text), why: l.why ? String(l.why) : ''
+    }));
+    return {
+      primaryName: calc.primaryName || 'the client',
+      secondaryName: calc.secondaryName || '',
+      mortgage: calc.mortgage ?? null, monthlyPayment: calc.monthlyPayment ?? null,
+      illnessGap: calc.illnessGap ?? null, deathGap: calc.deathGap ?? null,
+      primaryCover: calc.primaryCover ?? null, secondaryCover: calc.secondaryCover ?? null,
+      continuingIncome: calc.continuingIncome ?? null,
+      goalSummary: links.goalSummary || calc.goalText || '',
+      goalHighlight: links.goalHighlight || '',
+      illnessSentence: links.illnessSentence || (document.getElementById('ypf-illness-consequence') ? document.getElementById('ypf-illness-consequence').textContent : ''),
+      deathSentence: links.deathSentence || (document.getElementById('ypf-death-consequence') ? document.getElementById('ypf-death-consequence').textContent : ''),
+      bridge: guideOut.bridge || '',
+      branches: { goal: clean('goal'), illness: clean('illness'), death: clean('death'), existing: clean('existing') }
+    };
+  }
+
+  function pcGoalHeadingHTML(d){
+    const summary = (d.goalSummary || '').trim() || 'What matters most to them hasn’t been captured yet.';
+    const idx = d.goalHighlight ? summary.toLowerCase().indexOf(d.goalHighlight.toLowerCase()) : -1;
+    if(idx >= 0){
+      return esc(summary.slice(0, idx)) + '<em>' + esc(summary.slice(idx, idx + d.goalHighlight.length)) + '</em>' + esc(summary.slice(idx + d.goalHighlight.length));
+    }
+    return esc(summary);
+  }
+
+  // ---------------------------------------------------------------- dynamic layout
+  function pcLeafHeight(text, why){
+    const len = (text || '').length;
+    const lines = Math.max(2, Math.ceil(len / 32));
+    let h = 96 + lines * 30;
+    if(why) h += 42;
+    return Math.max(190, Math.min(430, Math.round(h)));
+  }
+  function pcStack(headBottom, gapFirst, x, w, items){
+    let y = headBottom + gapFirst;
+    return items.map((it, i) => {
+      if(i > 0) y += 50;
+      const h = pcLeafHeight(it.text, it.why);
+      const rect = Object.assign({}, it, {x, y, w, h});
+      y += h;
+      return rect;
+    });
+  }
+  function pcGoalRow(items){
+    const rowBottom = 450, gap = 40, w = 560;
+    const total = items.length * w + Math.max(0, items.length - 1) * gap;
+    let x = 1300 - total / 2;
+    return items.map(it => {
+      const h = pcLeafHeight(it.text, it.why);
+      const rect = Object.assign({}, it, {x, y: rowBottom - h, w, h});
+      x += w + gap;
+      return rect;
+    });
+  }
+
+  function pcVisible(n){ return mode === 'adviser' || !n.kind || n.kind === 'numbers'; }
+
+  function pcBuildNodes(){
+    const d = pcData;
+    const goalLeaves = pcGoalRow(d.branches.goal.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const illLeaves = pcStack(HEAD.illness.y + HEAD.illness.h, 110, HEAD.illness.x, HEAD.illness.w, d.branches.illness.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const deathLeaves = pcStack(HEAD.death.y + HEAD.death.h, 110, HEAD.death.x, HEAD.death.w, d.branches.death.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const existLeaves = pcStack(HEAD.existing.y + HEAD.existing.h, 105, HEAD.existing.x, HEAD.existing.w, d.branches.existing.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+
+    const covers = [d.primaryCover, d.secondaryCover].filter((v, i) => i === 0 || d.secondaryName);
+    const coverRows = [`<div><dt>${esc(d.primaryName)}</dt><dd>${d.primaryCover ? '' : '<span class="pc-unknown" aria-hidden="true"></span> '}${pcMoney(d.primaryCover)}</dd></div>`]
+      .concat(d.secondaryName ? [`<div><dt>${esc(d.secondaryName)}</dt><dd>${d.secondaryCover ? '' : '<span class="pc-unknown" aria-hidden="true"></span> '}${pcMoney(d.secondaryCover)}</dd></div>`] : []);
+
+    const stacks = [illLeaves, deathLeaves, existLeaves].filter(s => s.length);
+    const deepest = Math.max(
+      HEAD.existing.y + HEAD.existing.h,
+      ...stacks.map(s => s[s.length - 1].y + s[s.length - 1].h)
+    );
+    const nextNode = {id: 'next', branch: 'next', type: 'next-card', x: 680, y: deepest + 90, w: 1240, h: 165,
+      html: `<div class="pc-card-label">Next · agree the essentials</div><p>${d.bridge ? esc(d.bridge) : 'Agree what must be protected before looking at how to put it in place.'}</p><button type="button" class="pc-source-button" data-pc-source="next">Where this line came from <span aria-hidden="true">↗</span></button>`};
+    worldH = nextNode.y + nextNode.h + 60;
+
+    const built = [
+      {id: 'goal', branch: 'goal', type: 'root', x: HEAD.goal.x, y: HEAD.goal.y, w: HEAD.goal.w, h: HEAD.goal.h,
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">◎</span> What matters most</div><h2>${pcGoalHeadingHTML(d)}</h2>`},
+      {id: 'illness', branch: 'illness', type: 'risk-head', x: HEAD.illness.x, y: HEAD.illness.y, w: HEAD.illness.w, h: HEAD.illness.h,
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 01</div><h3>If illness stops work</h3><div class="pc-figure">${pcMoney(d.illnessGap)}${d.illnessGap !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Illustrative mortgage shortfall</p><p class="pc-qualification">${esc(d.illnessSentence || 'Mortgage only — not the total household gap.')}</p>`},
+      {id: 'death', branch: 'death', type: 'risk-head', x: HEAD.death.x, y: HEAD.death.y, w: HEAD.death.w, h: HEAD.death.h,
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 02</div><h3>${d.secondaryName ? 'If one of them dies' : ('If ' + esc(d.primaryName) + ' dies')}</h3><div class="pc-figure">${pcMoney(d.deathGap)}</div><p class="pc-sub">Mortgage gap if ${esc(d.primaryName)} dies</p><p class="pc-qualification">${esc(d.deathSentence || 'Provisional until employer benefits are confirmed.')}</p>`},
+      {id: 'existing', branch: 'existing', type: 'support', x: HEAD.existing.x, y: HEAD.existing.y, w: HEAD.existing.w, h: HEAD.existing.h,
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">+</span> Already helping · check first</div><h3>Death-in-service cover</h3><dl>${coverRows.join('')}</dl>`},
+      nextNode
+    ];
+    goalLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'goal', x: l.x, y: l.y, w: l.w, h: l.h})));
+    illLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'illness', x: l.x, y: l.y, w: l.w, h: l.h})));
+    deathLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'death', x: l.x, y: l.y, w: l.w, h: l.h})));
+    existLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'existing', x: l.x, y: l.y, w: l.w, h: l.h})));
+
+    nodes = built;
+    leafOrder = [].concat(goalLeaves, illLeaves, deathLeaves, existLeaves).map(l => l.domId);
+  }
+
+  const nodeById = id => nodes.find(n => n.id === id);
+  function pcSourceLabel(n){
+    if(!n.kind) return '';
+    if(!n.bankId) return 'Calculation';
+    if(n.bankId === 'custom') return "Claude's own line";
+    return 'Adviser bank · ' + n.bankId;
+  }
+
+  function pcCreateCards(){
+    const cardsEl = document.getElementById('pcCards');
+    cardsEl.innerHTML = nodes.map(n => {
+      const isLeaf = !!n.kind;
+      let content;
+      if(isLeaf){
+        content = `
+        <div class="pc-card-label"><span aria-hidden="true">${n.kind === 'picture' ? '◉' : n.kind === 'numbers' ? '=' : '?'}</span> ${kindLabels[n.kind]}</div>
+        <p class="pc-leaf-text">${esc(n.text)}</p>
+        <div class="pc-leaf-footer">
+          <button type="button" class="pc-source-button" data-pc-source="${n.id}" aria-label="Show source and reasoning">${esc(pcSourceLabel(n))} <span aria-hidden="true">↗</span></button>
+          <button type="button" class="pc-cover-button" data-pc-cover="${n.id}" aria-pressed="false" aria-label="Mark as discussed"><span class="pc-tick-box" aria-hidden="true">✓</span><span>Discussed</span></button>
+        </div>`;
+      } else {
+        content = n.html;
+      }
+      const branchClass = n.branch ? n.branch + '-branch' : '';
+      return `<article class="pc-card ${isLeaf ? 'pc-leaf pc-' + n.kind : 'pc-' + n.type} ${branchClass}" id="pc-card-${n.id}" data-pc-node="${n.id}">${content}</article>`;
+    }).join('');
+  }
+
+  function pcConnector(a, b){
+    const ax = a.x + a.w / 2, ay = a.y + a.h, bx = b.x + b.w / 2, by = b.y, mid = (ay + by) / 2;
+    return `<path class="pc-wire pc-risk" d="M ${ax} ${ay} C ${ax} ${mid}, ${bx} ${mid}, ${bx} ${by}"/>`;
+  }
+
+  function pcLayout(){
+    nodes.forEach(n => {
+      const el = document.getElementById('pc-card-' + n.id);
+      if(!el) return;
+      el.hidden = !pcVisible(n);
+      Object.assign(el.style, {left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px'});
+      el.classList.toggle('pc-is-muted', branch !== 'all' && n.branch !== branch && n.id !== 'goal' && n.id !== 'next');
+      el.classList.toggle('pc-is-current', leafOrder[step] === n.id);
+    });
+    const root = nodeById('goal'), ill = nodeById('illness'), death = nodeById('death'), existing = nodeById('existing'), next = nodeById('next');
+    let wires = '';
+    nodes.filter(n => n.branch === 'goal' && n.kind && pcVisible(n)).forEach(l => wires += pcConnector(l, root));
+    wires += `<path class="pc-wire pc-risk" d="M ${root.x} 770 H 810 Q 750 770 750 710 V 590 Q 750 550 700 550 H 460 Q 400 550 400 610 V ${ill.y}"/>`;
+    wires += `<path class="pc-wire pc-risk" d="M ${root.x + root.w} 770 H 1790 Q 1850 770 1850 710 V 590 Q 1850 550 1900 550 H 2140 Q 2200 550 2200 610 V ${death.y}"/>`;
+    wires += pcConnector(root, existing);
+    [['illness', ill], ['death', death], ['existing', existing]].forEach(([b, head]) => {
+      const chain = nodes.filter(n => n.branch === b && n.kind && pcVisible(n));
+      let prev = head;
+      chain.forEach(l => { wires += pcConnector(prev, l); prev = l; });
+    });
+    if(mode === 'adviser') wires += `<path class="pc-wire pc-dashed" d="M ${existing.x + existing.w / 2} ${existing.y + existing.h} C ${existing.x + existing.w / 2} ${(existing.y + existing.h + next.y) / 2}, ${next.x + next.w / 2} ${(existing.y + existing.h + next.y) / 2}, ${next.x + next.w / 2} ${next.y}"/>`;
+    else wires += pcConnector(existing, next);
+    const wiresEl = document.getElementById('pcWires');
+    wiresEl.setAttribute('viewBox', `0 0 ${WORLD_W} ${worldH}`);
+    wiresEl.style.width = WORLD_W + 'px'; wiresEl.style.height = worldH + 'px';
+    wiresEl.innerHTML = wires;
+    world.style.width = WORLD_W + 'px'; world.style.height = worldH + 'px';
+    const mini = document.getElementById('pcMinimap');
+    mini.setAttribute('viewBox', `0 0 ${WORLD_W} ${worldH}`);
+    document.getElementById('pcMiniWires').innerHTML = wires.replace(/class="[^"]*"/g, '');
+    document.getElementById('pcMiniCards').innerHTML = nodes.filter(pcVisible).map(n =>
+      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="16" fill="${n.type === 'risk-head' ? '#EBD3BF' : n.id === 'goal' ? '#8DAF9A' : n.type === 'support' ? '#CCDCCE' : '#E0E2D8'}" stroke="${n.branch === 'illness' || n.branch === 'death' ? '#B58D6D' : '#94A68D'}" stroke-width="7"/>`
+    ).join('');
+    pcUpdateTransform();
+  }
+
+  function pcUpdateTransform(){
+    world.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+    document.getElementById('pcZoomLevel').textContent = Math.round(scale * 100) + '%';
+    document.getElementById('pcZoomOut').disabled = scale <= .18;
+    document.getElementById('pcZoomIn').disabled = scale >= 1.65;
+    const r = document.getElementById('pcMiniViewport');
+    r.setAttribute('x', -tx / scale); r.setAttribute('y', -ty / scale);
+    r.setAttribute('width', viewport.clientWidth / scale); r.setAttribute('height', viewport.clientHeight / scale);
+    viewport.style.backgroundSize = (24 * scale) + 'px ' + (24 * scale) + 'px';
+    viewport.style.backgroundPosition = tx + 'px ' + ty + 'px';
+  }
+  function pcFitRect(r, padding = 45, max = 1){
+    const w = viewport.clientWidth, h = viewport.clientHeight;
+    scale = Math.max(.18, Math.min(max, (w - padding * 2) / r.w, (h - padding * 2) / r.h));
+    tx = w / 2 - (r.x + r.w / 2) * scale; ty = h / 2 - (r.y + r.h / 2) * scale;
+    pcUpdateTransform();
+  }
+  function pcFitWhole(){
+    pcSetBranch('all', false);
+    pcFitRect({x: 45, y: 25, w: WORLD_W - 90, h: worldH - 50}, 35, .85);
+    document.getElementById('pcFocusHint').textContent = 'The whole story. Select any card to bring it closer.';
+    pcAnnounce('Whole picture fitted to the screen.');
+  }
+  function pcFocusNode(id){
+    const n = nodeById(id);
+    if(!n) return;
+    pcFitRect({x: n.x - 30, y: n.y - 35, w: n.w + 60, h: n.h + 70}, viewport.clientWidth < 720 ? 24 : 70, .95);
+    document.getElementById('pcFocusTitle').textContent = n.kind ? branchNames[n.branch] + ' · ' + kindLabels[n.kind] : (branchNames[n.branch] || 'Next · agree the essentials');
+    document.getElementById('pcFocusHint').textContent = 'One thought at a time. Use the overview to return to the wider picture.';
+  }
+  function pcSetBranch(value, move = true){
+    branch = value;
+    $$('#pcBranchTabs .pc-tab').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pcBranch === branch)));
+    document.getElementById('pcFocusTitle').textContent = branchNames[value] || branchNames.all;
+    document.getElementById('pcFocusHint').textContent = value === 'existing' ? 'Unknown is not the same as uncovered. Confirm before recommending.' : 'Drag the space to explore. Select a card to read closer.';
+    pcLayout();
+    if(!move) return;
+    if(value === 'all'){ pcFitWhole(); return; }
+    const head = HEAD[value];
+    const chain = nodes.filter(n => n.branch === value);
+    const bottom = chain.length ? Math.max(...chain.map(n => n.y + n.h)) : head.y + head.h;
+    const rect = value === 'goal'
+      ? {x: 300, y: 75, w: 2000, h: bottom - 75 + 30}
+      : {x: head.x - 40, y: head.y - 30, w: head.w + 80, h: bottom - head.y + 70};
+    pcFitRect(rect, 45, .9);
+    pcAnnounce((branchNames[value] || '') + ' in focus.');
+  }
+  function pcZoomAt(factor, x = viewport.clientWidth / 2, y = viewport.clientHeight / 2){
+    const next = Math.max(.18, Math.min(1.65, scale * factor));
+    tx = x - (x - tx) * next / scale; ty = y - (y - ty) * next / scale;
+    scale = next; pcUpdateTransform();
+  }
+  function pcAnnounce(t){ document.getElementById('pcAnnouncer').textContent = t; }
+  function pcToast(t){
+    clearTimeout(toastTimer);
+    const el = document.getElementById('pcToast');
+    el.textContent = t; el.hidden = false;
+    toastTimer = setTimeout(() => el.hidden = true, 4200);
+  }
+
+  function pcShowSource(id){
+    const n = nodeById(id);
+    if(!n) return;
+    let html = '';
+    if(id === 'next'){
+      document.getElementById('pcSourceTitle').textContent = 'A bridge to the next decision';
+      html = `<div class="pc-dialog-quote">${esc(pcData.bridge || '')}</div>
+        <div class="pc-provenance-block"><h3><span class="pc-source-tag">Adviser bank · B1/B2</span> One of his two closing transitions</h3><p>Claude picked one of the adviser's own two closing lines from the bank and adapted it to ${esc(pcData.primaryName)}'s own goal — the same as every other prompt on this page, not a fresh AI invention.</p></div>
+        <div class="pc-provenance-block"><h3>Why it is here</h3><p>It asks permission to move from understanding the risks to agreeing the essential outcomes — before discussing how to arrange cover. It does not suggest a product or a benefit amount.</p></div>`;
+    } else {
+      document.getElementById('pcSourceTitle').textContent = n.kind === 'numbers' ? 'The numbers, with their working' : "The adviser's line, with its purpose";
+      html = `<div class="pc-dialog-quote">${esc(n.text)}</div>`;
+      if(n.bankId && n.bankId !== 'custom'){
+        html += `<div class="pc-provenance-block"><h3><span class="pc-source-tag">Adviser bank · ${esc(n.bankId)}</span> Recorded practice</h3><p>Claude picked this line from Andrew's real prompt bank — distilled from his own call recordings and 100 real practice cases — because it matched this client's notes, and adapted the names and figures to fit. It is his proven wording, not invented by AI.</p></div>`;
+      } else if(n.bankId === 'custom'){
+        html += `<div class="pc-provenance-block"><h3><span class="pc-source-tag pc-ai">Claude's own line</span> No bank line fit closely enough</h3><p>A specific fact in this client's notes mattered here and no bank line covered it, so Claude wrote one plain, concrete line in the adviser's style instead. At most one of these appears per branch.</p></div>`;
+      }
+      if(n.kind === 'numbers'){
+        html += `<div class="pc-provenance-block"><h3><span class="pc-source-tag pc-calc">Exact code</span> The figure is calculated, not guessed</h3><p>Any number in this line is calculated by the app from what's recorded for this case. Claude is only allowed to restate it exactly as given — never to compute or estimate it.</p></div>`;
+      }
+      if(n.why) html += `<div class="pc-provenance-block"><h3>Why this leaf is here</h3><p>${esc(n.why)}</p></div>`;
+      html += `<div class="pc-notice"><p>Exact arithmetic does not make a scenario certain. Confirm the underlying inputs and any existing benefits before advice.</p></div>`;
+    }
+    document.getElementById('pcSourceContent').innerHTML = html;
+    document.getElementById('pcSourceDialog').showModal();
+  }
+
+  function pcUpdateProgress(){
+    document.getElementById('pcProgressRing').textContent = checked.size;
+    document.getElementById('pcProgressRing').style.background = leafOrder.length ? `conic-gradient(#D6E9DB ${Math.round(checked.size / leafOrder.length * 360)}deg,white 0)` : '';
+    document.getElementById('pcProgressText').textContent = `${checked.size} of ${leafOrder.length} prompts discussed`;
+    nodes.filter(n => n.kind).forEach(n => {
+      const card = document.getElementById('pc-card-' + n.id);
+      if(!card) return;
+      const button = card.querySelector('[data-pc-cover]');
+      card.classList.toggle('pc-covered', checked.has(n.id));
+      button.setAttribute('aria-pressed', String(checked.has(n.id)));
+    });
+    document.getElementById('pcPrevStep').disabled = step < 1 || mode === 'client';
+    document.getElementById('pcNextStep').innerHTML = mode === 'client' ? 'Back to adviser <span aria-hidden="true">↗</span>' : step < 0 ? 'Begin conversation <span aria-hidden="true">→</span>' : step >= leafOrder.length - 1 ? 'Agree the essentials <span aria-hidden="true">→</span>' : 'Next thought <span aria-hidden="true">→</span>';
+    document.getElementById('pcCurrentStep').textContent = mode === 'client' ? 'Client view · coaching prompts hidden' : step < 0 ? 'A guide, not a script. Go at their pace.' : leafOrder[step] ? `${step + 1} / ${leafOrder.length} · ${kindLabels[nodeById(leafOrder[step]).kind]}` : '';
+  }
+  function pcGoStep(index){
+    if(index >= leafOrder.length){
+      pcFocusNode('next');
+      pcToast('Agree the outcomes first. Discussion ticks are not client consent or a recommendation.');
+      return;
+    }
+    step = Math.max(0, index);
+    const n = nodeById(leafOrder[step]);
+    if(!n) return;
+    pcSetBranch(n.branch, false); pcFocusNode(n.id); pcUpdateProgress();
+    pcAnnounce(`Prompt ${step + 1} of ${leafOrder.length}. ${plainText(n.text)}`);
+  }
+  function pcSetMode(value){
+    mode = value; step = -1;
+    document.getElementById('pcAdviserMode').setAttribute('aria-pressed', String(mode === 'adviser'));
+    document.getElementById('pcClientMode').setAttribute('aria-pressed', String(mode === 'client'));
+    document.getElementById('pcModeHint').textContent = mode === 'adviser' ? 'Prompts & their sources' : 'The family, facts & unknowns';
+    pcBuildNodes(); pcCreateCards(); pcLayout(); pcUpdateProgress(); pcFitWhole();
+    pcAnnounce(mode === 'client' ? 'Client view. Coaching prompts hidden; financial facts and unknowns remain.' : 'Adviser view. All prompts restored.');
+  }
+
+  function pcExportNotes(){
+    const d = pcData;
+    const lines = [
+      'FAMILY PROTECTION PICTURE — DISCUSSION NOTES',
+      `${d.primaryName}${d.secondaryName ? ' & ' + d.secondaryName : ''}`,
+      `Saved: ${new Date().toLocaleString('en-GB')}`,
+      '',
+      `Discussed: ${checked.size} of ${leafOrder.length} prompts`,
+      'Ticks record discussion only, not client agreement, consent or a recommendation.',
+      '',
+      'GOAL: ' + plainText(pcGoalHeadingHTML(d)),
+      ...leafOrder.map(id => {
+        const n = nodeById(id);
+        return `\n[${checked.has(id) ? 'DISCUSSED' : 'NOT MARKED'}] ${n.branch.toUpperCase()} · ${kindLabels[n.kind]}\n${plainText(n.text)}\nSource: ${pcSourceLabel(n)}`;
+      }),
+      '',
+      'NEXT: ' + plainText(d.bridge || '(not generated)'),
+      '',
+      'Figures are calculated by the app from this case’s recorded inputs; prompts are drawn from the adviser’s own bank and adapted by Claude for this client.'
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([lines], {type: 'text/plain;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = (d.primaryName || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-protection-discussion.txt';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    pcToast('Discussion notes downloaded.');
+  }
+
+  function pcRenderAll(){
+    document.getElementById('pcAvatar').textContent = (pcData.primaryName[0] || '?').toUpperCase() + (pcData.secondaryName ? ' & ' + pcData.secondaryName[0].toUpperCase() : '');
+    document.getElementById('pcClientName').textContent = pcData.primaryName + (pcData.secondaryName ? ' & ' + pcData.secondaryName : '');
+    const tabsEl = document.getElementById('pcBranchTabs');
+    tabsEl.innerHTML = ['all', 'goal', 'illness', 'death', 'existing'].map(k =>
+      `<button type="button" class="pc-tab" data-pc-branch="${k}" aria-pressed="${k === 'goal'}"><span class="pc-tab-symbol" aria-hidden="true">${branchLabels[k].sym}</span>${branchLabels[k].label}</button>`
+    ).join('');
+    tabsEl.querySelectorAll('.pc-tab').forEach(b => b.addEventListener('click', () => pcSetBranch(b.dataset.pcBranch)));
+    checked.clear(); step = -1; mode = 'adviser'; branch = 'goal'; scale = .6; tx = 0; ty = 0;
+    pcBuildNodes(); pcCreateCards(); pcLayout(); pcUpdateProgress();
+    requestAnimationFrame(() => pcSetBranch('goal'));
+  }
+
+  // ---------------------------------------------------------------- open / close
+  let pcWired = false, pcReturnFocus = null;
+  function pcWireOnce(){
+    if(pcWired) return; pcWired = true;
+
+    document.getElementById('pcCards').addEventListener('click', e => {
+      if(hasMoved) return;
+      const source = e.target.closest('[data-pc-source]');
+      if(source){ pcShowSource(source.dataset.pcSource); return; }
+      const cover = e.target.closest('[data-pc-cover]');
+      if(cover){
+        const id = cover.dataset.pcCover;
+        checked.has(id) ? checked.delete(id) : checked.add(id);
+        pcUpdateProgress();
+        pcAnnounce(`${checked.size} of ${leafOrder.length} prompts marked discussed.`);
+        return;
+      }
+      const card = e.target.closest('[data-pc-node]');
+      if(card){
+        const n = nodeById(card.dataset.pcNode);
+        if(n && n.branch !== 'next') pcSetBranch(n.branch, false);
+        if(n) pcFocusNode(n.id);
+      }
+    });
+    document.getElementById('pcAdviserMode').addEventListener('click', () => pcSetMode('adviser'));
+    document.getElementById('pcClientMode').addEventListener('click', () => pcSetMode('client'));
+    document.getElementById('pcAboutButton').addEventListener('click', () => document.getElementById('pcAboutDialog').showModal());
+    document.getElementById('pcCloseButton').addEventListener('click', pcClose);
+    overlay.querySelectorAll('[data-pc-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+    overlay.querySelectorAll('dialog').forEach(dlg => dlg.addEventListener('click', e => {
+      const r = dlg.getBoundingClientRect();
+      if(e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dlg.close();
+    }));
+    document.getElementById('pcNextStep').addEventListener('click', () => mode === 'client' ? pcSetMode('adviser') : pcGoStep(step + 1));
+    document.getElementById('pcPrevStep').addEventListener('click', () => pcGoStep(step - 1));
+    document.getElementById('pcZoomIn').addEventListener('click', () => pcZoomAt(1.2));
+    document.getElementById('pcZoomOut').addEventListener('click', () => pcZoomAt(1 / 1.2));
+    ['pcResetButton', 'pcFitButton'].forEach(id => document.getElementById(id).addEventListener('click', pcFitWhole));
+    document.getElementById('pcExportButton').addEventListener('click', pcExportNotes);
+
+    viewport.addEventListener('wheel', e => {
+      e.preventDefault();
+      const r = viewport.getBoundingClientRect();
+      let delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientHeight : 1);
+      pcZoomAt(Math.exp(-Math.max(-120, Math.min(120, delta)) * (e.ctrlKey ? .008 : .003)), e.clientX - r.left, e.clientY - r.top);
+    }, {passive: false});
+
+    function pinchInfo(){ const [a, b] = [...pointers.values()]; return {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y)}; }
+    viewport.addEventListener('pointerdown', e => {
+      if(e.button !== 0 || e.target.closest('button')) return;
+      const r = viewport.getBoundingClientRect();
+      pointers.set(e.pointerId, {x: e.clientX - r.left, y: e.clientY - r.top});
+      if(pointers.size === 2){
+        lastPinch = pinchInfo(); panning = false; panPoint = null;
+        viewport.setPointerCapture(e.pointerId); hasMoved = true;
+      } else if(!e.target.closest('.pc-card')){
+        hasMoved = false; panning = true; panPoint = {x: e.clientX, y: e.clientY};
+        viewport.setPointerCapture(e.pointerId); viewport.classList.add('pc-dragging');
+        viewport.focus({preventScroll: true});
+      } else hasMoved = false;
+    });
+    viewport.addEventListener('pointermove', e => {
+      if(!pointers.has(e.pointerId)) return;
+      const r = viewport.getBoundingClientRect();
+      pointers.set(e.pointerId, {x: e.clientX - r.left, y: e.clientY - r.top});
+      if(pointers.size >= 2){
+        const p = pinchInfo();
+        if(lastPinch && lastPinch.d > 0){
+          const wx = (lastPinch.x - tx) / scale, wy = (lastPinch.y - ty) / scale;
+          scale = Math.max(.18, Math.min(1.65, scale * p.d / lastPinch.d));
+          tx = p.x - wx * scale; ty = p.y - wy * scale; pcUpdateTransform();
+        }
+        lastPinch = p; hasMoved = true;
+      } else if(panning && panPoint){
+        const dx = e.clientX - panPoint.x, dy = e.clientY - panPoint.y;
+        if(Math.abs(dx) + Math.abs(dy) > 1) hasMoved = true;
+        tx += dx; ty += dy; panPoint = {x: e.clientX, y: e.clientY}; pcUpdateTransform();
+      }
+    });
+    function releasePointer(e){
+      pointers.delete(e.pointerId);
+      if(pointers.size < 2) lastPinch = null;
+      if(!pointers.size){
+        panning = false; panPoint = null; viewport.classList.remove('pc-dragging');
+        setTimeout(() => hasMoved = false, 0);
+      } else {
+        const p = [...pointers.values()][0], r = viewport.getBoundingClientRect();
+        panPoint = {x: p.x + r.left, y: p.y + r.top}; panning = true;
+      }
+    }
+    viewport.addEventListener('pointerup', releasePointer);
+    viewport.addEventListener('pointercancel', releasePointer);
+    viewport.addEventListener('lostpointercapture', e => { if(pointers.has(e.pointerId)) releasePointer(e); });
+    viewport.addEventListener('keydown', e => {
+      if(e.target !== viewport) return;
+      const amount = e.shiftKey ? 160 : 65;
+      const map = {ArrowLeft: [amount, 0], ArrowRight: [-amount, 0], ArrowUp: [0, amount], ArrowDown: [0, -amount]};
+      if(map[e.key]){ e.preventDefault(); tx += map[e.key][0]; ty += map[e.key][1]; pcUpdateTransform(); }
+      else if(e.key === '+' || e.key === '=') { e.preventDefault(); pcZoomAt(1.2); }
+      else if(e.key === '-' || e.key === '_') { e.preventDefault(); pcZoomAt(1 / 1.2); }
+      else if(e.key === '0' || e.key === 'Home') { e.preventDefault(); pcFitWhole(); }
+      else if(e.key === 'Escape') { e.preventDefault(); pcClose(); }
+    });
+    function moveFromMini(e){
+      const r = document.getElementById('pcMinimap').getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width * WORLD_W, y = (e.clientY - r.top) / r.height * worldH;
+      tx = viewport.clientWidth / 2 - x * scale; ty = viewport.clientHeight / 2 - y * scale; pcUpdateTransform();
+    }
+    const mini = document.getElementById('pcMinimap');
+    mini.addEventListener('pointerdown', e => { if(e.button !== 0) return; miniDragging = true; mini.setPointerCapture(e.pointerId); moveFromMini(e); });
+    mini.addEventListener('pointermove', e => { if(miniDragging) moveFromMini(e); });
+    ['pointerup', 'pointercancel'].forEach(type => mini.addEventListener(type, () => miniDragging = false));
+    mini.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pcFitWhole(); } });
+
+    let lastSize = {w: 0, h: 0};
+    new ResizeObserver(() => {
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      if(lastSize.w && overlay.classList.contains('pc-open')){ tx += (w - lastSize.w) / 2; ty += (h - lastSize.h) / 2; pcUpdateTransform(); }
+      lastSize = {w, h};
+    }).observe(viewport);
+  }
+
+  async function pcOpen(){
+    if(!state._pictureCalc){ pcToast('Open the Your Picture step first.'); return; }
+    pcWireOnce();
+    pcReturnFocus = document.activeElement;
+    overlay.classList.add('pc-open'); overlay.setAttribute('aria-hidden', 'false');
+    loadingEl.style.display = 'flex';
+    try {
+      // Re-run the SAME two calls the tree view uses, so this is this exact
+      // case's current notes and figures, not a cached or sample snapshot.
+      await Promise.all([
+        (typeof enrichPictureLinks === 'function') ? enrichPictureLinks() : Promise.resolve(),
+        (typeof loadPictureGuidance === 'function') ? loadPictureGuidance() : Promise.resolve()
+      ]);
+    } catch(e) { console.error('picture canvas: refresh before open failed', e); }
+    pcData = pcBuildData();
+    loadingEl.style.display = 'none';
+    pcRenderAll();
+    viewport.focus({preventScroll: true});
+  }
+  function pcClose(){
+    overlay.classList.remove('pc-open'); overlay.setAttribute('aria-hidden', 'true');
+    if(pcReturnFocus && document.contains(pcReturnFocus)) pcReturnFocus.focus();
+  }
+
+  window.openPictureCanvas = pcOpen;
+})();
+
+</script>
 </body>
 </html>

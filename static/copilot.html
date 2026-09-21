@@ -1852,6 +1852,25 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
 
   /* -- Your Picture fullscreen takeover -- */
   body.picture-fullscreen-active{overflow-x:hidden;}
+  .ypf-guide{margin:8px 0 28px;padding:24px 28px;border:1px solid var(--border);border-radius:18px;background:#FBFAF7;}
+  .ypf-guide-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;}
+  .ypf-guide-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);}
+  .ypf-guide-actions{display:flex;gap:8px;}
+  .ypf-guide-btn{font:500 12px var(--sans);padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer;}
+  .ypf-guide-btn:hover{border-color:var(--green);color:var(--green);}
+  .ypf-guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;}
+  .ypf-guide-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:12px;padding:16px 18px;}
+  .ypf-guide-card.ypf-guide-illness,.ypf-guide-card.ypf-guide-death{border-left-color:var(--amber);}
+  .ypf-guide-anchor{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .ypf-guide-card h4{margin:0 0 10px;font-family:var(--serif);font-size:17px;font-weight:500;line-height:1.25;}
+  .ypf-guide-say,.ypf-guide-ask,.ypf-guide-bridge{margin:0 0 8px;font-size:13.5px;line-height:1.55;}
+  .ypf-guide-say span,.ypf-guide-ask span,.ypf-guide-bridge span{display:inline-block;margin-right:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .ypf-guide-ask{font-weight:500;}
+  .ypf-guide-bridge{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--border);}
+  .ypf-guide-loading{color:var(--muted);font-size:13px;font-style:italic;}
+  .ypf-guide.ypf-guide-collapsed .ypf-guide-body{display:none;}
+  .ypf-guide.ypf-guide-collapsed .ypf-guide-head{margin-bottom:0;}
+  @media (max-width:640px){.ypf-guide{padding:18px 16px;}.ypf-guide-head{flex-wrap:wrap;}}
   body.picture-fullscreen-active .layout{display:block;grid-template-columns:none;}
   body.picture-fullscreen-active .layout .rail,
   body.picture-fullscreen-active .layout>*:not(.main){display:none;}
@@ -2483,7 +2502,7 @@ function clearScriptBox(){
     document.body.classList.remove('picture-fullscreen-active');
   }
 
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); } else { exitPictureFullscreen(); } }
+  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); loadPictureGuidance(); } else { exitPictureFullscreen(); } }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -2690,6 +2709,16 @@ function yourPictureBody(){
               'Confirm employer benefits to see what is already helping.'}</p>
           </article>
         </section>
+        <section class="ypf-guide" id="ypf-guide" aria-label="Adviser prompts">
+          <div class="ypf-guide-head">
+            <span class="ypf-guide-eyebrow">Adviser prompts &middot; moving to the recommendation</span>
+            <div class="ypf-guide-actions">
+              <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Update</button>
+              <button type="button" class="ypf-guide-btn" id="ypfGuideToggle">Hide</button>
+            </div>
+          </div>
+          <div class="ypf-guide-body" id="ypfGuideBody"><div class="ypf-guide-loading">Reading the picture&hellip;</div></div>
+        </section>
       </main>
       <footer class="ypf-page-footer">
         <div class="ypf-legend" aria-label="Colour key">
@@ -2757,6 +2786,73 @@ function yourPictureBody(){
     }catch(e){
       console.error('picture links enrichment failed', e);
       // fail-safe: leave the existing deterministic sentence in place
+    }
+  }
+
+  const pictureGuideCache = {key:null, out:null};
+  let pictureGuideHidden = false;
+  function paintPictureGuidance(out){
+    const body = document.getElementById('ypfGuideBody');
+    if(!body) return;
+    const branches = (out && out.branches) || [];
+    if(!branches.length){
+      body.innerHTML = '<div class="ypf-guide-loading">No prompts yet - add more to the notes, then press Update.</div>';
+      return;
+    }
+    const anchorLabel = {goal:'What matters', illness:'If illness stops work', death:'If one of them dies', existing:'Already helping'};
+    body.innerHTML = '<div class="ypf-guide-grid">' + branches.map(b => {
+      const anchor = anchorLabel[b.anchor] ? b.anchor : 'goal';
+      return `<article class="ypf-guide-card ypf-guide-${anchor}">
+        <div class="ypf-guide-anchor">${esc(anchorLabel[anchor])}</div>
+        <h4>${esc(b.title||'')}</h4>
+        ${b.say ? `<p class="ypf-guide-say"><span>Say</span>${esc(b.say)}</p>` : ''}
+        ${b.ask ? `<p class="ypf-guide-ask"><span>Ask</span>${esc(b.ask)}</p>` : ''}
+      </article>`;
+    }).join('') + '</div>' +
+      (out.bridge ? `<p class="ypf-guide-bridge"><span>Next</span>${esc(out.bridge)}</p>` : '');
+  }
+  function applyPictureGuideVisibility(){
+    const section = document.getElementById('ypf-guide');
+    const toggle = document.getElementById('ypfGuideToggle');
+    if(section) section.classList.toggle('ypf-guide-collapsed', pictureGuideHidden);
+    if(toggle) toggle.textContent = pictureGuideHidden ? 'Show' : 'Hide';
+  }
+  async function loadPictureGuidance(force){
+    const section = document.getElementById('ypf-guide');
+    if(!section) return;
+    const refreshBtn = document.getElementById('ypfGuideRefresh');
+    const toggleBtn = document.getElementById('ypfGuideToggle');
+    if(refreshBtn) refreshBtn.onclick = () => { saveNotes(); loadPictureGuidance(true); };
+    if(toggleBtn) toggleBtn.onclick = () => { pictureGuideHidden = !pictureGuideHidden; applyPictureGuideVisibility(); };
+    applyPictureGuideVisibility();
+
+    const calc = state._pictureCalc || {};
+    const notesText = allNotes();
+    const notes = [factFindContext(), notesText && 'CALL NOTES:\n' + notesText].filter(Boolean).join('\n\n');
+    const picture = {
+      goal_text: calc.goalText, primary_name: calc.primaryName, secondary_name: calc.secondaryName,
+      illness_gap: calc.illnessGap, death_gap: calc.deathGap, primary_cover: calc.primaryCover,
+      mortgage: calc.mortgage, monthly_payment: calc.monthlyPayment, continuing_income: calc.continuingIncome
+    };
+    const key = JSON.stringify([notes, picture]);
+    if(!force && pictureGuideCache.key === key && pictureGuideCache.out){
+      paintPictureGuidance(pictureGuideCache.out);
+      return;
+    }
+    const body = document.getElementById('ypfGuideBody');
+    if(body) body.innerHTML = '<div class="ypf-guide-loading">Reading the picture&hellip;</div>';
+    try{
+      const res = await authFetch(API_BASE+'/copilot/picture-guidance',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({notes, picture, call_plan: state.callPlan})});
+      const out = await res.json();
+      if(out.error && !(out.branches||[]).length) throw new Error(out.error);
+      pictureGuideCache.key = key;
+      pictureGuideCache.out = out;
+      paintPictureGuidance(out);
+    }catch(e){
+      console.error('picture guidance failed', e);
+      logFailure('Your Picture', e);
+      if(body) body.innerHTML = '<div class="ypf-guide-loading">Couldn\'t load prompts - press Update to try again.</div>';
     }
   }
 

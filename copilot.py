@@ -386,6 +386,55 @@ Return ONLY valid JSON matching:
 }}"""
 
 
+PICTURE_GUIDANCE_SYSTEM = """You guide a UK protection adviser at the pivot point of a
+client call. The adviser has just shown the client their "Your Picture" screen: what
+matters most to them at the centre, what happens to it if illness stops work, what happens
+if one of them dies, and what cover is already helping. The fact-find is done. This is
+where the adviser moves the client from understanding their need to agreeing a
+recommendation.
+
+Your job: give the adviser the lines and questions that move the conversation towards the
+recommendation, grounded in THIS client's own goal, figures and notes. Use the adviser
+methodology extracts (especially any tagged [andrew-sell]) for the STRUCTURE and TACTICS of
+how this adviser sells: tying each consequence back to the client's own stated goal,
+anchoring hesitation to the reason they gave for wanting the call, checking whether
+employer cover really covers the gap, turning the picture into a decision the client owns,
+and asking for commitment. Never lift a fact or figure from the extracts.
+
+Return 4-5 "branches". Each branch hangs off ONE node of the picture:
+- "anchor": one of "goal", "illness", "death", "existing"
+- "title": a 3-6 word label for the move (e.g. "Make the illness gap real")
+- "say": ONE full, natural sentence the adviser says out loud, using this client's real
+  name, goal and supplied figures where they exist
+- "ask": ONE question that gets the client to own the need or take a step towards the
+  recommendation (e.g. confirming what matters, what they'd want to happen, whether they'd
+  want that protected)
+Cover at least the goal, illness and death nodes. If a key figure is missing (continuing
+income, death-in-service cover), make one branch's "ask" the question that gets it, framed
+as part of moving forward.
+
+Also return "bridge": ONE sentence the adviser can use to move from this screen into the
+next stage (deciding what is essential to protect, then looking at options).
+
+You NEVER:
+- recommend a specific product, provider, cover amount or premium, or estimate a cost
+- do your own arithmetic or combine figures into new numbers - restate supplied figures only
+- describe the mortgage amount as the property's value or price - it is the loan still owed,
+  never what the home is worth (say "the £X mortgage", never "this £X property")
+- invent urgency or use pressure (no "act today", "prices are going up", "offer ends");
+  where age or health is genuinely in the notes you may state plainly that cover is
+  assessed on health and age at the time of applying, as a fact, not a threat
+- claim any underwriting outcome, acceptance or claim payment is certain
+- invent client facts, relationships or prior conversations not in the notes
+- use "FCA-regulated"/"FCA regulated" in any form, "there's no fee for this"/"no fee to
+  you", or "you'd have recourse"/"proper recourse"
+Persuasion here means helping the client see their own consequences clearly and asking them
+to decide - never pressure.
+
+Return ONLY valid JSON:
+{"branches": [{"anchor": "goal", "title": "...", "say": "...", "ask": "..."}], "bridge": "..."}"""
+
+
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
 referral email from a mortgage broker.
 
@@ -564,6 +613,52 @@ def register_copilot_routes(app):
         except Exception:
             log.exception("copilot picture-links failed")
             return jsonify({"goalSummary": goal_text, "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
+
+    @app.post("/copilot/picture-guidance")
+    def copilot_picture_guidance():
+        data = request.get_json(silent=True) or {}
+        notes = (data.get("notes") or "").strip()
+        picture = data.get("picture") or {}
+        plan = (data.get("call_plan") or "").strip()
+        if not notes and not picture:
+            return jsonify({"branches": [], "bridge": ""}), 200
+        try:
+            goal_text = str(picture.get("goal_text") or "").strip()
+            situation = " ".join(filter(None, [
+                goal_text,
+                "moving from the client's needs to a recommendation, sale stage, tying "
+                "consequences to the client's goal, handling hesitation, asking for commitment",
+            ]))
+            methodology = get_relevant_knowledge(situation, k=6)
+
+            def show(v):
+                return "not recorded" if v is None or v == "" else v
+
+            user_content = ""
+            if plan:
+                user_content += "ADVISER'S PLAN FOR THIS CALL:\n" + plan + "\n\n"
+            user_content += "Fact-find and call notes so far:\n\n" + (notes or "(none captured)") + "\n\n"
+            user_content += (
+                "Your Picture figures (already calculated - restate only, never compute):\n"
+                f"- Client's goal (their words): {show(goal_text)}\n"
+                f"- Primary client: {show(picture.get('primary_name'))}\n"
+                f"- Secondary client: {show(picture.get('secondary_name'))}\n"
+                f"- Monthly shortfall if illness stops the primary client working: {show(picture.get('illness_gap'))}\n"
+                f"- Mortgage gap if the primary client dies: {show(picture.get('death_gap'))}\n"
+                f"- Primary client's existing death-in-service cover: {show(picture.get('primary_cover'))}\n"
+                f"- Mortgage amount: {show(picture.get('mortgage'))}\n"
+                f"- Monthly mortgage payment: {show(picture.get('monthly_payment'))}\n"
+                f"- Income continuing if illness stops work: {show(picture.get('continuing_income'))}\n"
+            )
+            if methodology:
+                user_content += (
+                    "\nAdviser methodology extracts (structure/tactics only, never a source "
+                    "of facts):\n" + methodology + "\n"
+                )
+            return jsonify(claude_json(PICTURE_GUIDANCE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1600))
+        except Exception:
+            log.exception("copilot picture-guidance failed")
+            return jsonify({"branches": [], "bridge": "", "error": "picture guidance failed"}), 200
 
     @app.post("/copilot/log-failure")
     def copilot_log_failure():

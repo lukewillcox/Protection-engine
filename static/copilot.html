@@ -2582,7 +2582,10 @@ function yourPictureBody(){
       secondaryName: persons.length > 1 ? nameOf(persons[1]) : '',
       illnessGap,
       deathGap,
-      primaryCover: covers[0] === undefined ? null : covers[0]
+      primaryCover: covers[0] === undefined ? null : covers[0],
+      mortgage,
+      monthlyPayment: payment,
+      continuingIncome
     };
 
     return `<div class="ypf-page">
@@ -2732,7 +2735,10 @@ function yourPictureBody(){
           secondary_name: calc.secondaryName,
           illness_gap: calc.illnessGap,
           death_gap: calc.deathGap,
-          primary_cover: calc.primaryCover
+          primary_cover: calc.primaryCover,
+          mortgage: calc.mortgage,
+          monthly_payment: calc.monthlyPayment,
+          continuing_income: calc.continuingIncome
         })});
       const out = await res.json();
       const illEl = document.getElementById('ypf-illness-consequence');

@@ -367,8 +367,15 @@ You NEVER:
 - claim any underwriting outcome is certain, or that any insurer will definitely pay out
 - use "FCA-regulated"/"FCA regulated" in any form, "there's no fee for this"/"no fee to
   you", or "you'd have recourse"/"proper recourse"
-If a figure is 0 or missing, write a neutral sentence noting more detail is needed rather
-than inventing a number or a person.
+If the specific gap figure (illness shortfall or death mortgage gap) is missing, but you
+ARE given other real recorded figures for this household (the mortgage amount, the monthly
+mortgage payment), build the sentence's perspective and urgency around THOSE real figures
+instead - the way an adviser making the case at this stage of the sale would (draw on the
+adviser methodology extracts for exactly this tone) - e.g. naming the actual mortgage amount
+that would still need to be paid, without stating a shortfall figure you were not given. Only
+if NONE of the mortgage amount, payment, or gap figures are supplied at all should you fall
+back to a neutral sentence noting more detail is needed - and even then, still tie it to the
+client's own goal by name rather than being generic.
 
 Return ONLY valid JSON matching:
 {{
@@ -520,6 +527,9 @@ def register_copilot_routes(app):
         illness_gap = data.get("illness_gap")
         death_gap = data.get("death_gap")
         primary_cover = data.get("primary_cover")
+        mortgage_amount = data.get("mortgage")
+        monthly_payment = data.get("monthly_payment")
+        continuing_income = data.get("continuing_income")
         if not goal_text and illness_gap is None and death_gap is None:
             return jsonify({"goalSummary": "", "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
         try:
@@ -542,6 +552,10 @@ def register_copilot_routes(app):
                 f"Death mortgage gap: {death_gap if death_gap is not None else 'not supplied'}\n"
                 f"Existing death-in-service cover for {primary_name}: "
                 f"{primary_cover if primary_cover is not None else 'not supplied'}\n"
+                f"Mortgage amount (real, recorded): {mortgage_amount if mortgage_amount is not None else 'not supplied'}\n"
+                f"Monthly mortgage payment (real, recorded): {monthly_payment if monthly_payment is not None else 'not supplied'}\n"
+                f"Continuing income if illness stopped work (real, recorded): "
+                f"{continuing_income if continuing_income is not None else 'not supplied'}\n"
             )
             if methodology:
                 user_content += f"\nAdviser methodology extracts (tone/tactics only, never a source of facts):\n{methodology}\n"

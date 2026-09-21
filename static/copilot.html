@@ -1871,6 +1871,40 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   .ypf-guide.ypf-guide-collapsed .ypf-guide-body{display:none;}
   .ypf-guide.ypf-guide-collapsed .ypf-guide-head{margin-bottom:0;}
   @media (max-width:640px){.ypf-guide{padding:18px 16px;}.ypf-guide-head{flex-wrap:wrap;}}
+  .ypf-leaves{display:flex;flex-direction:column;gap:9px;min-width:0;}
+  .ypf-leaves:empty{display:none;}
+  .ypf-map .ypf-risk{z-index:1;}
+  .ypf-leaves-risk{position:relative;z-index:0;padding:0 0 0 26px;}
+  .ypf-leaves-risk::before{content:"";position:absolute;left:12px;top:-120px;bottom:20px;width:1px;background:var(--amber);opacity:.4;}
+  .ypf-leaf{position:relative;padding:11px 14px 12px;background:var(--surface);border:1px solid var(--border);border-radius:11px;font-size:12.5px;line-height:1.55;color:var(--ink);box-shadow:0 8px 18px -14px rgba(21,27,38,.2);overflow-wrap:anywhere;}
+  .ypf-leaves-risk .ypf-leaf::before{content:"";position:absolute;left:-14px;top:19px;width:14px;height:1px;background:var(--amber);opacity:.4;}
+  .ypf-leaf-kind{display:block;margin-bottom:4px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .ypf-leaf-numbers{background:var(--amber-bg);border-color:transparent;box-shadow:none;}
+  .ypf-leaf-numbers .ypf-leaf-kind{color:var(--amber);}
+  .ypf-leaf-ask{font-weight:500;}
+  .ypf-leaf-ask .ypf-leaf-kind{color:var(--green);}
+  .ypf-leaf-loading{color:var(--muted);font-style:italic;background:transparent;border-style:dashed;box-shadow:none;}
+  .ypf-leaves-centre{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-top:30px;min-width:0;}
+  .ypf-leaves-centre::before{content:"";position:absolute;left:50%;top:0;height:30px;width:1px;background:var(--green);opacity:.4;}
+  .ypf-leaves-group{min-width:0;padding-top:14px;border-top:1px solid rgba(14,107,92,.28);}
+  .ypf-leaves-group:has(.ypf-leaves:empty){display:none;}
+  .ypf-leaves-label{margin-bottom:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);}
+  .ypf-trunk-end{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:6px;text-align:center;}
+  .ypf-bridge{max-width:620px;margin:0;font-family:var(--serif);font-size:18px;line-height:1.4;color:var(--ink);}
+  .ypf-bridge:empty{display:none;}
+  .ypf-bridge span{display:block;margin-bottom:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);}
+  @media (min-width:861px){
+    .ypf-page .ypf-map{grid-template-rows:116px minmax(359px,auto) auto 1fr;}
+    .ypf-map .ypf-leaves-illness{grid-column:1;grid-row:3/5;}
+    .ypf-map .ypf-leaves-death{grid-column:5;grid-row:3/5;}
+    .ypf-map .ypf-existing{grid-column:2/5;}
+    .ypf-map .ypf-leaves-centre{grid-column:2/5;grid-row:4;align-self:start;padding-left:22px;padding-right:22px;}
+  }
+  @media (min-width:1500px){.ypf-page .ypf-map{grid-template-rows:116px minmax(372px,auto) auto 1fr;}}
+  @media (max-width:860px){
+    .ypf-map .ypf-risk,.ypf-map .ypf-leaves-risk,.ypf-map .ypf-leaves-centre{grid-column:1/-1;}
+  }
+  @media (max-width:520px){.ypf-leaves-centre{grid-template-columns:1fr;}}
   body.picture-fullscreen-active .layout{display:block;grid-template-columns:none;}
   body.picture-fullscreen-active .layout .rail,
   body.picture-fullscreen-active .layout>*:not(.main){display:none;}
@@ -2593,6 +2627,42 @@ function yourPictureBody(){
       <span class="ypf-cover-value">${money(covers[i])}</span>
     </div>`).join('');
 
+    const pictureStats = {goal:[], illness:[], death:[], existing:[]};
+    try{
+      const pName = nameOf(persons[0]);
+      const sName = persons.length > 1 ? nameOf(persons[1]) : '';
+      const fmt = v => gm(Math.round(v));
+      const pct = (a,b) => Math.round(a/b*100) + '%';
+      const yrs = v => (Math.round(v*10)/10).toLocaleString('en-GB');
+      const pos = v => typeof v === 'number' && isFinite(v) && v > 0;
+      const primaryNetM = incomeKnown(state.c1) ? netAnnual(state.c1)/12 : null;
+      const secondaryNetM = persons.length > 1 && incomeKnown(state.c2) ? netAnnual(state.c2)/12 : null;
+      const outgoings = state.salesArc && num(state.salesArc.outgoings) > 0 ? num(state.salesArc.outgoings) : null;
+      const termYrs = num(state.mortgage.term) > 0 ? num(state.mortgage.term) : null;
+      const youngest = state.salesArc ? num(state.salesArc.youngestAge) : 0;
+      // what matters most
+      if(pos(outgoings)) pictureStats.goal.push(`Recorded household outgoings are ${fmt(outgoings)} a month - ${fmt(outgoings*12)} a year to keep this way of life going`);
+      if(youngest > 0 && youngest < 23) pictureStats.goal.push(`The youngest child is ${youngest} - ${23-youngest} more years until they turn 23`);
+      // if illness stops work
+      if(pos(payment) && pos(householdNet)) pictureStats.illness.push(`The ${fmt(payment)} monthly mortgage payment is ${pct(payment,householdNet)} of the household's take-home pay of ${fmt(householdNet)} a month`);
+      if(pos(payment) && pos(primaryNetM)) pictureStats.illness.push(`The ${fmt(payment)} monthly mortgage payment is ${pct(payment,primaryNetM)} of ${pName}'s own take-home pay of ${fmt(primaryNetM)} a month`);
+      if(sName && pos(primaryNetM) && pos(householdNet)) pictureStats.illness.push(`${pName} brings in ${pct(primaryNetM,householdNet)} of the household's take-home pay`);
+      if(continuingIncome !== null && pos(householdNet)) pictureStats.illness.push(`If ${pName} cannot work, household take-home drops from ${fmt(householdNet)} to ${fmt(continuingIncome)} a month once sick pay ends`);
+      if(pos(outgoings) && continuingIncome !== null && outgoings - continuingIncome > 0) pictureStats.illness.push(`Against recorded outgoings of ${fmt(outgoings)} a month, that leaves ${fmt(outgoings-continuingIncome)} a month uncovered - ${fmt((outgoings-continuingIncome)*12)} a year`);
+      if(pos(illnessGap)) pictureStats.illness.push(`The ${fmt(illnessGap)} a month mortgage shortfall is ${fmt(illnessGap*12)} a year`);
+      // if one of them dies
+      if(pos(mortgage) && pos(primaryNetM)) pictureStats.death.push(`The ${fmt(mortgage)} mortgage is ${yrs(mortgage/(primaryNetM*12))} years of ${pName}'s take-home pay`);
+      if(pos(mortgage) && pos(householdNet) && sName) pictureStats.death.push(`The ${fmt(mortgage)} mortgage is ${yrs(mortgage/(householdNet*12))} years of the whole household's take-home pay`);
+      if(pos(mortgage) && pos(payment) && !pos(termYrs)) pictureStats.death.push(`The ${fmt(mortgage)} balance is the same as ${Math.round(mortgage/payment).toLocaleString('en-GB')} of today's ${fmt(payment)} monthly payments`);
+      if(pos(termYrs) && pos(payment)) pictureStats.death.push(`On the recorded ${termYrs}-year term that is ${(termYrs*12).toLocaleString('en-GB')} monthly payments of ${fmt(payment)}`);
+      if(sName && pos(secondaryNetM) && pos(payment)) pictureStats.death.push(`If ${pName} died, ${sName} would have ${fmt(secondaryNetM)} a month take-home - the ${fmt(payment)} mortgage payment alone is ${pct(payment,secondaryNetM)} of that`);
+      if(sName && pos(secondaryNetM) && pos(outgoings) && outgoings - secondaryNetM > 0) pictureStats.death.push(`Against recorded outgoings of ${fmt(outgoings)} a month, ${sName}'s income alone would leave ${fmt(outgoings-secondaryNetM)} a month short`);
+      if(sName && pos(deathGap) && pos(secondaryNetM)) pictureStats.death.push(`The ${fmt(deathGap)} mortgage gap is ${yrs(deathGap/(secondaryNetM*12))} years of ${sName}'s take-home pay`);
+      // already helping
+      if(pos(covers[0]) && pos(mortgage)) pictureStats.existing.push(`${pName}'s death-in-service cover of ${fmt(covers[0])} would clear ${pct(Math.min(covers[0],mortgage),mortgage)} of the ${fmt(mortgage)} mortgage`);
+      if(covers[0] === 0) pictureStats.existing.push(`${pName} has no death-in-service cover recorded`);
+    }catch(e){ console.error('picture stats failed', e); }
+
     state._pictureCalc = {
       goalText,
       introNotes: String(state.notes[0]||'').trim(),
@@ -2604,7 +2674,8 @@ function yourPictureBody(){
       primaryCover: covers[0] === undefined ? null : covers[0],
       mortgage,
       monthlyPayment: payment,
-      continuingIncome
+      continuingIncome,
+      stats: pictureStats
     };
 
     return `<div class="ypf-page">
@@ -2675,6 +2746,7 @@ function yourPictureBody(){
                 ' Assumes no earnings continue.'} Before other living costs, benefits or savings.
             </div>
           </article>
+          <div class="ypf-leaves ypf-leaves-risk ypf-leaves-illness" id="ypf-leaves-illness"></div>
           <article class="ypf-card ypf-risk ypf-death" aria-labelledby="ypf-death-heading">
             <div class="ypf-node-top">
               <span class="ypf-icon-box" aria-hidden="true">
@@ -2695,6 +2767,7 @@ function yourPictureBody(){
               ${secondaryNote}
             </div>
           </article>
+          <div class="ypf-leaves ypf-leaves-risk ypf-leaves-death" id="ypf-leaves-death"></div>
           <article class="ypf-card ypf-existing" aria-labelledby="ypf-existing-heading">
             <div class="ypf-existing-heading" id="ypf-existing-heading">
               <svg width="17" height="18" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2708,16 +2781,20 @@ function yourPictureBody(){
               'A head start towards keeping the home, not the whole answer.' :
               'Confirm employer benefits to see what is already helping.'}</p>
           </article>
-        </section>
-        <section class="ypf-guide" id="ypf-guide" aria-label="Adviser prompts">
-          <div class="ypf-guide-head">
-            <span class="ypf-guide-eyebrow">Adviser prompts &middot; moving to the recommendation</span>
-            <div class="ypf-guide-actions">
-              <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Update</button>
-              <button type="button" class="ypf-guide-btn" id="ypfGuideToggle">Hide</button>
+          <div class="ypf-leaves-centre" id="ypf-leaves-centre">
+            <div class="ypf-leaves-group">
+              <div class="ypf-leaves-label">From what matters most</div>
+              <div class="ypf-leaves" id="ypf-leaves-goal"></div>
+            </div>
+            <div class="ypf-leaves-group">
+              <div class="ypf-leaves-label">From what&rsquo;s already helping</div>
+              <div class="ypf-leaves" id="ypf-leaves-existing"></div>
+            </div>
+            <div class="ypf-trunk-end">
+              <p class="ypf-bridge" id="ypf-bridge"></p>
+              <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Refresh prompts</button>
             </div>
           </div>
-          <div class="ypf-guide-body" id="ypfGuideBody"><div class="ypf-guide-loading">Reading the picture&hellip;</div></div>
         </section>
       </main>
       <footer class="ypf-page-footer">
@@ -2790,41 +2867,46 @@ function yourPictureBody(){
   }
 
   const pictureGuideCache = {key:null, out:null};
-  let pictureGuideHidden = false;
-  function paintPictureGuidance(out){
-    const body = document.getElementById('ypfGuideBody');
-    if(!body) return;
-    const branches = (out && out.branches) || [];
-    if(!branches.length){
-      body.innerHTML = '<div class="ypf-guide-loading">No prompts yet - add more to the notes, then press Update.</div>';
-      return;
-    }
-    const anchorLabel = {goal:'What matters', illness:'If illness stops work', death:'If one of them dies', existing:'Already helping'};
-    body.innerHTML = '<div class="ypf-guide-grid">' + branches.map(b => {
-      const anchor = anchorLabel[b.anchor] ? b.anchor : 'goal';
-      return `<article class="ypf-guide-card ypf-guide-${anchor}">
-        <div class="ypf-guide-anchor">${esc(anchorLabel[anchor])}</div>
-        <h4>${esc(b.title||'')}</h4>
-        ${b.say ? `<p class="ypf-guide-say"><span>Say</span>${esc(b.say)}</p>` : ''}
-        ${b.ask ? `<p class="ypf-guide-ask"><span>Ask</span>${esc(b.ask)}</p>` : ''}
-      </article>`;
-    }).join('') + '</div>' +
-      (out.bridge ? `<p class="ypf-guide-bridge"><span>Next</span>${esc(out.bridge)}</p>` : '');
+  const PICTURE_LEAF_KINDS = {picture:'Picture it', numbers:'In numbers', ask:'Ask'};
+  function pictureLeafHTML(leaf){
+    const kind = PICTURE_LEAF_KINDS[leaf.kind] ? leaf.kind : 'picture';
+    return `<div class="ypf-leaf ypf-leaf-${kind}"><span class="ypf-leaf-kind">${PICTURE_LEAF_KINDS[kind]}</span>${esc(leaf.text||'')}</div>`;
   }
-  function applyPictureGuideVisibility(){
-    const section = document.getElementById('ypf-guide');
-    const toggle = document.getElementById('ypfGuideToggle');
-    if(section) section.classList.toggle('ypf-guide-collapsed', pictureGuideHidden);
-    if(toggle) toggle.textContent = pictureGuideHidden ? 'Show' : 'Hide';
+  function normalisePictureBranches(out){
+    const b = (out && out.branches) || {};
+    if(!Array.isArray(b)) return b;
+    // older response shape: [{anchor, title, say, ask}]
+    const grouped = {goal:[], illness:[], death:[], existing:[]};
+    b.forEach(x=>{
+      const k = grouped[x.anchor] ? x.anchor : 'goal';
+      if(x.say) grouped[k].push({kind:'picture', text:x.say});
+      if(x.ask) grouped[k].push({kind:'ask', text:x.ask});
+    });
+    return grouped;
+  }
+  function paintPictureGuidance(out){
+    const b = normalisePictureBranches(out);
+    ['goal','illness','death','existing'].forEach(k=>{
+      const el = document.getElementById('ypf-leaves-'+k);
+      if(!el) return;
+      const leaves = Array.isArray(b[k]) ? b[k].filter(l=>l && l.text) : [];
+      el.innerHTML = leaves.map(pictureLeafHTML).join('');
+    });
+    const bridge = document.getElementById('ypf-bridge');
+    if(bridge) bridge.innerHTML = out && out.bridge ? `<span>Next</span>${esc(out.bridge)}` : '';
+  }
+  function setPictureLeavesMessage(msg){
+    ['goal','illness','death','existing'].forEach(k=>{
+      const el = document.getElementById('ypf-leaves-'+k);
+      if(el) el.innerHTML = `<div class="ypf-leaf ypf-leaf-loading">${msg}</div>`;
+    });
+    const bridge = document.getElementById('ypf-bridge');
+    if(bridge) bridge.innerHTML = '';
   }
   async function loadPictureGuidance(force){
-    const section = document.getElementById('ypf-guide');
-    if(!section) return;
+    if(!document.getElementById('ypf-leaves-centre')) return;
     const refreshBtn = document.getElementById('ypfGuideRefresh');
-    const toggleBtn = document.getElementById('ypfGuideToggle');
     if(refreshBtn) refreshBtn.onclick = () => { saveNotes(); loadPictureGuidance(true); };
-    if(toggleBtn) toggleBtn.onclick = () => { pictureGuideHidden = !pictureGuideHidden; applyPictureGuideVisibility(); };
-    applyPictureGuideVisibility();
 
     const calc = state._pictureCalc || {};
     const notesText = allNotes();
@@ -2832,27 +2914,30 @@ function yourPictureBody(){
     const picture = {
       goal_text: calc.goalText, primary_name: calc.primaryName, secondary_name: calc.secondaryName,
       illness_gap: calc.illnessGap, death_gap: calc.deathGap, primary_cover: calc.primaryCover,
-      mortgage: calc.mortgage, monthly_payment: calc.monthlyPayment, continuing_income: calc.continuingIncome
+      mortgage: calc.mortgage, monthly_payment: calc.monthlyPayment, continuing_income: calc.continuingIncome,
+      perspective_figures: calc.stats || {}
     };
     const key = JSON.stringify([notes, picture]);
     if(!force && pictureGuideCache.key === key && pictureGuideCache.out){
       paintPictureGuidance(pictureGuideCache.out);
       return;
     }
-    const body = document.getElementById('ypfGuideBody');
-    if(body) body.innerHTML = '<div class="ypf-guide-loading">Reading the picture&hellip;</div>';
+    setPictureLeavesMessage('Reading the picture&hellip;');
     try{
       const res = await authFetch(API_BASE+'/copilot/picture-guidance',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({notes, picture, call_plan: state.callPlan})});
       const out = await res.json();
-      if(out.error && !(out.branches||[]).length) throw new Error(out.error);
+      const b = normalisePictureBranches(out);
+      const count = ['goal','illness','death','existing'].reduce((n,k)=>n+(Array.isArray(b[k])?b[k].length:0),0);
+      if(out.error && !count) throw new Error(out.error);
       pictureGuideCache.key = key;
       pictureGuideCache.out = out;
+      if(!document.getElementById('ypf-leaves-centre')) return;  // navigated away
       paintPictureGuidance(out);
     }catch(e){
       console.error('picture guidance failed', e);
       logFailure('Your Picture', e);
-      if(body) body.innerHTML = '<div class="ypf-guide-loading">Couldn\'t load prompts - press Update to try again.</div>';
+      setPictureLeavesMessage('Couldn&rsquo;t load prompts - press Refresh prompts to try again.');
     }
   }
 

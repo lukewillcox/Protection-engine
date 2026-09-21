@@ -71,19 +71,37 @@ def claude_text(system, user, model, max_tokens=1500):
     return _extract_text(resp).strip()
 
 
-def claude_json(system, user, model, max_tokens=1500):
-    """Return Claude's response parsed as JSON (handles fences)."""
+def claude_json(system, user, model, max_tokens=1500, effort=None):
+    """Return Claude's response parsed as JSON (handles fences).
+    effort: optional "low"/"medium"/"high" - limits how long the model reasons
+    before answering (reasoning counts against max_tokens)."""
     full_system = system + "\n\nReturn ONLY valid JSON. No preamble, no markdown, no code fences."
+    extra = {"output_config": {"effort": effort}} if effort else {}
     resp = anthropic_client.messages.create(
         model=model,
         max_tokens=max_tokens,
         system=[{"type": "text", "text": full_system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user}],
+        **extra,
     )
     _log_cache_usage(resp)
     raw = _extract_text(resp)
     cleaned = _strip_fences(raw)
-    return _json.loads(cleaned)
+    try:
+        return _json.loads(cleaned)
+    except ValueError:
+        # Tolerate stray text around the JSON: parse the outermost {...} block.
+        start, end = cleaned.find("{"), cleaned.rfind("}")
+        if start != -1 and end > start:
+            try:
+                return _json.loads(cleaned[start:end + 1])
+            except ValueError:
+                pass
+        log.error("claude_json could not parse response (stop_reason=%s, output_tokens=%s): %r",
+                  getattr(resp, "stop_reason", "?"),
+                  getattr(getattr(resp, "usage", None), "output_tokens", "?"),
+                  raw[:500])
+        raise
 
 
 def _log_cache_usage(resp):

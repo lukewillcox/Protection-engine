@@ -390,35 +390,54 @@ PICTURE_GUIDANCE_SYSTEM = """You guide a UK protection adviser at the pivot poin
 client call. The adviser has just shown the client their "Your Picture" screen: what
 matters most to them at the centre, what happens to it if illness stops work, what happens
 if one of them dies, and what cover is already helping. The fact-find is done. This is
-where the adviser moves the client from understanding their need to agreeing a
-recommendation.
+where the adviser moves the client from understanding their need to agreeing to protect it.
 
-Your job: give the adviser the lines and questions that move the conversation towards the
-recommendation, grounded in THIS client's own goal, figures and notes. Use the adviser
-methodology extracts (especially any tagged [andrew-sell]) for the STRUCTURE and TACTICS of
-how this adviser sells: tying each consequence back to the client's own stated goal,
-anchoring hesitation to the reason they gave for wanting the call, checking whether
-employer cover really covers the gap, turning the picture into a decision the client owns,
-and asking for commitment. Never lift a fact or figure from the extracts.
+Your prompts appear as LEAVES branching off that picture, so the adviser can talk the client
+through each part of it. Use the adviser methodology extracts (especially any tagged
+[andrew-sell]) for the STRUCTURE and TACTICS of how this adviser sells: tying each
+consequence back to the client's own reason for buying the home, making the consequence
+human (who is left dealing with it, and how), putting the numbers in perspective, then
+asking the client to own it. Never lift a fact or figure from the extracts.
 
-Return 4-5 "branches". Each branch hangs off ONE node of the picture:
-- "anchor": one of "goal", "illness", "death", "existing"
-- "title": a 3-6 word label for the move (e.g. "Make the illness gap real")
-- "say": ONE full, natural sentence the adviser says out loud, using this client's real
-  name, goal and supplied figures where they exist
-- "ask": ONE question that gets the client to own the need or take a step towards the
-  recommendation (e.g. confirming what matters, what they'd want to happen, whether they'd
-  want that protected)
-Cover at least the goal, illness and death nodes. If a key figure is missing (continuing
-income, death-in-service cover), make one branch's "ask" the question that gets it, framed
-as part of moving forward.
+Return four branches, each a list of leaves:
+- "goal": what matters most
+- "illness": if illness stops work
+- "death": if one of them dies
+- "existing": cover already helping
 
-Also return "bridge": ONE sentence the adviser can use to move from this screen into the
-next stage (deciding what is essential to protect, then looking at options).
+Each leaf is {"kind": "picture" | "numbers" | "ask", "text": "..."}:
+- "picture": a perspective line said out loud that makes the consequence real for THIS
+  family, the way this adviser does it - why they bought this home and who it is for; what
+  happens to that plan if the income stops or the person dies; the partner left dealing with
+  grief AND the mortgage and bills at the same time; the way of life they have described not
+  being able to carry on. Honest and calm, never graphic or melodramatic. Say what COULD
+  happen ("might have to sell", "would be left to find"), never certainty ("you won't have a
+  house").
+- "numbers": ONE sentence putting a figure in perspective using ONLY the PERSPECTIVE FIGURES
+  given for that same branch, quoting the numbers exactly as given (e.g. "That £2,777 is 38%
+  of everything that comes into the house each month."). If a branch has no perspective
+  figures, it gets no numbers leaf.
+- "ask": a question that gets the client to feel and own the consequence, or take a step
+  towards protecting it.
+
+How many leaves:
+- "illness": 3-4 (at least one picture, one numbers if figures were given, one ask)
+- "death": 3-4 (at least one picture, one numbers if figures were given, one ask)
+- "goal": 2-3 (a picture tying the home back to why they bought it and who it is for, an ask,
+  a numbers leaf only if figures were given)
+- "existing": 1-2 (if cover is unknown or zero, the ask gets the missing detail)
+Every leaf is ONE sentence under 40 words and uses the client's name where natural. Refer to
+a partner, children or other relationships only as they appear in the notes (say "your wife"
+only if the notes say wife). If a key figure is missing, one ask should get it.
+
+Also return "bridge": ONE sentence to move from this screen into the next stage (deciding
+what is essential to protect, then looking at options).
 
 You NEVER:
 - recommend a specific product, provider, cover amount or premium, or estimate a cost
-- do your own arithmetic or combine figures into new numbers - restate supplied figures only
+- do your own arithmetic, percentages, ratios or conversions, or combine figures into new
+  numbers - use the PERSPECTIVE FIGURES and supplied figures exactly as given; if a comparison
+  you want is not there, do not make it
 - describe the mortgage amount as the property's value or price - it is the loan still owed,
   never what the home is worth (say "the £X mortgage", never "this £X property")
 - invent urgency or use pressure (no "act today", "prices are going up", "offer ends");
@@ -432,7 +451,7 @@ Persuasion here means helping the client see their own consequences clearly and 
 to decide - never pressure.
 
 Return ONLY valid JSON:
-{"branches": [{"anchor": "goal", "title": "...", "say": "...", "ask": "..."}], "bridge": "..."}"""
+{"branches": {"goal": [{"kind": "picture", "text": "..."}], "illness": [], "death": [], "existing": []}, "bridge": "..."}"""
 
 
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
@@ -650,12 +669,21 @@ def register_copilot_routes(app):
                 f"- Monthly mortgage payment: {show(picture.get('monthly_payment'))}\n"
                 f"- Income continuing if illness stops work: {show(picture.get('continuing_income'))}\n"
             )
+            figs = picture.get("perspective_figures") or {}
+            if isinstance(figs, dict) and any(figs.get(k) for k in ("goal", "illness", "death", "existing")):
+                user_content += (
+                    "\nPERSPECTIVE FIGURES (calculated exactly by the app - quote these numbers "
+                    "as given, never recalculate), by branch:\n"
+                )
+                for k in ("goal", "illness", "death", "existing"):
+                    for line in (figs.get(k) or [])[:8]:
+                        user_content += f"- [{k}] {str(line)[:300]}\n"
             if methodology:
                 user_content += (
                     "\nAdviser methodology extracts (structure/tactics only, never a source "
                     "of facts):\n" + methodology + "\n"
                 )
-            return jsonify(claude_json(PICTURE_GUIDANCE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1600))
+            return jsonify(claude_json(PICTURE_GUIDANCE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=4000, effort="low"))
         except Exception:
             log.exception("copilot picture-guidance failed")
             return jsonify({"branches": [], "bridge": "", "error": "picture guidance failed"}), 200

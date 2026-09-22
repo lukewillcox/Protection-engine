@@ -2090,6 +2090,28 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
       .ypf-disclaimer { text-align: left; max-width: none; }
     }
 
+    /* -- Your Picture: maintaining their lifestyle (standalone, not part of .ypf-map's grid) -- */
+    .ypf-lifestyle { max-width: 900px; margin: 0 auto 26px; }
+    .ypf-lifestyle-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 15px;
+      box-shadow: 0 3px 5px rgba(21,27,38,0.02), 0 16px 34px -18px rgba(21,27,38,0.15);
+      padding: 22px 24px;
+    }
+    .ypf-lifestyle-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .ypf-lifestyle-icon { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 9px; background: var(--amber-bg); color: var(--amber); }
+    .ypf-lifestyle-index { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); }
+    .ypf-lifestyle-card h3 { margin: 0 0 14px; font-family: var(--serif); font-size: 21px; font-weight: 450; letter-spacing: -.5px; line-height: 1.2; }
+    .ypf-lifestyle-figure-block { display: inline-block; padding: 14px 15px 13px; border-radius: 9px; background: var(--amber-bg); color: var(--amber); }
+    .ypf-lifestyle-figure { font-family: var(--mono); font-size: clamp(22px, 2.2vw, 28px); font-weight: 450; letter-spacing: -1.2px; line-height: 1.15; }
+    .ypf-lifestyle-figure-unit { font-family: var(--sans); font-size: 12px; font-weight: 400; letter-spacing: 0; margin-left: 3px; }
+    .ypf-lifestyle-figure-description { margin-top: 6px; font-size: 11px; font-weight: 550; }
+    .ypf-lifestyle-consequence { margin: 14px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink); }
+    .ypf-lifestyle .ypf-leaves { max-width: 900px; margin: 14px auto 0; }
+    .ypf-lifestyle .ypf-leaves:empty { display: none; }
+    @media (max-width: 860px) {
+      .ypf-lifestyle-card { padding: 18px; }
+    }
+
     /* -- Your Picture: approved protection map -- */
     body.picture-fullscreen-active{
       padding-bottom:0;
@@ -2583,6 +2605,7 @@ function yourPictureBody(){
       incomeKnown(state.c2) ? Math.round(netAnnual(state.c2)/12) : null;
     const illnessGap = payment !== null && continuingIncome !== null ?
       Math.max(0,payment-continuingIncome) : null;
+    const outgoings = state.salesArc && num(state.salesArc.outgoings) > 0 ? num(state.salesArc.outgoings) : null;
 
     // A default multiplier is not a recorded employer benefit. Use an entered
     // multiplier (or a completed assumptions step), or an explicitly recorded DIS policy.
@@ -2635,7 +2658,7 @@ function yourPictureBody(){
       <span class="ypf-cover-value">${money(covers[i])}</span>
     </div>`).join('');
 
-    const pictureStats = {goal:[], illness:[], death:[], existing:[]};
+    const pictureStats = {goal:[], illness:[], death:[], existing:[], lifestyle:[]};
     try{
       const pName = nameOf(persons[0]);
       const sName = persons.length > 1 ? nameOf(persons[1]) : '';
@@ -2645,12 +2668,15 @@ function yourPictureBody(){
       const pos = v => typeof v === 'number' && isFinite(v) && v > 0;
       const primaryNetM = incomeKnown(state.c1) ? netAnnual(state.c1)/12 : null;
       const secondaryNetM = persons.length > 1 && incomeKnown(state.c2) ? netAnnual(state.c2)/12 : null;
-      const outgoings = state.salesArc && num(state.salesArc.outgoings) > 0 ? num(state.salesArc.outgoings) : null;
       const termYrs = num(state.mortgage.term) > 0 ? num(state.mortgage.term) : null;
       const youngest = state.salesArc ? num(state.salesArc.youngestAge) : 0;
       // what matters most
       if(pos(outgoings)) pictureStats.goal.push(`Recorded household outgoings are ${fmt(outgoings)} a month - ${fmt(outgoings*12)} a year to keep this way of life going`);
       if(youngest > 0 && youngest < 23) pictureStats.goal.push(`The youngest child is ${youngest} - ${23-youngest} more years until they turn 23`);
+      // maintaining their lifestyle
+      if(pos(outgoings)) pictureStats.lifestyle.push(`Recorded household outgoings are ${fmt(outgoings)} a month - ${fmt(outgoings*12)} a year to maintain life as it is now`);
+      if(pos(outgoings) && pos(householdNet)) pictureStats.lifestyle.push(`Those outgoings are ${pct(outgoings,householdNet)} of the household's ${fmt(householdNet)} a month take-home pay`);
+      if(pos(outgoings) && continuingIncome !== null && outgoings - continuingIncome > 0) pictureStats.lifestyle.push(`If ${pName} couldn't work, that leaves ${fmt(outgoings-continuingIncome)} a month short of maintaining it once sick pay ends - ${fmt((outgoings-continuingIncome)*12)} a year`);
       // if illness stops work
       if(pos(payment) && pos(householdNet)) pictureStats.illness.push(`The ${fmt(payment)} monthly mortgage payment is ${pct(payment,householdNet)} of the household's take-home pay of ${fmt(householdNet)} a month`);
       if(pos(payment) && pos(primaryNetM)) pictureStats.illness.push(`The ${fmt(payment)} monthly mortgage payment is ${pct(payment,primaryNetM)} of ${pName}'s own take-home pay of ${fmt(primaryNetM)} a month`);
@@ -2673,6 +2699,10 @@ function yourPictureBody(){
       if(covers[0] === 0) pictureStats.existing.push(`${pName} has no death-in-service cover recorded`);
     }catch(e){ console.error('picture stats failed', e); }
 
+    const lifestyleConsequence = outgoings === null ?
+      'Monthly outgoings are not yet recorded. Capture a rough figure to see what keeping life as it is really costs.' :
+      'The rough monthly cost of everyday life carrying on exactly as it does now — separate from the mortgage payment above.';
+
     state._pictureCalc = {
       goalText,
       introNotes: String(state.notes[0]||'').trim(),
@@ -2686,6 +2716,7 @@ function yourPictureBody(){
       mortgage,
       monthlyPayment: payment,
       continuingIncome,
+      outgoings,
       stats: pictureStats
     };
 
@@ -2709,6 +2740,25 @@ function yourPictureBody(){
         </div>
       </header>
       <main>
+        <section class="ypf-lifestyle" aria-labelledby="ypf-lifestyle-heading">
+          <div class="ypf-lifestyle-card">
+            <div class="ypf-lifestyle-top">
+              <span class="ypf-lifestyle-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="8"/><path d="M12 7.5v9M9 10c0-1.1 1.1-2 3-2s3 .8 3 1.9-1.2 1.5-3 1.5-3 .5-3 1.6 1.2 2 3 2 3-.8 3-2"/>
+                </svg>
+              </span>
+              <span class="ypf-lifestyle-index">EVERYDAY LIFE</span>
+            </div>
+            <h3 id="ypf-lifestyle-heading">Maintaining their lifestyle</h3>
+            <div class="ypf-lifestyle-figure-block">
+              <div class="ypf-lifestyle-figure">${money(outgoings)}${outgoings !== null ? '<span class="ypf-lifestyle-figure-unit">/ month</span>' : ''}</div>
+              <div class="ypf-lifestyle-figure-description">Rough monthly outgoing to keep life as it is now</div>
+            </div>
+            <p class="ypf-lifestyle-consequence">${lifestyleConsequence}</p>
+          </div>
+          <div class="ypf-leaves" id="ypf-leaves-lifestyle"></div>
+        </section>
         <p class="ypf-map-intro">Start with what matters. See what could put it at risk — and what’s already helping.</p>
         <section class="ypf-map" aria-label="Family protection map">
           <svg class="ypf-connections" viewBox="0 0 1320 665" preserveAspectRatio="none" aria-hidden="true">
@@ -2887,7 +2937,8 @@ function yourPictureBody(){
     goal: 'Re-anchor everything to why they bought this home.',
     illness: 'Get them to say how long they could keep going without the income.',
     death: 'Let them picture the family keeping the home without them.',
-    existing: 'Don\'t let work cover be taken at face value.'
+    existing: 'Don\'t let work cover be taken at face value.',
+    lifestyle: 'Put a monthly price on everyday life, not just the mortgage.'
   };
   function pictureLeafHTML(leaf){
     const kind = PICTURE_LEAF_KINDS[leaf.kind] ? leaf.kind : 'picture';
@@ -2898,7 +2949,7 @@ function yourPictureBody(){
     const b = (out && out.branches) || {};
     if(!Array.isArray(b)) return b;
     // older response shape: [{anchor, title, say, ask}]
-    const grouped = {goal:[], illness:[], death:[], existing:[]};
+    const grouped = {goal:[], illness:[], death:[], existing:[], lifestyle:[]};
     b.forEach(x=>{
       const k = grouped[x.anchor] ? x.anchor : 'goal';
       if(x.say) grouped[k].push({kind:'picture', text:x.say});
@@ -2908,7 +2959,7 @@ function yourPictureBody(){
   }
   function paintPictureGuidance(out){
     const b = normalisePictureBranches(out);
-    ['goal','illness','death','existing'].forEach(k=>{
+    ['goal','illness','death','existing','lifestyle'].forEach(k=>{
       const el = document.getElementById('ypf-leaves-'+k);
       if(!el) return;
       const leaves = Array.isArray(b[k]) ? b[k].filter(l=>l && l.text) : [];
@@ -2919,7 +2970,7 @@ function yourPictureBody(){
     if(bridge) bridge.innerHTML = out && out.bridge ? `<span>Next</span>${esc(out.bridge)}` : '';
   }
   function setPictureLeavesMessage(msg){
-    ['goal','illness','death','existing'].forEach(k=>{
+    ['goal','illness','death','existing','lifestyle'].forEach(k=>{
       const el = document.getElementById('ypf-leaves-'+k);
       if(el) el.innerHTML = `<div class="ypf-leaf ypf-leaf-loading">${msg}</div>`;
     });
@@ -2938,6 +2989,7 @@ function yourPictureBody(){
       goal_text: calc.goalText, primary_name: calc.primaryName, secondary_name: calc.secondaryName,
       illness_gap: calc.illnessGap, death_gap: calc.deathGap, primary_cover: calc.primaryCover,
       mortgage: calc.mortgage, monthly_payment: calc.monthlyPayment, continuing_income: calc.continuingIncome,
+      outgoings: calc.outgoings,
       perspective_figures: calc.stats || {}
     };
     const key = JSON.stringify([notes, picture]);
@@ -2951,7 +3003,7 @@ function yourPictureBody(){
         body:JSON.stringify({notes, picture, call_plan: state.callPlan})});
       const out = await res.json();
       const b = normalisePictureBranches(out);
-      const count = ['goal','illness','death','existing'].reduce((n,k)=>n+(Array.isArray(b[k])?b[k].length:0),0);
+      const count = ['goal','illness','death','existing','lifestyle'].reduce((n,k)=>n+(Array.isArray(b[k])?b[k].length:0),0);
       if(out.error && !count) throw new Error(out.error);
       pictureGuideCache.key = key;
       pictureGuideCache.out = out;
@@ -4580,6 +4632,7 @@ function setUWAnswer(condKey, qIdx, field, value){
 #pcOverlay .pc-leaf { display:flex; flex-direction:column; padding:22px 25px 18px; }
 #pcOverlay .pc-leaf.pc-numbers { background:#FCF7F1; border-color:#DFCDBD; }
 #pcOverlay .pc-leaf.pc-goal-branch.pc-numbers { background:#F0F5EF; border-color:#CAD8C9; }
+#pcOverlay .pc-leaf.pc-lifestyle-branch.pc-numbers { background:#F0F5EF; border-color:#CAD8C9; }
 #pcOverlay .pc-leaf .pc-leaf-text { font-size:20px; line-height:1.42; letter-spacing:-.1px; margin:14px 0; }
 #pcOverlay .pc-leaf.pc-ask .pc-leaf-text { font-weight:500; }
 #pcOverlay .pc-leaf .pc-leaf-text strong { font-weight:650; }
@@ -4819,20 +4872,22 @@ function setUWAnswer(condKey, qIdx, field, value){
   const loadingEl = document.getElementById('pcLoading');
 
   const HEAD = {
+    lifestyle:{x:1000,y:40,  w:600,h:280},
     goal:     {x:1000,y:610, w:600,h:320},
     illness:  {x:100, y:650, w:600,h:280},
     death:    {x:1900,y:650, w:600,h:280},
     existing: {x:1000,y:1110,w:600,h:245}
   };
   const WORLD_W = 2600;
-  const branchNames = {all:'Whole family picture', goal:'What matters most', illness:'If illness stops work', death:'If one of them dies', existing:'Already helping'};
-  const branchLabels = {all:{sym:'⌘',label:'Whole picture'}, goal:{sym:'◎',label:'What matters'}, illness:{sym:'△',label:'Illness'}, death:{sym:'△',label:'Death'}, existing:{sym:'＋',label:'Already helping'}};
+  const branchNames = {all:'Whole family picture', goal:'What matters most', illness:'If illness stops work', death:'If one of them dies', existing:'Already helping', lifestyle:'Maintaining their lifestyle'};
+  const branchLabels = {all:{sym:'⌘',label:'Whole picture'}, goal:{sym:'◎',label:'What matters'}, illness:{sym:'△',label:'Illness'}, death:{sym:'△',label:'Death'}, existing:{sym:'＋',label:'Already helping'}, lifestyle:{sym:'£',label:'Lifestyle'}};
   const kindLabels = {picture:'Picture the impact', numbers:'Make it tangible', ask:'Ask, then listen'};
   const branchAims = {
     goal: 'Re-anchor everything to why they bought this home.',
     illness: 'Get them to say how long they could keep going without the income.',
     death: 'Let them picture the family keeping the home without them.',
-    existing: "Don't let work cover be taken at face value."
+    existing: "Don't let work cover be taken at face value.",
+    lifestyle: 'Put a monthly price on everyday life, not just the mortgage.'
   };
 
   let pcData = null, nodes = [], leafOrder = [];
@@ -4862,12 +4917,13 @@ function setUWAnswer(condKey, qIdx, field, value){
       illnessGap: calc.illnessGap ?? null, deathGap: calc.deathGap ?? null,
       primaryCover: calc.primaryCover ?? null, secondaryCover: calc.secondaryCover ?? null,
       continuingIncome: calc.continuingIncome ?? null,
+      outgoings: calc.outgoings ?? null,
       goalSummary: links.goalSummary || calc.goalText || '',
       goalHighlight: links.goalHighlight || '',
       illnessSentence: links.illnessSentence || (document.getElementById('ypf-illness-consequence') ? document.getElementById('ypf-illness-consequence').textContent : ''),
       deathSentence: links.deathSentence || (document.getElementById('ypf-death-consequence') ? document.getElementById('ypf-death-consequence').textContent : ''),
       bridge: guideOut.bridge || '',
-      branches: { goal: clean('goal'), illness: clean('illness'), death: clean('death'), existing: clean('existing') }
+      branches: { goal: clean('goal'), illness: clean('illness'), death: clean('death'), existing: clean('existing'), lifestyle: clean('lifestyle') }
     };
   }
 
@@ -4898,8 +4954,8 @@ function setUWAnswer(condKey, qIdx, field, value){
       return rect;
     });
   }
-  function pcGoalRow(items){
-    const rowBottom = 450, gap = 40, w = 560;
+  function pcGoalRow(items, shift){
+    const rowBottom = 450 + (shift || 0), gap = 40, w = 560;
     const total = items.length * w + Math.max(0, items.length - 1) * gap;
     let x = 1300 - total / 2;
     return items.map(it => {
@@ -4914,10 +4970,29 @@ function setUWAnswer(condKey, qIdx, field, value){
 
   function pcBuildNodes(){
     const d = pcData;
-    const goalLeaves = pcGoalRow(d.branches.goal.filter(l => mode === 'adviser' || l.kind === 'numbers'));
-    const illLeaves = pcStack(HEAD.illness.y + HEAD.illness.h, 110, HEAD.illness.x, HEAD.illness.w, d.branches.illness.filter(l => mode === 'adviser' || l.kind === 'numbers'));
-    const deathLeaves = pcStack(HEAD.death.y + HEAD.death.h, 110, HEAD.death.x, HEAD.death.w, d.branches.death.filter(l => mode === 'adviser' || l.kind === 'numbers'));
-    const existLeaves = pcStack(HEAD.existing.y + HEAD.existing.h, 105, HEAD.existing.x, HEAD.existing.w, d.branches.existing.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const visibleGoalLeaves = d.branches.goal.filter(l => mode === 'adviser' || l.kind === 'numbers');
+    const visibleLifestyleLeaves = (d.branches.lifestyle || []).filter(l => mode === 'adviser' || l.kind === 'numbers');
+
+    // The lifestyle card sits above the goal card. It only pushes goal/illness/
+    // death/existing further down when its own head+leaves genuinely need the
+    // room - most cases see no shift at all, exactly like every other stack here.
+    const lifestyleLeaves = pcStack(HEAD.lifestyle.y + HEAD.lifestyle.h, 90, HEAD.lifestyle.x, HEAD.lifestyle.w, visibleLifestyleLeaves);
+    const lifestyleBottom = lifestyleLeaves.length ?
+      lifestyleLeaves[lifestyleLeaves.length - 1].y + lifestyleLeaves[lifestyleLeaves.length - 1].h :
+      HEAD.lifestyle.y + HEAD.lifestyle.h;
+    const maxGoalLeafH = visibleGoalLeaves.length ? Math.max(...visibleGoalLeaves.map(l => pcLeafHeight(l.text, l.why))) : 0;
+    const goalRowTopBase = 450 - maxGoalLeafH;
+    const SHIFT = Math.max(0, (lifestyleBottom + 90) - goalRowTopBase);
+
+    const goalHead = {x: HEAD.goal.x, y: HEAD.goal.y + SHIFT, w: HEAD.goal.w, h: HEAD.goal.h};
+    const illHead = {x: HEAD.illness.x, y: HEAD.illness.y + SHIFT, w: HEAD.illness.w, h: HEAD.illness.h};
+    const deathHead = {x: HEAD.death.x, y: HEAD.death.y + SHIFT, w: HEAD.death.w, h: HEAD.death.h};
+    const existingHead = {x: HEAD.existing.x, y: HEAD.existing.y + SHIFT, w: HEAD.existing.w, h: HEAD.existing.h};
+
+    const goalLeaves = pcGoalRow(visibleGoalLeaves, SHIFT);
+    const illLeaves = pcStack(illHead.y + illHead.h, 110, illHead.x, illHead.w, d.branches.illness.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const deathLeaves = pcStack(deathHead.y + deathHead.h, 110, deathHead.x, deathHead.w, d.branches.death.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const existLeaves = pcStack(existingHead.y + existingHead.h, 105, existingHead.x, existingHead.w, d.branches.existing.filter(l => mode === 'adviser' || l.kind === 'numbers'));
 
     const covers = [d.primaryCover, d.secondaryCover].filter((v, i) => i === 0 || d.secondaryName);
     const coverRows = [`<div><dt>${esc(d.primaryName)}</dt><dd>${d.primaryCover ? '' : '<span class="pc-unknown" aria-hidden="true"></span> '}${pcMoney(d.primaryCover)}</dd></div>`]
@@ -4925,7 +5000,7 @@ function setUWAnswer(condKey, qIdx, field, value){
 
     const stacks = [illLeaves, deathLeaves, existLeaves].filter(s => s.length);
     const deepest = Math.max(
-      HEAD.existing.y + HEAD.existing.h,
+      existingHead.y + existingHead.h,
       ...stacks.map(s => s[s.length - 1].y + s[s.length - 1].h)
     );
     const nextNode = {id: 'next', branch: 'next', type: 'next-card', x: 680, y: deepest + 90, w: 1240, h: 165,
@@ -4933,23 +5008,26 @@ function setUWAnswer(condKey, qIdx, field, value){
     worldH = nextNode.y + nextNode.h + 60;
 
     const built = [
-      {id: 'goal', branch: 'goal', type: 'root', x: HEAD.goal.x, y: HEAD.goal.y, w: HEAD.goal.w, h: HEAD.goal.h,
+      {id: 'lifestyle', branch: 'lifestyle', type: 'support', x: HEAD.lifestyle.x, y: HEAD.lifestyle.y, w: HEAD.lifestyle.w, h: HEAD.lifestyle.h,
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">£</span> Everyday life</div><h3>Maintaining their lifestyle</h3><div class="pc-figure">${pcMoney(d.outgoings)}${d.outgoings !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Rough monthly outgoing to keep life as it is</p><p class="pc-qualification">${d.outgoings !== null ? 'Separate from the mortgage payment below.' : 'Capture a rough monthly figure to see what everyday life costs.'}</p>`},
+      {id: 'goal', branch: 'goal', type: 'root', x: goalHead.x, y: goalHead.y, w: goalHead.w, h: goalHead.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">◎</span> What matters most</div><h2>${pcGoalHeadingHTML(d)}</h2>`},
-      {id: 'illness', branch: 'illness', type: 'risk-head', x: HEAD.illness.x, y: HEAD.illness.y, w: HEAD.illness.w, h: HEAD.illness.h,
+      {id: 'illness', branch: 'illness', type: 'risk-head', x: illHead.x, y: illHead.y, w: illHead.w, h: illHead.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 01</div><h3>If illness stops work</h3><div class="pc-figure">${pcMoney(d.illnessGap)}${d.illnessGap !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Illustrative mortgage shortfall</p><p class="pc-qualification">${esc(d.illnessSentence || 'Mortgage only — not the total household gap.')}</p>`},
-      {id: 'death', branch: 'death', type: 'risk-head', x: HEAD.death.x, y: HEAD.death.y, w: HEAD.death.w, h: HEAD.death.h,
+      {id: 'death', branch: 'death', type: 'risk-head', x: deathHead.x, y: deathHead.y, w: deathHead.w, h: deathHead.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 02</div><h3>${d.secondaryName ? 'If one of them dies' : ('If ' + esc(d.primaryName) + ' dies')}</h3><div class="pc-figure">${pcMoney(d.deathGap)}</div><p class="pc-sub">Mortgage gap if ${esc(d.primaryName)} dies</p><p class="pc-qualification">${esc(d.deathSentence || 'Provisional until employer benefits are confirmed.')}</p>`},
-      {id: 'existing', branch: 'existing', type: 'support', x: HEAD.existing.x, y: HEAD.existing.y, w: HEAD.existing.w, h: HEAD.existing.h,
+      {id: 'existing', branch: 'existing', type: 'support', x: existingHead.x, y: existingHead.y, w: existingHead.w, h: existingHead.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">+</span> Already helping · check first</div><h3>Death-in-service cover</h3><dl>${coverRows.join('')}</dl>`},
       nextNode
     ];
+    lifestyleLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'lifestyle', x: l.x, y: l.y, w: l.w, h: l.h})));
     goalLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'goal', x: l.x, y: l.y, w: l.w, h: l.h})));
     illLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'illness', x: l.x, y: l.y, w: l.w, h: l.h})));
     deathLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'death', x: l.x, y: l.y, w: l.w, h: l.h})));
     existLeaves.forEach(l => built.push(Object.assign({kind: l.kind, bankId: l.bankId, text: l.text, why: l.why}, {id: l.domId, branch: 'existing', x: l.x, y: l.y, w: l.w, h: l.h})));
 
     nodes = built;
-    leafOrder = [].concat(goalLeaves, illLeaves, deathLeaves, existLeaves).map(l => l.domId);
+    leafOrder = [].concat(goalLeaves, illLeaves, deathLeaves, existLeaves, lifestyleLeaves).map(l => l.domId);
   }
 
   const nodeById = id => nodes.find(n => n.id === id);
@@ -4995,13 +5073,13 @@ function setUWAnswer(condKey, qIdx, field, value){
       el.classList.toggle('pc-is-muted', branch !== 'all' && n.branch !== branch && n.id !== 'goal' && n.id !== 'next');
       el.classList.toggle('pc-is-current', leafOrder[step] === n.id);
     });
-    const root = nodeById('goal'), ill = nodeById('illness'), death = nodeById('death'), existing = nodeById('existing'), next = nodeById('next');
+    const root = nodeById('goal'), ill = nodeById('illness'), death = nodeById('death'), existing = nodeById('existing'), next = nodeById('next'), lifestyle = nodeById('lifestyle');
     let wires = '';
     nodes.filter(n => n.branch === 'goal' && n.kind && pcVisible(n)).forEach(l => wires += pcConnector(l, root));
-    wires += `<path class="pc-wire pc-risk" d="M ${root.x} 770 H 810 Q 750 770 750 710 V 590 Q 750 550 700 550 H 460 Q 400 550 400 610 V ${ill.y}"/>`;
-    wires += `<path class="pc-wire pc-risk" d="M ${root.x + root.w} 770 H 1790 Q 1850 770 1850 710 V 590 Q 1850 550 1900 550 H 2140 Q 2200 550 2200 610 V ${death.y}"/>`;
+    wires += `<path class="pc-wire pc-risk" d="M ${root.x} ${root.y+160} H 810 Q 750 ${root.y+160} 750 ${root.y+100} V ${root.y-20} Q 750 ${root.y-60} 700 ${root.y-60} H 460 Q 400 ${root.y-60} 400 ${root.y} V ${ill.y}"/>`;
+    wires += `<path class="pc-wire pc-risk" d="M ${root.x + root.w} ${root.y+160} H 1790 Q 1850 ${root.y+160} 1850 ${root.y+100} V ${root.y-20} Q 1850 ${root.y-60} 1900 ${root.y-60} H 2140 Q 2200 ${root.y-60} 2200 ${root.y} V ${death.y}"/>`;
     wires += pcConnector(root, existing);
-    [['illness', ill], ['death', death], ['existing', existing]].forEach(([b, head]) => {
+    [['illness', ill], ['death', death], ['existing', existing], ['lifestyle', lifestyle]].forEach(([b, head]) => {
       const chain = nodes.filter(n => n.branch === b && n.kind && pcVisible(n));
       let prev = head;
       chain.forEach(l => { wires += pcConnector(prev, l); prev = l; });
@@ -5033,15 +5111,18 @@ function setUWAnswer(condKey, qIdx, field, value){
     viewport.style.backgroundSize = (24 * scale) + 'px ' + (24 * scale) + 'px';
     viewport.style.backgroundPosition = tx + 'px ' + ty + 'px';
   }
-  function pcFitRect(r, padding = 45, max = 1){
+  function pcFitRect(r, padding = 45, max = 1, min = .18){
     const w = viewport.clientWidth, h = viewport.clientHeight;
-    scale = Math.max(.18, Math.min(max, (w - padding * 2) / r.w, (h - padding * 2) / r.h));
+    scale = Math.max(min, Math.min(max, (w - padding * 2) / r.w, (h - padding * 2) / r.h));
     tx = w / 2 - (r.x + r.w / 2) * scale; ty = h / 2 - (r.y + r.h / 2) * scale;
     pcUpdateTransform();
   }
   function pcFitWhole(){
     pcSetBranch('all', false);
-    pcFitRect({x: 45, y: 25, w: WORLD_W - 90, h: worldH - 50}, 35, .85);
+    // "Fit whole picture" must always show everything, even when a branch's own
+    // content (e.g. several long lifestyle leaves) makes the world taller than
+    // the normal .18 minimum zoom would allow to fit without cropping.
+    pcFitRect({x: 45, y: 25, w: WORLD_W - 90, h: worldH - 50}, 35, .85, .08);
     document.getElementById('pcFocusHint').textContent = 'The whole story. Select any card to bring it closer.';
     pcAnnounce('Whole picture fitted to the screen.');
   }
@@ -5060,7 +5141,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     pcLayout();
     if(!move) return;
     if(value === 'all'){ pcFitWhole(); return; }
-    const head = HEAD[value];
+    const head = nodeById(value) || HEAD[value];
     const chain = nodes.filter(n => n.branch === value);
     const bottom = chain.length ? Math.max(...chain.map(n => n.y + n.h)) : head.y + head.h;
     const rect = value === 'goal'
@@ -5177,7 +5258,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     document.getElementById('pcAvatar').textContent = (pcData.primaryName[0] || '?').toUpperCase() + (pcData.secondaryName ? ' & ' + pcData.secondaryName[0].toUpperCase() : '');
     document.getElementById('pcClientName').textContent = pcData.primaryName + (pcData.secondaryName ? ' & ' + pcData.secondaryName : '');
     const tabsEl = document.getElementById('pcBranchTabs');
-    tabsEl.innerHTML = ['all', 'goal', 'illness', 'death', 'existing'].map(k =>
+    tabsEl.innerHTML = ['all', 'goal', 'illness', 'death', 'existing', 'lifestyle'].map(k =>
       `<button type="button" class="pc-tab" data-pc-branch="${k}" aria-pressed="${k === 'goal'}"><span class="pc-tab-symbol" aria-hidden="true">${branchLabels[k].sym}</span>${branchLabels[k].label}</button>`
     ).join('');
     tabsEl.querySelectorAll('.pc-tab').forEach(b => b.addEventListener('click', () => pcSetBranch(b.dataset.pcBranch)));

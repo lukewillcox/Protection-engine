@@ -4,6 +4,7 @@ from flask import request, jsonify
 from openai import OpenAI
 from config import OPENAI_API_KEY
 from rag import retrieve
+from picture_prompt_bank import bank_for_prompt
 from llm import claude_json, claude_text, MODEL_ANALYZE, MODEL_PREPARE, MODEL_SUMMARY, anthropic_client
 
 log = logging.getLogger(__name__)
@@ -392,66 +393,51 @@ matters most to them at the centre, what happens to it if illness stops work, wh
 if one of them dies, and what cover is already helping. The fact-find is done. This is
 where the adviser moves the client from understanding their need to agreeing to protect it.
 
-Your prompts appear as LEAVES branching off that picture, so the adviser can talk the client
-through each part of it. Use the adviser methodology extracts (especially any tagged
-[andrew-sell]) for the STRUCTURE and TACTICS of how this adviser sells: tying each
-consequence back to the client's own reason for buying the home, making the consequence
-human (who is left dealing with it, and how), putting the numbers in perspective, then
-asking the client to own it. Never lift a fact or figure from the extracts.
+Your prompts appear as LEAVES branching off that picture. You build them from the adviser's
+PROMPT BANK below - his own proven lines - NOT from your own ideas.
 
-Return four branches, each a list of leaves:
-- "goal": what matters most
-- "illness": if illness stops work
-- "death": if one of them dies
-- "existing": cover already helping
+HOW TO BUILD EACH BRANCH ("goal", "illness", "death", "existing", "lifestyle"):
+1. Pick bank lines for that branch whose "use when" condition is genuinely met by THIS
+   client's notes and figures. Skip any line whose condition isn't met.
+2. Fill the {braces} with this client's real names, words and figures. Keep the bank
+   line's meaning, structure and plain spoken style - adapt wording only so it reads
+   naturally for this client. Do not make lines vaguer, more abstract or more poetic.
+3. Order each branch: picture lines, then numbers lines, then the ask.
+4. You may add at most ONE line per branch that is not in the bank (id "custom"), and only
+   when a specific fact in the notes matters and no bank line covers it. It must be as
+   concrete and plain as the bank lines.
+5. "why": one short coaching note for the adviser (under 15 words), based on the bank
+   line's why, tailored to this client if useful.
 
-Each leaf is {"kind": "picture" | "numbers" | "ask", "text": "..."}:
-- "picture": a perspective line said out loud that makes the consequence real for THIS
-  family, the way this adviser does it - why they bought this home and who it is for; what
-  happens to that plan if the income stops or the person dies; the partner left dealing with
-  grief AND the mortgage and bills at the same time; the way of life they have described not
-  being able to carry on. Honest and calm, never graphic or melodramatic. Say what COULD
-  happen ("might have to sell", "would be left to find"), never certainty ("you won't have a
-  house").
-- "numbers": ONE sentence putting a figure in perspective using ONLY the PERSPECTIVE FIGURES
-  given for that same branch, quoting the numbers exactly as given (e.g. "That £2,777 is 38%
-  of everything that comes into the house each month."). If a branch has no perspective
-  figures, it gets no numbers leaf.
-- "ask": a question that gets the client to feel and own the consequence, or take a step
-  towards protecting it.
+How many leaves: "illness" 3-4, "death" 3-4, "goal" 2-3, "existing" 1-2, "lifestyle" 2-3. Each
+has at least one ask. A numbers leaf only when that branch has PERSPECTIVE FIGURES - quote those
+numbers exactly as given, never calculate your own.
 
-How many leaves:
-- "illness": 3-4 (at least one picture, one numbers if figures were given, one ask)
-- "death": 3-4 (at least one picture, one numbers if figures were given, one ask)
-- "goal": 2-3 (a picture tying the home back to why they bought it and who it is for, an ask,
-  a numbers leaf only if figures were given)
-- "existing": 1-2 (if cover is unknown or zero, the ask gets the missing detail)
-Every leaf is ONE sentence under 40 words and uses the client's name where natural. Refer to
-a partner, children or other relationships only as they appear in the notes (say "your wife"
-only if the notes say wife). If a key figure is missing, one ask should get it.
+The "lifestyle" branch is about the rough monthly cost of everyday life continuing as it is -
+bills, food, the children, running the car - separate from and in addition to the mortgage
+covered by "illness"/"death". Only build it when household outgoings are recorded.
 
-Also return "bridge": ONE sentence to move from this screen into the next stage (deciding
-what is essential to protect, then looking at options).
+Also return "bridge": pick B1 or B2 from the bank and fill it in.
+
+Use the adviser methodology extracts only to choose between bank lines and match his tone -
+never as a source of facts. Refer to a partner, children or relationships only as they
+appear in the notes (say "your wife" only if the notes say wife).
 
 You NEVER:
 - recommend a specific product, provider, cover amount or premium, or estimate a cost
-- do your own arithmetic, percentages, ratios or conversions, or combine figures into new
-  numbers - use the PERSPECTIVE FIGURES and supplied figures exactly as given; if a comparison
-  you want is not there, do not make it
-- describe the mortgage amount as the property's value or price - it is the loan still owed,
-  never what the home is worth (say "the £X mortgage", never "this £X property")
-- invent urgency or use pressure (no "act today", "prices are going up", "offer ends");
-  where age or health is genuinely in the notes you may state plainly that cover is
-  assessed on health and age at the time of applying, as a fact, not a threat
+- do your own arithmetic, percentages, ratios or conversions - use the PERSPECTIVE FIGURES
+  and supplied figures exactly as given
+- describe the mortgage amount as the property's value or price - it is the loan still owed
+- invent urgency or use pressure (no "act today", "prices are going up", "offer ends")
 - claim any underwriting outcome, acceptance or claim payment is certain
 - invent client facts, relationships or prior conversations not in the notes
 - use "FCA-regulated"/"FCA regulated" in any form, "there's no fee for this"/"no fee to
   you", or "you'd have recourse"/"proper recourse"
-Persuasion here means helping the client see their own consequences clearly and asking them
-to decide - never pressure.
 
 Return ONLY valid JSON:
-{"branches": {"goal": [{"kind": "picture", "text": "..."}], "illness": [], "death": [], "existing": []}, "bridge": "..."}"""
+{"branches": {"goal": [{"id": "G1", "kind": "picture", "text": "...", "why": "..."}], "illness": [], "death": [], "existing": [], "lifestyle": []}, "bridge": "..."}"""
+
+PICTURE_GUIDANCE_SYSTEM += "\n\n" + bank_for_prompt()
 
 
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
@@ -668,14 +654,15 @@ def register_copilot_routes(app):
                 f"- Mortgage amount: {show(picture.get('mortgage'))}\n"
                 f"- Monthly mortgage payment: {show(picture.get('monthly_payment'))}\n"
                 f"- Income continuing if illness stops work: {show(picture.get('continuing_income'))}\n"
+                f"- Rough monthly household outgoings (cost of maintaining their lifestyle): {show(picture.get('outgoings'))}\n"
             )
             figs = picture.get("perspective_figures") or {}
-            if isinstance(figs, dict) and any(figs.get(k) for k in ("goal", "illness", "death", "existing")):
+            if isinstance(figs, dict) and any(figs.get(k) for k in ("goal", "illness", "death", "existing", "lifestyle")):
                 user_content += (
                     "\nPERSPECTIVE FIGURES (calculated exactly by the app - quote these numbers "
                     "as given, never recalculate), by branch:\n"
                 )
-                for k in ("goal", "illness", "death", "existing"):
+                for k in ("goal", "illness", "death", "existing", "lifestyle"):
                     for line in (figs.get(k) or [])[:8]:
                         user_content += f"- [{k}] {str(line)[:300]}\n"
             if methodology:

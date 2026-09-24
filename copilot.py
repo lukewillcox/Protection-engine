@@ -1,14 +1,15 @@
 import json
 import logging
+import os
+import threading
+import datetime
 from flask import request, jsonify
-from openai import OpenAI
-from config import OPENAI_API_KEY
 from rag import retrieve
 from picture_prompt_bank import bank_for_prompt
-from llm import claude_json, claude_text, MODEL_ANALYZE, MODEL_PREPARE, MODEL_SUMMARY, anthropic_client
+from llm import (claude_json, claude_text, anthropic_client,
+                 MODEL_ANALYZE, MODEL_SCRIPT, MODEL_PICTURE, MODEL_PREPARE, MODEL_SUMMARY)
 
 log = logging.getLogger(__name__)
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 FACTS = ["Dependants", "Employment", "Existing cover",
          "Health / lifestyle", "Budget & affordability", "Protection need"]
@@ -21,7 +22,8 @@ ADVICE PHILOSOPHY (how this adviser works):
 - Anchor everything to the client's real goals and why they're buying this home.
 - Protection underpins the mortgage; it is essential, not a bolt-on.
 - Frame as education: the adviser is an expert working for the client.
-- No fees to the client. An FCA-regulated broker means recourse if a claim is wrongly declined.
+- Firm facts (fees, regulatory status, complaints/redress) are NOT part of this knowledge -
+  never state them unless they are supplied as configured firm facts.
 
 NEED-BASED QUESTIONING (tailor to the client's situation):
 - Make questioning specific to their circumstances, occupation, and dependants.
@@ -79,23 +81,48 @@ MORTGAGE PAYMENT SHOCK:
   Useful frame: can the client meet the mortgage at reversion rate if income also dips?
   This justifies IP cover even when the current payment feels manageable.
 """
+_kb_cache = {}
+_kb_cache_lock = threading.Lock()
+_KB_CACHE_MAX = 256
+
+
 def get_relevant_knowledge(situation_text, k=5):
     """Retrieve the most relevant knowledge chunks for a situation,
     formatted for injection into a prompt. Fails safe: if retrieval
-    errors, returns empty string so the co-pilot still works."""
+    errors, returns empty string so the co-pilot still works.
+
+    Results are cached per (query, k): the knowledge base is static, so the
+    same query never needs a second embedding + Chroma round-trip. Live routes
+    build the query from the step and a short structured profile (occupation,
+    employment, dependants) - NOT from call notes - so health disclosures are
+    never sent to the embeddings API and the cache actually hits."""
+    key = (situation_text or "", k)
+    with _kb_cache_lock:
+        if key in _kb_cache:
+            return _kb_cache[key]
     try:
         hits = retrieve(situation_text, k=k)
-        if not hits:
-            return ""
         lines = []
-        for cid, doc in hits:
+        for cid, doc in hits or []:
             # tag the source so the model knows where it came from
             source = cid.split("::")[0] if "::" in cid else cid
             lines.append(f"[{source}] {doc}")
-        return "\n\n".join(lines)
+        result = "\n\n".join(lines)
     except Exception:
         log.exception("knowledge retrieval failed")
-        return ""
+        return ""  # don't cache failures
+    with _kb_cache_lock:
+        if len(_kb_cache) >= _KB_CACHE_MAX:
+            _kb_cache.pop(next(iter(_kb_cache)))
+        _kb_cache[key] = result
+    return result
+
+
+def _profile_query(step, profile):
+    """Retrieval query for live routes: the call step plus the adviser's short
+    structured profile. Deliberately excludes notes and health details."""
+    profile = (profile or "").strip()[:300]
+    return " ".join(filter(None, [step or "", profile]))
 
 ANALYZE_SYSTEM = f"""You assist a UK FCA-regulated protection adviser during a client fact-find.
 You help them gather and assess the client's NEEDS thoroughly and document them.
@@ -169,14 +196,26 @@ You ALWAYS:
 
 Return ONLY valid JSON matching:
 {{
-  "captured": {{"Dependants":"","Employment":"","Existing cover":"","Health / lifestyle":"","Budget & affordability":"","Protection need":""}},
+  "fields": {{"c1_salary": "55k"}},
   "questions": ["a direct question the adviser should ask the client next"],
-  "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
-  "relevant_facts": ["a short factual point with source in brackets"],
   "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
   "relevant_facts": ["a short factual point with source in brackets"]
 }}
-For captured, fill only fields the notes evidence; leave others "".
+
+"fields" lets the app offer one-tap fills for structured fields the adviser has
+only typed into the CALL NOTES. Include a key ONLY when the call notes state
+that exact value explicitly. Allowed keys:
+  c1_name, c1_age, c1_job, c1_salary, c1_bonus,
+  c2_name, c2_age, c2_job, c2_salary, c2_bonus,
+  mortgage_amount, mortgage_payment, mortgage_term, purchase_price,
+  outgoings_monthly, youngest_child_age, dependants,
+  c1_sick_pay_months, c2_sick_pay_months, dis_multiple
+Rules: c1 is Client 1 and c2 is Client 2 as named in the FACT-FIND block. If you
+cannot tell which client a figure belongs to, leave it out. Copy the figure as
+written ("55k", "£1,450", "25"); never calculate, convert, annualise, total or
+guess. "dependants" is a short description in the notes' own words
+(e.g. "two children, 4 and 7"). Omit a key rather than return it empty. Return
+{{}} when nothing qualifies.
 
 THREE DISTINCT CATEGORIES — keep them genuinely separate. Write EVERY item as a
 FULL, NATURAL, CONVERSATIONAL SENTENCE — the way an experienced adviser actually
@@ -274,37 +313,18 @@ STRICT COMPLIANCE BOUNDARIES (non-negotiable):
   Calculating a recommended cover amount is NOT.
 - This is needs discovery and education, not selling.
 
-Return ONLY valid JSON:
-{"blocks": [
-  {"cue": "SHORT CUE LABEL IN CAPS", "type": "say", "text": "what to say, verbatim"},
-  {"cue": "IF THEY GO QUIET", "type": "coach", "text": "what to do / how to handle it"}
-]}
+OUTPUT FORMAT - one JSON object per line (newline-delimited JSON), nothing else:
+no wrapper object, no array brackets, no code fences, no blank lines. Example:
+{"cue": "SHORT CUE LABEL IN CAPS", "type": "say", "text": "what to say, verbatim"}
+{"cue": "IF THEY GO QUIET", "type": "coach", "text": "what to do / how to handle it"}
+The adviser's screen shows each line the moment it is complete, so write the
+blocks in the order they will be used.
 
 - "type":"say"   = words the adviser reads out loud
 - "type":"coach" = guidance TO the adviser, not spoken aloud
 - 4-7 blocks total. Cue labels like: OPEN, ASK, THEN ASK, LAND THE NUMBER,
   LINK TO THEIR GOAL, IF THEY PUSH BACK, BEFORE MOVING ON.
 - Keep each "say" block to 1-3 sentences. Readable in one breath."""
-
-
-PROMPTS_SYSTEM = """You help a UK protection adviser during a live client call by
-generating 3 ready-to-say conversation prompts for the step they are about to move to.
-
-You are given: the step they're moving to, and everything captured so far in the
-fact-find (fields and notes across all previous steps).
-
-Generate 3 prompts the adviser can say out loud to the client at this step. They must:
-- Be specific to THIS client, using details already captured (name, job, family,
-  mortgage, health, goals, figures). Reference real facts where you can.
-- Sound natural and warm — like a skilled adviser speaking, not a script.
-- Move the conversation forward at this step.
-- Never state a premium, a specific product/provider recommendation, or a cover amount.
-- Be concise — one or two sentences each, ready to say aloud.
-
-If little has been captured yet, give sensible general prompts for the step.
-
-Return ONLY valid JSON: {"prompts": ["...", "...", "..."]}
-Each string is a complete phrase the adviser can say. UK English."""
 
 
 SUMMARY_SYSTEM = """You write a factual fact-find summary for a UK protection adviser's suitability record.
@@ -379,12 +399,12 @@ back to a neutral sentence noting more detail is needed - and even then, still t
 client's own goal by name rather than being generic.
 
 Return ONLY valid JSON matching:
-{{
+{
   "goalSummary": "...",
   "goalHighlight": "...",
   "illnessSentence": "...",
   "deathSentence": "..."
-}}"""
+}"""
 
 
 PICTURE_GUIDANCE_SYSTEM = """You guide a UK protection adviser at the pivot point of a
@@ -476,13 +496,16 @@ Return ONLY valid JSON:
 {{
   "client_name": "extracted name or empty",
   "occupation": "extracted occupation or empty",
-  "key_facts": {{"age":"","income":"","mortgage_debt":"","monthly_payment":"","mortgage_type":"","deposit":"","dependants":""}},
+  "key_facts": {{"age":"","income":"","mortgage_debt":"","monthly_payment":"","mortgage_term":"","purchase_price":"","mortgage_type":"","deposit":"","dependants":"","youngest_child_age":""}},
+  "second_client": {{"name":"","age":"","occupation":"","income":""}},
   "situation": "one-line summary of their circumstances",
   "need_illustrations": ["plain-English exposure framing using their real figures"],
   "opening_questions": ["question tailored to a specific fact about them"],
   "watch_for": ["need or risk area worth exploring given their specific situation"]
 }}
-For key_facts, fill only what the email evidences; leave others "".
+For key_facts and second_client, fill only what the email evidences; leave others "".
+second_client is a joint applicant/partner named in the email - leave it all "" if there isn't one.
+Copy figures as written in the email (e.g. "£45k", "£1,450 a month"); never convert or calculate them.
 Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each concise."""
 
 LEAD_EXTRACT_SYSTEM = """You extract a structured lead from a referral email sent to a
@@ -528,6 +551,23 @@ STEP_PURPOSE = {
     "Close & Next Steps": "Agree actions, next steps, confirm documentation.",
 }
 
+_log_lock = threading.Lock()
+
+
+def _append_jsonl(path, entry):
+    """Append one JSON line. Append-only, so concurrent requests can't corrupt
+    or overwrite each other the way read-modify-write of one JSON array did.
+    NOTE: Railway's disk is wiped on every deploy - these logs are only a
+    stopgap until they go to a database or a log drain."""
+    try:
+        with _log_lock, open(path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        return True
+    except Exception:
+        log.exception("log write failed: %s", path)
+        return False
+
+
 def register_copilot_routes(app):
 
     @app.post("/copilot/analyze")
@@ -538,7 +578,7 @@ def register_copilot_routes(app):
             return jsonify({"error": "no notes"}), 400
         step = (data.get("step") or "").strip()
         try:
-            kb = get_relevant_knowledge(notes, k=5)
+            kb = get_relevant_knowledge(_profile_query(step, data.get("profile")), k=5)
             user_content = ""
             if step:
                 purpose = STEP_PURPOSE.get(step, "")
@@ -565,7 +605,7 @@ def register_copilot_routes(app):
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=2400))
+            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1100))
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -587,8 +627,10 @@ def register_copilot_routes(app):
         if not goal_text and illness_gap is None and death_gap is None:
             return jsonify({"goalSummary": "", "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
         try:
+            # Knowledge lookup keyed on the goal only (not intro/existing notes),
+            # so client notes aren't embedded and the cached result is reused.
             situation_text = " ".join(filter(None, [
-                goal_text, intro_notes, existing_notes,
+                goal_text,
                 "putting protection need in perspective for the client, urgency, cost of no cover",
             ]))
             methodology = get_relevant_knowledge(situation_text, k=4)
@@ -614,7 +656,7 @@ def register_copilot_routes(app):
             if methodology:
                 user_content += f"\nAdviser methodology extracts (tone/tactics only, never a source of facts):\n{methodology}\n"
 
-            return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1200))
+            return jsonify(claude_json(PICTURE_SYSTEM, user_content, MODEL_PICTURE, max_tokens=1200))
         except Exception:
             log.exception("copilot picture-links failed")
             return jsonify({"goalSummary": goal_text, "goalHighlight": "", "illnessSentence": "", "deathSentence": ""}), 200
@@ -670,33 +712,20 @@ def register_copilot_routes(app):
                     "\nAdviser methodology extracts (structure/tactics only, never a source "
                     "of facts):\n" + methodology + "\n"
                 )
-            return jsonify(claude_json(PICTURE_GUIDANCE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=4000, effort="low"))
+            return jsonify(claude_json(PICTURE_GUIDANCE_SYSTEM, user_content, MODEL_PICTURE, max_tokens=4000, effort="low"))
         except Exception:
             log.exception("copilot picture-guidance failed")
             return jsonify({"branches": [], "bridge": "", "error": "picture guidance failed"}), 200
 
     @app.post("/copilot/log-failure")
     def copilot_log_failure():
-        import json, os, datetime
         data = request.get_json(silent=True) or {}
-        entry = {
+        ok = _append_jsonl("failure_log.jsonl", {
             "ts": datetime.datetime.utcnow().isoformat(),
-            "step": data.get("step", ""),
-            "error": data.get("error", ""),
-        }
-        log_path = "failure_log.json"
-        try:
-            existing = []
-            if os.path.exists(log_path):
-                with open(log_path, "r") as f:
-                    existing = json.load(f)
-            existing.append(entry)
-            with open(log_path, "w") as f:
-                json.dump(existing, f, indent=2)
-            return jsonify({"ok": True})
-        except Exception:
-            log.exception("failure log write failed")
-            return jsonify({"ok": False}), 200
+            "step": str(data.get("step", ""))[:80],
+            "error": str(data.get("error", ""))[:500],
+        })
+        return jsonify({"ok": ok})
 
 
     @app.post("/copilot/script-stream")
@@ -711,7 +740,7 @@ def register_copilot_routes(app):
 
         def generate():
             try:
-                kb = get_relevant_knowledge(notes, k=4) if notes else ""
+                kb = get_relevant_knowledge(_profile_query(step, data.get("profile")), k=4)
                 purpose = STEP_PURPOSE.get(step, "")
                 user_content = "Step of the call: " + step + "\n"
                 if purpose:
@@ -740,17 +769,17 @@ def register_copilot_routes(app):
                     )
 
                 with anthropic_client.messages.stream(
-                    model=MODEL_ANALYZE,
-                    max_tokens=2400,
+                    model=MODEL_SCRIPT,
+                    max_tokens=1600,
                     system=SCRIPT_SYSTEM,
                     messages=[{"role": "user", "content": user_content}],
                 ) as stream:
                     for text in stream.text_stream:
                         yield "data: " + _json.dumps({"delta": text}) + "\n\n"
                     yield "data: " + _json.dumps({"done": True}) + "\n\n"
-            except Exception as e:
+            except Exception:
                 log.exception("script stream failed")
-                yield "data: " + _json.dumps({"error": str(e)}) + "\n\n"
+                yield "data: " + _json.dumps({"error": "script generation failed"}) + "\n\n"
 
         return Response(generate(), mimetype="text/event-stream", headers={
             "Cache-Control": "no-cache",
@@ -758,93 +787,18 @@ def register_copilot_routes(app):
         })
 
 
-    @app.post("/copilot/script")
-    def copilot_script():
-        data = request.get_json(silent=True) or {}
-        notes = (data.get("notes") or "").strip()
-        step = (data.get("step") or "").strip()
-        if not step:
-            return jsonify({"blocks": []}), 200
-        try:
-            kb = get_relevant_knowledge(notes, k=4) if notes else ""
-            purpose = STEP_PURPOSE.get(step, "")
-            user_content = "Step of the call: " + step + "\n"
-            if purpose:
-                user_content += "This step is for: " + purpose + "\n"
-            user_content += "\n"
-            if notes:
-                user_content += "Everything captured about this client so far:\n\n" + notes
-            else:
-                user_content += "Nothing captured yet - write a sensible general script for this step."
-            if kb:
-                user_content += (
-                    "\n\n---\nRelevant factual knowledge (use only if genuinely "
-                    "relevant; never quote a premium or recommend a product):\n\n" + kb
-                )
-            plan = (data.get("call_plan") or "").strip()
-            if plan:
-                user_content += (
-                    "\n\n---\nADVISER'S PLAN FOR THIS CALL (align the script to "
-                    "this stated approach):\n" + plan
-                )
-            prev_script = (data.get("prev_script") or "").strip()
-            if prev_script:
-                user_content += (
-                    "\n\n---\nPREVIOUS STAGE SCRIPT (bridge from this naturally, "
-                    "do not repeat it):\n\n" + prev_script
-                )
-            return jsonify(claude_json(SCRIPT_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1200))
-        except Exception:
-            log.exception("copilot script failed")
-            return jsonify({"blocks": []}), 200
-
-
     @app.post("/copilot/rate")
     def copilot_rate():
-        import json, os, datetime
         data = request.get_json(silent=True) or {}
-        entry = {
+        ok = _append_jsonl("ratings_log.jsonl", {
             "ts": datetime.datetime.utcnow().isoformat(),
-            "client_name": data.get("client_name", ""),
-            "step": data.get("step", ""),
-            "panel": data.get("panel", ""),      # questions | prompts | facts | flags
-            "text": data.get("text", ""),
-            "rating": data.get("rating", ""),    # "up" or "down"
-            "comment": data.get("comment", ""),
-        }
-        log_path = "ratings_log.json"
-        try:
-            existing = []
-            if os.path.exists(log_path):
-                with open(log_path, "r") as f:
-                    existing = json.load(f)
-            existing.append(entry)
-            with open(log_path, "w") as f:
-                json.dump(existing, f, indent=2)
-            return jsonify({"ok": True})
-        except Exception:
-            log.exception("copilot rate failed")
-            return jsonify({"ok": False}), 200
-
-
-    @app.post("/copilot/prompts")
-    def copilot_prompts():
-        data = request.get_json(silent=True) or {}
-        step = (data.get("step") or "").strip()
-        notes = (data.get("notes") or "").strip()
-        if not step:
-            return jsonify({"prompts": []}), 200
-        try:
-            user_content = "Step the adviser is moving to: " + step + "\n\n"
-            if notes:
-                user_content += "Everything captured so far:\n\n" + notes
-            else:
-                user_content += "Nothing captured yet — give sensible general prompts for this step."
-            result = claude_json(PROMPTS_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=400)
-            return jsonify(result)
-        except Exception:
-            log.exception("copilot prompts failed")
-            return jsonify({"prompts": []}), 200
+            "step": str(data.get("step", ""))[:80],
+            "panel": str(data.get("panel", ""))[:40],      # questions | prompts | facts
+            "text": str(data.get("text", ""))[:1000],
+            "rating": str(data.get("rating", ""))[:8],     # "up" or "down"
+            "comment": str(data.get("comment", ""))[:1000],
+        })
+        return jsonify({"ok": ok})
 
 
     @app.post("/copilot/summary")
@@ -864,6 +818,8 @@ def register_copilot_routes(app):
                 parts.append("Income: " + ff["income"])
             if ff.get("mortgage"):
                 parts.append("Mortgage: " + ff["mortgage"])
+            if ff.get("household"):
+                parts.append("Household: " + ff["household"])
             if ff.get("existing"):
                 ex = [e for e in ff["existing"] if e and e.strip()]
                 parts.append("Existing cover: " + ("; ".join(ex) if ex else "none recorded"))
@@ -878,7 +834,7 @@ def register_copilot_routes(app):
             elif notes:
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
-            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1000).strip()})
+            return jsonify({"summary": claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY, max_tokens=1500).strip()})
         except Exception:
             log.exception("copilot summary failed")
             return jsonify({"error": "summary failed"}), 200
@@ -904,6 +860,8 @@ def register_copilot_routes(app):
                 parts.append("Income: " + ff["income"])
             if ff.get("mortgage"):
                 parts.append("Mortgage: " + ff["mortgage"])
+            if ff.get("household"):
+                parts.append("Household: " + ff["household"])
             if ff.get("existing"):
                 ex = [e for e in ff["existing"] if e and e.strip()]
                 parts.append("Existing cover: " + ("; ".join(ex) if ex else "none recorded"))
@@ -918,7 +876,7 @@ def register_copilot_routes(app):
                 parts.append("Notes:\n" + notes)
             user_content = "\n\n".join(parts)
 
-            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1000).strip()
+            summary_text = claude_text(SUMMARY_SYSTEM, user_content, MODEL_SUMMARY, max_tokens=1500).strip()
 
             meta = {
                 "client": name,
@@ -948,6 +906,8 @@ def register_copilot_routes(app):
                 parts.append("Clients:\n" + "\n".join("- " + c for c in ff["clients"]))
             if ff.get("mortgage"):
                 parts.append("Mortgage: " + ff["mortgage"])
+            if ff.get("household"):
+                parts.append("Household: " + ff["household"])
             if ff.get("notesByStep"):
                 parts.append("Call notes by step:\n" + ff["notesByStep"])
             elif notes:

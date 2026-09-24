@@ -5,13 +5,15 @@ from config import GHL_BASE, GHL_HEADERS, FIELD_IDS
 log = logging.getLogger(__name__)
 
 
-def _request(method: str, path: str, **kwargs):
-    """One place for every GHL API call, with retries."""
-    for attempt in range(3):
+def _request(method: str, path: str, timeout: float = 10, attempts: int = 3, **kwargs):
+    """One place for every GHL API call, with retries.
+    Interactive co-pilot calls pass a short timeout and a single attempt so a
+    GHL slowdown can't hold the adviser's screen for 30+ seconds."""
+    for attempt in range(attempts):
         try:
             r = requests.request(
                 method, f"{GHL_BASE}{path}",
-                headers=GHL_HEADERS, timeout=10, **kwargs
+                headers=GHL_HEADERS, timeout=timeout, **kwargs
             )
             r.raise_for_status()
             return r.json() if r.text else {}
@@ -26,7 +28,7 @@ def _request(method: str, path: str, **kwargs):
             log.warning("GHL 5xx (attempt %s), retrying", attempt + 1)
         except requests.Timeout:
             log.warning("GHL timeout (attempt %s), retrying", attempt + 1)
-    raise RuntimeError(f"GHL request failed after 3 attempts: {path}")
+    raise RuntimeError(f"GHL request failed after {attempts} attempt(s): {path}")
 
 
 def update_contact(contact_id: str, values: dict):

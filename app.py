@@ -1,8 +1,12 @@
 import hmac
 import logging
+import os
+import threading
+import time
+from collections import deque
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import json as _json
 import config
 from copilot import extract_lead_from_email, generate_prep
@@ -18,22 +22,94 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+# No CORS: the co-pilot page is served by this same app (/copilot), so every
+# API call is same-origin. Allowing every origin only widened the attack surface.
 
 import hashlib
 from config import COPILOT_PASSWORD
 
+# ---------- co-pilot session tokens ----------
+# Tokens are signed and expire (12h), instead of being a permanent hash of the
+# password. Set COPILOT_SECRET_KEY in Railway for a signing key independent of
+# the password; without it, a key is derived from the password, so changing the
+# password still invalidates every issued token.
+TOKEN_MAX_AGE = 12 * 3600
+_signing_key = os.getenv("COPILOT_SECRET_KEY") or hashlib.sha256(
+    ("copilot-token-signing:" + (COPILOT_PASSWORD or "")).encode()).hexdigest()
+_signer = URLSafeTimedSerializer(_signing_key, salt="copilot-session")
+
+
 def _valid_token(token):
-    # token is a hash of the password; simple shared-secret scheme
-    expected = hashlib.sha256((COPILOT_PASSWORD or "").encode()).hexdigest()
-    return token == expected and bool(COPILOT_PASSWORD)
+    if not COPILOT_PASSWORD or not token:
+        return False
+    try:
+        _signer.loads(token, max_age=TOKEN_MAX_AGE)
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
+
+
+# Simple login rate limit: 5 failed attempts per minute per client IP, plus a
+# global ceiling. In-memory and per gunicorn worker - enough to stop scripted
+# guessing without adding a dependency.
+_login_failures = {}
+_login_failures_all = deque()
+_login_lock = threading.Lock()
+LOGIN_MAX_PER_IP = 5
+LOGIN_MAX_GLOBAL = 120      # high enough that one attacker can't easily lock the adviser out
+LOGIN_WINDOW = 60
+LOGIN_MAX_TRACKED_IPS = 5000
+
+
+def _client_ip():
+    # Use the right-most X-Forwarded-For entry: the one added by Railway's proxy.
+    # Left-most entries are whatever the caller sent, so they can be faked.
+    fwd = request.headers.get("X-Forwarded-For", "")
+    parts = [p.strip() for p in fwd.split(",") if p.strip()]
+    return (parts[-1] if parts else request.remote_addr) or "?"
+
+
+def _prune(q, now):
+    while q and now - q[0] > LOGIN_WINDOW:
+        q.popleft()
+
+
+def _login_blocked(ip):
+    now = time.time()
+    with _login_lock:
+        _prune(_login_failures_all, now)
+        q = _login_failures.get(ip)
+        if q is not None:
+            _prune(q, now)
+            if not q:
+                _login_failures.pop(ip, None)
+                q = None
+        return (q is not None and len(q) >= LOGIN_MAX_PER_IP) or len(_login_failures_all) >= LOGIN_MAX_GLOBAL
+
+
+def _record_login_failure(ip):
+    now = time.time()
+    with _login_lock:
+        if ip not in _login_failures and len(_login_failures) >= LOGIN_MAX_TRACKED_IPS:
+            # bounded memory: drop IPs with no recent failures, then the oldest if still full
+            for k in [k for k, v in _login_failures.items() if not v or now - v[-1] > LOGIN_WINDOW]:
+                _login_failures.pop(k, None)
+            while len(_login_failures) >= LOGIN_MAX_TRACKED_IPS:
+                _login_failures.pop(next(iter(_login_failures)))
+        _login_failures.setdefault(ip, deque()).append(now)
+        _login_failures_all.append(now)
+
 
 @app.post("/copilot/login")
 def copilot_login():
+    ip = _client_ip()
+    if _login_blocked(ip):
+        return jsonify({"error": "too many attempts - wait a minute"}), 429
     data = request.get_json(silent=True) or {}
-    if data.get("password") and data["password"] == COPILOT_PASSWORD:
-        token = hashlib.sha256(COPILOT_PASSWORD.encode()).hexdigest()
-        return jsonify({"token": token})
+    pw = str(data.get("password") or "")
+    if COPILOT_PASSWORD and hmac.compare_digest(pw.encode(), COPILOT_PASSWORD.encode()):
+        return jsonify({"token": _signer.dumps({"u": "adviser"}), "expires_in": TOKEN_MAX_AGE})
+    _record_login_failure(ip)
     return jsonify({"error": "wrong password"}), 401
 
 @app.before_request
@@ -46,6 +122,15 @@ def _guard_copilot():
             return jsonify({"error": "unauthorised"}), 401
         
 register_copilot_routes(app)
+
+
+@app.get("/copilot/session")
+def copilot_session():
+    # The guard above has already checked the token. The page calls this on load
+    # (so an expired or old-style token shows the login straight away) and every
+    # so often while in use, getting a fresh 12-hour token back - so an open tab
+    # never expires in the middle of a call.
+    return jsonify({"ok": True, "token": _signer.dumps({"u": "adviser"}), "expires_in": TOKEN_MAX_AGE})
 
 # Temporary in-memory store of slot offers per contact.
 # (Fine for now; a real deployment would use a database.)
@@ -110,6 +195,7 @@ def recent_referrals():
         result = ghl._request(
             "GET",
             f"/contacts/?locationId={config.GHL_LOCATION_ID}&limit=20&query=",
+            timeout=6, attempts=1,
         )
         contacts = result.get("contacts", [])
         out = []
@@ -119,6 +205,7 @@ def recent_referrals():
                 out.append({
                     "id": c.get("id"),
                     "name": f"{c.get('firstName','')} {c.get('lastName','')}".strip(),
+                    "added": c.get("dateAdded") or "",
                 })
         return jsonify({"referrals": out})
     except Exception:
@@ -129,7 +216,7 @@ def recent_referrals():
 @app.get("/copilot/load/<contact_id>")
 def load_prep(contact_id):
     try:
-        result = ghl._request("GET", f"/contacts/{contact_id}/notes")
+        result = ghl._request("GET", f"/contacts/{contact_id}/notes", timeout=6, attempts=1)
         notes = result.get("notes", [])
         for n in notes:
             body = n.get("body", "")

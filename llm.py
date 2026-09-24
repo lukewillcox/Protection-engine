@@ -26,10 +26,15 @@ anthropic_client = Anthropic(
     max_retries=1,
 )
 
-# model roles
-MODEL_ANALYZE = "claude-sonnet-5"   # live, fires often — fast + economical
-MODEL_PREPARE = "claude-sonnet-5"
-MODEL_SUMMARY = "claude-opus-5"     # once per call, high-stakes — max quality
+# model roles - matched to how often and how urgently each route fires
+# /analyze fires every few seconds during the live call and returns small JSON,
+# so it runs on the fastest model. If its questions/prompts ever read noticeably
+# weaker, set this back to "claude-sonnet-5" - it's a one-line change.
+MODEL_ANALYZE = "claude-haiku-4-5-20251001"  # live, fires often - must land in ~1-2s
+MODEL_SCRIPT  = "claude-sonnet-5"   # read-aloud script, streamed - quality matters
+MODEL_PICTURE = "claude-sonnet-5"   # Your Picture links + guidance - the emotional pivot, precomputed
+MODEL_PREPARE = "claude-sonnet-5"   # pre-call prep / email recap
+MODEL_SUMMARY = "claude-opus-5"     # once per call, post-call, high-stakes - max quality
 MODEL_QUALIFY = "claude-sonnet-5"
 MODEL_SMS     = "claude-sonnet-5"
 

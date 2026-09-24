@@ -2298,6 +2298,66 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
       body.picture-fullscreen-active .step-card>.navbtns{padding:0 18px 22px;}
     }
 
+    /* ===== audit fixes: new UI pieces ===== */
+    /* real save state + new client */
+    .saved.not-saved{color:var(--signal);}
+    .newclient-btn{font-size:13px;}
+
+    /* "spotted in your notes" one-tap fills */
+    .note-suggestions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;min-height:0;}
+    .note-suggestions:empty{display:none;}
+    .ns-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px;}
+    .ns-chip{display:inline-flex;align-items:stretch;border:1px solid #DCD5F6;border-radius:999px;background:var(--verd-soft);overflow:hidden;}
+    .ns-add{border:0;background:transparent;padding:6px 10px 6px 13px;font:500 13px var(--sans);color:var(--ink);cursor:pointer;}
+    .ns-add b{font-weight:650;}
+    .ns-add:hover,.ns-add:focus-visible{background:#E4DFF8;}
+    .ns-plus{color:var(--verd);font-weight:600;margin-left:4px;}
+    .ns-x{border:0;border-left:1px solid #DCD5F6;background:transparent;padding:0 10px;color:var(--muted);font-size:15px;cursor:pointer;}
+    .ns-x:hover{color:var(--ink);}
+    .ns-all{border:1px solid var(--verd);background:var(--verd);color:#fff;border-radius:999px;padding:6px 13px;font:600 12.5px var(--sans);cursor:pointer;}
+
+    /* co-pilot: new guidance waiting, instead of swapping cards mid-read */
+    .mind-newpill{margin:0 6px 0 10px;background:#A6EFDA;color:#10231C;border:0;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 11px;cursor:pointer;}
+    .mind-newpill:hover{filter:brightness(1.05);}
+
+    /* prep brief (adviser only) */
+    .prep-brief{margin-top:14px;border:1px solid #DCD5F6;border-left:3px solid var(--verd);border-radius:12px;background:#FBFAFF;padding:14px 16px;}
+    .prep-brief-head{font-weight:650;font-size:14px;color:var(--ink);margin-bottom:6px;}
+    .prep-brief-head span{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:2px;}
+    .prep-situation{margin:6px 0 4px;font-size:13.5px;line-height:1.55;color:var(--ink-soft);}
+    .prep-block{margin-top:10px;}
+    .prep-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--verd);margin-bottom:4px;}
+    .prep-block ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.55;color:var(--ink);}
+
+    /* Your Picture: view controls, inline capture, client view, notes */
+    .ypf-view-controls{display:flex;gap:8px;flex-shrink:0;align-items:center;}
+    .ypf-view-btn{font:500 12.5px var(--sans);padding:8px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer;}
+    .ypf-view-btn:hover{border-color:var(--green);color:var(--green);}
+    .ypf-view-btn[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff;}
+    .ypf-capture{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);}
+    .ypf-capture label{font-size:12.5px;color:var(--muted);flex-basis:100%;}
+    .ypf-capture input{flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:14px var(--sans);background:#fff;}
+    .ypf-capture button{border:1px solid var(--green);background:var(--green);color:#fff;border-radius:8px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer;}
+    body.ypf-client-view .ypf-leaves,
+    body.ypf-client-view .ypf-leaves-centre,
+    body.ypf-client-view .ypf-leaf-aim,
+    body.ypf-client-view .ypf-leaf-why,
+    body.ypf-client-view .ypf-adviser-only,
+    body.ypf-client-view .step-card>.notes-label,
+    body.ypf-client-view #stepNotes,
+    body.ypf-client-view #noteSuggestions{display:none !important;}
+    body.picture-fullscreen-active.picture-notes-open .step-card>.notes-label,
+    body.picture-fullscreen-active.picture-notes-open #stepNotes{display:block;max-width:1600px;margin-left:auto;margin-right:auto;}
+    body.picture-fullscreen-active.picture-notes-open .step-card>.notes-label{padding:0 48px;}
+    body.picture-fullscreen-active.picture-notes-open #stepNotes{width:calc(100% - 96px);}
+    body.picture-fullscreen-active:not(.picture-notes-open) #noteSuggestions{display:none;}
+    @media (max-width:860px){
+      .ypf-page .ypf-page-header{flex-wrap:wrap;}
+      .ypf-view-controls{width:100%;justify-content:flex-end;}
+      body.picture-fullscreen-active.picture-notes-open .step-card>.notes-label{padding:0 18px;}
+      body.picture-fullscreen-active.picture-notes-open #stepNotes{width:calc(100% - 36px);}
+    }
+
 </style>
 </head>
 <body>
@@ -2314,7 +2374,8 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
     <div class="back">← Back to case</div>
     <div class="hdr-spacer"></div>
     <div class="progress-count" id="progressCount">0/13 complete</div>
-    <div class="saved">✓ Saved</div>
+    <div class="saved" id="savedState" title="This call is kept in this browser tab, so a refresh won't lose it. Closing the tab clears it.">Not saved yet</div>
+    <button class="postcall-btn newclient-btn" id="newClientBtn" title="Clear this call and start a new client">＋ New client</button>
     <button class="postcall-btn" id="emailBtn">✉️ Client email</button>
     <button class="postcall-btn" id="postcallBtn">📄 Post-call</button>
   </header>
@@ -2378,6 +2439,7 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
         <div id="stepBody"></div>
         <div class="notes-label">Live notes</div>
         <textarea class="notes" id="stepNotes" placeholder="Type what the client tells you…"></textarea>
+        <div id="noteSuggestions" class="note-suggestions" aria-live="polite"></div>
         <div class="navbtns">
           <button class="navbtn" id="prevBtn">← Previous</button>
           <button class="navbtn" id="nextBtn">Next →</button>
@@ -2397,7 +2459,8 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
         </div>
         <div style="display:flex;align-items:center;">
           <div class="mind-live" id="guideStatus"><span class="d"></span> ready</div>
-          <button onclick="requestGuidance()" class="mind-refresh">↻ update</button>
+          <button id="guideNewPill" class="mind-newpill" style="display:none" onclick="applyPendingGuide()">↻ new guidance</button>
+          <button onclick="requestGuidance(true)" class="mind-refresh">↻ update</button>
         </div>
       </div>
       <div class="qpanel-empty" id="guidePassive">Guidance for this stage appears here as you work, and stays put when you move on.</div>
@@ -2412,7 +2475,9 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   </div>
 
 <script>
-  const API_BASE = "https://web-production-5da6a7.up.railway.app";
+  // Same origin: the page is served by the app at /copilot, so API calls go to
+  // the same host. (Hard-coding the Railway URL needed CORS open to every site.)
+  const API_BASE = "";
 
   // ---------- auth ----------
   let COPILOT_TOKEN = sessionStorage.getItem('copilot_token') || '';
@@ -2434,8 +2499,8 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
         COPILOT_TOKEN=data.token;
         sessionStorage.setItem('copilot_token',data.token);
         hideLogin();
-        loadReferralList();
-      } else { msg.textContent='Wrong password.'; }
+        if(STEPS[state.current].id==='picture') goto(state.current); else maybeRequestGuidance();
+      } else { msg.textContent = res.status===429 ? 'Too many attempts — wait a minute and try again.' : 'Wrong password.'; }
     }catch(e){ msg.textContent='Login failed — check connection.'; }
   }
 
@@ -2465,9 +2530,15 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
     {id:'close', title:'Close & Next Steps', desc:"Agree actions, what happens next, documentation."},
   ];
 
+  const SI = id => STEPS.findIndex(s=>s.id===id);
+  const stepNotes = id => String(state.notes[SI(id)]||'').trim();
+
   const state = {
     referralSource: '',
     salesArc: { outgoings:'', youngestAge:'' },
+    household: { dependants:'' },
+    prep: null,
+    pictureView: 'adviser',
     callPlan: '',
     uwAnswers: {},
     current: 0,
@@ -2552,6 +2623,7 @@ function clearScriptBox(){
     if(mindcol) mindcol.style.display = 'none';
     if(btmbar) btmbar.style.display = 'none';
     document.body.classList.add('picture-fullscreen-active');
+    document.body.classList.toggle('ypf-client-view', state.pictureView==='client');
     window.scrollTo(0,0);
   }
   function exitPictureFullscreen(){
@@ -2563,10 +2635,45 @@ function clearScriptBox(){
     if(snapshot) snapshot.style.display = '';
     if(mindcol) mindcol.style.display = '';
     if(btmbar) btmbar.style.display = '';
-    document.body.classList.remove('picture-fullscreen-active');
+    document.body.classList.remove('picture-fullscreen-active','ypf-client-view','picture-notes-open');
+  }
+  // Client view hides every coaching element (aims, 'why' notes, prompt leaves,
+  // the bridge) so the screen can be shared. Financial facts stay.
+  function togglePictureView(){
+    state.pictureView = state.pictureView==='client' ? 'adviser' : 'client';
+    document.body.classList.toggle('ypf-client-view', state.pictureView==='client');
+    if(state.pictureView==='client') document.body.classList.remove('picture-notes-open');
+    const b=document.getElementById('ypfViewToggle');
+    if(b){ b.textContent = state.pictureView==='client' ? 'Back to adviser view' : 'Client view'; b.setAttribute('aria-pressed', String(state.pictureView==='client')); }
+    persistSoon();
+  }
+  function togglePictureNotes(){
+    const open = document.body.classList.toggle('picture-notes-open');
+    if(open){ const n=document.getElementById('stepNotes'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); } }
+  }
+  function capturePictureOutgoings(){
+    const el=document.getElementById('ypfOutgoings'); if(!el) return;
+    const v=el.value.trim();
+    if(!(num(v)>0)){ el.focus(); return; }
+    state.salesArc.outgoings=v;
+    persistSoon();
+    goto(state.current);   // re-draw the picture with the new figure
   }
 
-  function goto(i){ saveNotes(); state.current=Math.max(0,Math.min(STEPS.length-1,i)); clearScriptBox(); renderStep(); renderRail(); paintGuide(); setTimeout(checkUW,200); updateFIBVisibility(); prefetchNext();  setTimeout(prefetchScript, 400); if(STEPS[state.current] && STEPS[state.current].id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); loadPictureGuidance(); } else { exitPictureFullscreen(); } }
+  function goto(i){
+    saveNotes();
+    state.current=Math.max(0,Math.min(STEPS.length-1,i));
+    clearScriptBox(); renderStep(); renderRail(); paintGuide();
+    setTimeout(checkUW,200); updateFIBVisibility();
+    if(scriptMode==='script') setTimeout(prefetchScript, 400);
+    const id = STEPS[state.current] && STEPS[state.current].id;
+    if(id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); loadPictureGuidance(); }
+    else { exitPictureFullscreen(); maybeRequestGuidance(); }
+    // Build Your Picture in the background while they're on the step before it,
+    // so it opens instantly instead of loading in front of the client.
+    if(id==='health') schedulePicturePrecompute();
+    persistSoon();
+  }
   function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
 
   function renderStep(){
@@ -2579,8 +2686,8 @@ function clearScriptBox(){
     document.getElementById('stepBody').innerHTML=bodyFor(s.id);
     wireBody(s.id);
     renderSnapshot();
-    // fire guidance for this step
-    requestGuidance();
+    renderNoteSuggestions();
+    // Guidance is requested by goto()/typing (only when content changed), not on every re-render.
   }
 
 function yourPictureBody(){
@@ -2633,7 +2740,7 @@ function yourPictureBody(){
     const secondaryGap = persons.length > 1 && mortgage !== null && covers[1] !== null ?
       Math.max(0,mortgage-covers[1]) : null;
 
-    const goalText = String(state.notes[1] || '').trim();
+    const goalText = stepNotes('goals');
     const highlight = goalText.match(/\b(?:settled in (?:this|their|the) home|keep(?:ing)? (?:this|their|the) home|(?:this|their|the) home|financial security|standard of living|their children|our children|retirement)\b/i);
     const goalHtml = !goalText ? missing : highlight ?
       esc(goalText.slice(0,highlight.index)) + '<em>' + esc(highlight[0]) + '</em>' +
@@ -2705,8 +2812,8 @@ function yourPictureBody(){
 
     state._pictureCalc = {
       goalText,
-      introNotes: String(state.notes[0]||'').trim(),
-      existingNotes: String(state.notes[3]||'').trim(),
+      introNotes: stepNotes('intro'),
+      existingNotes: stepNotes('existing'),
       primaryName: nameOf(persons[0]),
       secondaryName: persons.length > 1 ? nameOf(persons[1]) : '',
       illnessGap,
@@ -2738,6 +2845,10 @@ function yourPictureBody(){
             <div class="ypf-client-note">Family protection · Illustrative view</div>
           </div>
         </div>
+        <div class="ypf-view-controls">
+          <button type="button" class="ypf-view-btn ypf-adviser-only" onclick="togglePictureNotes()" title="Open the notes box without leaving this screen">&#9998; Notes</button>
+          <button type="button" class="ypf-view-btn" id="ypfViewToggle" onclick="togglePictureView()" aria-pressed="${state.pictureView==='client'}" title="Hide your coaching notes before sharing this screen">${state.pictureView==='client' ? 'Back to adviser view' : 'Client view'}</button>
+        </div>
       </header>
       <main>
         <section class="ypf-lifestyle" aria-labelledby="ypf-lifestyle-heading">
@@ -2756,6 +2867,11 @@ function yourPictureBody(){
               <div class="ypf-lifestyle-figure-description">Rough monthly outgoing to keep life as it is now</div>
             </div>
             <p class="ypf-lifestyle-consequence">${lifestyleConsequence}</p>
+            ${outgoings === null ? `<div class="ypf-capture ypf-adviser-only">
+              <label for="ypfOutgoings">Rough monthly outgoings</label>
+              <input id="ypfOutgoings" inputmode="decimal" placeholder="e.g. £2,800" onkeydown="if(event.key==='Enter')capturePictureOutgoings()">
+              <button type="button" onclick="capturePictureOutgoings()">Add</button>
+            </div>` : ''}
           </div>
           <div class="ypf-leaves" id="ypf-leaves-lifestyle"></div>
         </section>
@@ -2871,67 +2987,70 @@ function yourPictureBody(){
     </div>`;
   }
 
-  async function fetchPictureLinks(goalText, clientData){
-    try{
+  const pictureLinksCache = {key:null, out:null, inflight:null, inflightKey:null};
+  function pictureLinksPayload(calc){
+    return {
+      goal_text: calc.goalText,
+      intro_notes: calc.introNotes,
+      existing_notes: calc.existingNotes,
+      primary_name: calc.primaryName,
+      secondary_name: calc.secondaryName,
+      illness_gap: calc.illnessGap,
+      death_gap: calc.deathGap,
+      primary_cover: calc.primaryCover,
+      mortgage: calc.mortgage,
+      monthly_payment: calc.monthlyPayment,
+      continuing_income: calc.continuingIncome
+    };
+  }
+  async function fetchPictureLinksData(calc){
+    const body = pictureLinksPayload(calc);
+    const key = JSON.stringify(body);
+    if(pictureLinksCache.key === key && pictureLinksCache.out) return pictureLinksCache.out;
+    if(pictureLinksCache.inflightKey === key && pictureLinksCache.inflight) return pictureLinksCache.inflight;
+    const promise = (async () => {
       const res = await authFetch(API_BASE+'/copilot/picture-links',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({goal_text: goalText, clients: clientData.map(c=>({name:c.name, illnessShortfall:c.illnessShortfall, deathGap:c.deathGap}))})});
+        body:JSON.stringify(body)});
       const out = await res.json();
-      if(out.goalHighlight && out.goalRest){
-        const goalEl = document.getElementById('yp-goal-statement');
-        if(goalEl) goalEl.innerHTML = esc(out.goalRest) + ' <em class="yp-goal-highlight">' + esc(out.goalHighlight) + '</em>';
+      // don't cache the server's fail-safe fallback (empty sentences)
+      if(out && (out.illnessSentence || out.deathSentence || out.goalHighlight)){
+        pictureLinksCache.key = key; pictureLinksCache.out = out;
       }
-      (out.links||[]).forEach(l=>{
-        const illEl = document.getElementById('yp-link-illness-'+l.clientKey);
-        if(illEl){ illEl.textContent = l.illnessSentence||''; illEl.classList.remove('loading'); }
-        const deathEl = document.getElementById('yp-link-death-'+l.clientKey);
-        if(deathEl){ deathEl.textContent = l.deathSentence||''; deathEl.classList.remove('loading'); }
-      });
-    }catch(e){
-      console.error('picture links failed', e);
-      document.querySelectorAll('.yp-link-sentence.loading').forEach(el=>{ el.textContent=''; el.classList.remove('loading'); });
+      return out;
+    })();
+    pictureLinksCache.inflight = promise; pictureLinksCache.inflightKey = key;
+    try { return await promise; }
+    finally { if(pictureLinksCache.inflight === promise){ pictureLinksCache.inflight = null; pictureLinksCache.inflightKey = null; } }
+  }
+  function paintPictureLinks(out){
+    const illEl = document.getElementById('ypf-illness-consequence');
+    if(illEl && out.illnessSentence) illEl.textContent = out.illnessSentence;
+    const deathEl = document.getElementById('ypf-death-consequence');
+    if(deathEl && out.deathSentence) deathEl.textContent = out.deathSentence;
+    const goalEl = document.getElementById('ypf-goal-heading');
+    if(goalEl && out.goalSummary){
+      const idx = out.goalHighlight ? out.goalSummary.toLowerCase().indexOf(out.goalHighlight.toLowerCase()) : -1;
+      if(idx >= 0){
+        goalEl.innerHTML = esc(out.goalSummary.slice(0, idx)) + '<em>' + esc(out.goalSummary.slice(idx, idx + out.goalHighlight.length)) + '</em>' + esc(out.goalSummary.slice(idx + out.goalHighlight.length));
+      } else {
+        goalEl.textContent = out.goalSummary;
+      }
     }
   }
-
-  async function enrichPictureLinks(){
+  async function enrichPictureLinks(opts){
     const calc = state._pictureCalc;
     if(!calc) return;
     try{
-      const res = await authFetch(API_BASE+'/copilot/picture-links',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          goal_text: calc.goalText,
-          intro_notes: calc.introNotes,
-          existing_notes: calc.existingNotes,
-          primary_name: calc.primaryName,
-          secondary_name: calc.secondaryName,
-          illness_gap: calc.illnessGap,
-          death_gap: calc.deathGap,
-          primary_cover: calc.primaryCover,
-          mortgage: calc.mortgage,
-          monthly_payment: calc.monthlyPayment,
-          continuing_income: calc.continuingIncome
-        })});
-      const out = await res.json();
+      const out = await fetchPictureLinksData(calc);
       window._pictureLinksData = out;
-      const illEl = document.getElementById('ypf-illness-consequence');
-      if(illEl && out.illnessSentence) illEl.textContent = out.illnessSentence;
-      const deathEl = document.getElementById('ypf-death-consequence');
-      if(deathEl && out.deathSentence) deathEl.textContent = out.deathSentence;
-      const goalEl = document.getElementById('ypf-goal-heading');
-      if(goalEl && out.goalSummary){
-        const idx = out.goalHighlight ? out.goalSummary.toLowerCase().indexOf(out.goalHighlight.toLowerCase()) : -1;
-        if(idx >= 0){
-          goalEl.innerHTML = esc(out.goalSummary.slice(0, idx)) + '<em>' + esc(out.goalSummary.slice(idx, idx + out.goalHighlight.length)) + '</em>' + esc(out.goalSummary.slice(idx + out.goalHighlight.length));
-        } else {
-          goalEl.textContent = out.goalSummary;
-        }
-      }
+      if(!(opts && opts.background)) paintPictureLinks(out);
     }catch(e){
       console.error('picture links enrichment failed', e);
       // fail-safe: leave the existing deterministic sentence in place
     }
   }
 
-  const pictureGuideCache = {key:null, out:null};
+  const pictureGuideCache = {key:null, out:null, inflight:null, inflightKey:null};
   const PICTURE_LEAF_KINDS = {picture:'Picture it', numbers:'In numbers', ask:'Ask'};
   const PICTURE_BRANCH_AIMS = {
     goal: 'Re-anchor everything to why they bought this home.',
@@ -2977,13 +3096,9 @@ function yourPictureBody(){
     const bridge = document.getElementById('ypf-bridge');
     if(bridge) bridge.innerHTML = '';
   }
-  async function loadPictureGuidance(force){
-    if(!document.getElementById('ypf-leaves-centre')) return;
-    const refreshBtn = document.getElementById('ypfGuideRefresh');
-    if(refreshBtn) refreshBtn.onclick = () => { saveNotes(); loadPictureGuidance(true); };
-
+  function pictureGuidanceRequest(){
     const calc = state._pictureCalc || {};
-    const notesText = allNotes();
+    const notesText = allNotes(['health']);
     const notes = [factFindContext(), notesText && 'CALL NOTES:\n' + notesText].filter(Boolean).join('\n\n');
     const picture = {
       goal_text: calc.goalText, primary_name: calc.primaryName, secondary_name: calc.secondaryName,
@@ -2992,21 +3107,39 @@ function yourPictureBody(){
       outgoings: calc.outgoings,
       perspective_figures: calc.stats || {}
     };
-    const key = JSON.stringify([notes, picture]);
-    if(!force && pictureGuideCache.key === key && pictureGuideCache.out){
-      paintPictureGuidance(pictureGuideCache.out);
-      return;
-    }
-    setPictureLeavesMessage('Reading the picture&hellip;');
-    try{
+    return {key: JSON.stringify([notes, picture, state.callPlan]), body: {notes, picture, call_plan: state.callPlan}};
+  }
+  async function fetchPictureGuidance(force){
+    const req = pictureGuidanceRequest();
+    if(!force && pictureGuideCache.key === req.key && pictureGuideCache.out) return pictureGuideCache.out;
+    if(!force && pictureGuideCache.inflightKey === req.key && pictureGuideCache.inflight) return pictureGuideCache.inflight;
+    const promise = (async () => {
       const res = await authFetch(API_BASE+'/copilot/picture-guidance',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes, picture, call_plan: state.callPlan})});
+        body:JSON.stringify(req.body)});
       const out = await res.json();
       const b = normalisePictureBranches(out);
       const count = ['goal','illness','death','existing','lifestyle'].reduce((n,k)=>n+(Array.isArray(b[k])?b[k].length:0),0);
       if(out.error && !count) throw new Error(out.error);
-      pictureGuideCache.key = key;
+      pictureGuideCache.key = req.key;
       pictureGuideCache.out = out;
+      return out;
+    })();
+    pictureGuideCache.inflight = promise; pictureGuideCache.inflightKey = req.key;
+    try { return await promise; }
+    finally { if(pictureGuideCache.inflight === promise){ pictureGuideCache.inflight = null; pictureGuideCache.inflightKey = null; } }
+  }
+  async function loadPictureGuidance(force){
+    if(!document.getElementById('ypf-leaves-centre')) return;
+    const refreshBtn = document.getElementById('ypfGuideRefresh');
+    if(refreshBtn) refreshBtn.onclick = () => { saveNotes(); loadPictureGuidance(true); };
+    const req = pictureGuidanceRequest();
+    if(!force && pictureGuideCache.key === req.key && pictureGuideCache.out){
+      paintPictureGuidance(pictureGuideCache.out);   // precomputed - instant
+      return;
+    }
+    setPictureLeavesMessage('Reading the picture&hellip;');
+    try{
+      const out = await fetchPictureGuidance(force);
       if(!document.getElementById('ypf-leaves-centre')) return;  // navigated away
       paintPictureGuidance(out);
     }catch(e){
@@ -3014,6 +3147,18 @@ function yourPictureBody(){
       logFailure('Your Picture', e);
       setPictureLeavesMessage('Couldn&rsquo;t load prompts - press Refresh prompts to try again.');
     }
+  }
+  // Background build of Your Picture while the adviser is on the step before it.
+  let picturePrecomputeTimer;
+  function schedulePicturePrecompute(){
+    clearTimeout(picturePrecomputeTimer);
+    picturePrecomputeTimer = setTimeout(precomputePicture, 1500);
+  }
+  function precomputePicture(){
+    try { yourPictureBody(); }   // computes state._pictureCalc (the HTML is discarded)
+    catch(e){ console.error('picture precompute failed', e); return; }
+    enrichPictureLinks({background:true});
+    fetchPictureGuidance(false).catch(e => console.warn('picture guidance precompute failed', e));
   }
 
   function bodyFor(id){
@@ -3030,31 +3175,57 @@ function yourPictureBody(){
     return '';
   }
 
+  function mortgageFieldsHTML(withIds){
+    const m = state.mortgage;
+    return `<div class="row2">
+        <div class="fieldset"><label class="fl">Mortgage amount</label><input class="fi" ${withIds?'id="m_amount"':''} value="${esc(m.amount)}" oninput="setM('amount',this.value)"></div>
+        <div class="fieldset"><label class="fl">Monthly payment</label><input class="fi" ${withIds?'id="m_payment"':''} value="${esc(m.payment)}" oninput="setM('payment',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="fieldset"><label class="fl">Purchase price</label><input class="fi" value="${esc(m.price)}" oninput="setM('price',this.value)"></div>
+        <div class="fieldset"><label class="fl">Term (years)</label><input class="fi" value="${esc(m.term)}" oninput="setM('term',this.value)"></div>
+      </div>`;
+  }
+
+  function prepBriefHTML(){
+    const p = state.prep;
+    if(!p) return '';
+    const list = (title, items) => Array.isArray(items) && items.length ?
+      `<div class="prep-block"><div class="prep-label">${title}</div><ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+    return `<div class="prep-brief">
+      <div class="prep-brief-head">Prep brief <span>from the referral email &middot; for you only &middot; not client facts until confirmed on the call</span></div>
+      ${p.situation ? `<p class="prep-situation">${esc(p.situation)}</p>` : ''}
+      ${list('Opening questions', p.opening_questions)}
+      ${list('Need to illustrate', p.need_illustrations)}
+      ${list('Watch for', p.watch_for)}
+    </div>`;
+  }
+
   function introBody(){
-    // On intro: referral dropdown to load a client, then editable fields
-    return `<div class="assump" style="margin-bottom:16px">
-      <h4>Load a referred client</h4>
-      <!-- GHL DISCONNECTED: dropdown hidden, code kept below.
-           To re-enable: change style="display:none" to style="display:block"
-           on the wrapper div, and restore loadReferralList() in the init line
-           near the end of the script block. -->
-      <div style="display:none">
-        <div class="row2" style="align-items:end">
-          <div class="fieldset" style="margin:0">
-            <label class="fl">Referred client</label>
-            <select class="fi" id="referralSelect" onchange="loadReferral(this.value)"><option value="">Loading…</option></select>
-          </div>
-          <div class="fieldset" style="margin:0;display:flex;gap:8px;align-items:center">
-            <button class="add-btn" onclick="loadReferralList()">↻ refresh</button>
-            <span class="empty-note" id="referralStatus" style="margin:0"></span>
-          </div>
+    const opts = referralOptions.length ?
+      '<option value="">Select a client…</option>' + referralOptions.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('') :
+      '<option value="">Press “Show referred clients”</option>';
+    return `<div class="assump prep-panel" style="margin-bottom:16px">
+      <h4>Before the call &mdash; prep</h4>
+      <p class="empty-note" style="margin:0 0 12px;font-size:13px">Load the referral before you dial. The fields fill in and the co-pilot gets ready, so you aren't typing from a blank page while you talk.</p>
+      <div class="row2" style="align-items:end">
+        <div class="fieldset" style="margin:0">
+          <label class="fl">Referred client (from GHL)</label>
+          <select class="fi" id="referralSelect" onchange="loadReferral(this.value)" ${referralOptions.length?'':'disabled'}>${opts}</select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="add-btn" onclick="loadReferralList()">Show referred clients</button>
         </div>
       </div>
-      <div style="margin-top:10px">
-        <label class="fl">…or paste a new referral email</label>
+      <div style="margin-top:12px">
+        <label class="fl">…or paste a referral email</label>
         <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare"></textarea>
-        <button class="add-btn" style="margin-top:8px" onclick="prepareFromEmail()">Prepare from email</button>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+          <button class="add-btn" onclick="prepareFromEmail()">Prepare from email</button>
+          <span class="empty-note" id="referralStatus" style="margin:0;font-size:13px"></span>
+        </div>
       </div>
+      ${prepBriefHTML()}
     </div>
     <div class="row2">
       ${clientEditor('c1','Client 1')}
@@ -3062,20 +3233,13 @@ function yourPictureBody(){
     </div>
     <div class="assump" style="margin-top:14px"><h4>Plan for this call</h4>
       <p class="empty-note" style="margin:0 0 8px">Jot down how you intend to approach this call - what you'll lead with, anything to be careful of, where you want to get to. The co-pilot will align its guidance to your approach. Not shown to the client.</p>
-      <textarea class="fi" rows="3" placeholder="e.g. Lead with income protection - he's reluctant so keep it educational. Get to the bonus/death-in-service gap early. Budget may be tight, phase CIC if needed." oninput="setCallPlan(this.value)">${state.callPlan}</textarea>
+      <textarea class="fi" rows="3" placeholder="e.g. Lead with income protection - he's reluctant so keep it educational. Get to the bonus/death-in-service gap early. Budget may be tight, phase CIC if needed." oninput="setCallPlan(this.value)">${esc(state.callPlan)}</textarea>
     </div>
     <div class="assump" style="margin-top:14px"><h4>Referral source</h4>
-      <div class="fieldset"><label class="fl">Where did this lead come from?</label><input class="fi" placeholder="e.g. Smith Mortgages, existing client Sarah J, website enquiry" value="${state.referralSource}" oninput="setReferralSource(this.value)"></div>
+      <div class="fieldset"><label class="fl">Where did this lead come from?</label><input class="fi" placeholder="e.g. Smith Mortgages, existing client Sarah J, website enquiry" value="${esc(state.referralSource)}" oninput="setReferralSource(this.value)"></div>
     </div>
     <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
-      <div class="row2">
-        <div class="fieldset"><label class="fl">Mortgage amount</label><input class="fi" id="m_amount" value="${state.mortgage.amount}" oninput="setM('amount',this.value)"></div>
-        <div class="fieldset"><label class="fl">Monthly payment</label><input class="fi" id="m_payment" value="${state.mortgage.payment}" oninput="setM('payment',this.value)"></div>
-      </div>
-      <div class="row2">
-        <div class="fieldset"><label class="fl">Purchase price</label><input class="fi" value="${state.mortgage.price}" oninput="setM('price',this.value)"></div>
-        <div class="fieldset"><label class="fl">Term (years)</label><input class="fi" value="${state.mortgage.term}" oninput="setM('term',this.value)"></div>
-      </div>
+      ${mortgageFieldsHTML(true)}
     </div>`;
   }
 
@@ -3087,15 +3251,15 @@ function yourPictureBody(){
   }
   function clientEditor(key,label){
     const c=state[key];
-    return `<div class="miniclient"><h3>${label}</h3>
+    return `<div class="miniclient"><h3>${esc(label)}</h3>
       <div class="row2">
-        <div class="fieldset"><label class="fl">Name</label><input class="fi" value="${c.name}" oninput="setC('${key}','name',this.value)"></div>
-        <div class="fieldset"><label class="fl">Age</label><input class="fi" value="${c.age}" oninput="setC('${key}','age',this.value)"></div>
+        <div class="fieldset"><label class="fl">Name</label><input class="fi" value="${esc(c.name)}" oninput="setC('${key}','name',this.value)"></div>
+        <div class="fieldset"><label class="fl">Age</label><input class="fi" value="${esc(c.age)}" oninput="setC('${key}','age',this.value)"></div>
       </div>
-      <div class="fieldset"><label class="fl">Job role</label><input class="fi" value="${c.job}" oninput="setC('${key}','job',this.value)"></div>
+      <div class="fieldset"><label class="fl">Job role</label><input class="fi" value="${esc(c.job)}" oninput="setC('${key}','job',this.value)"></div>
       <div class="row2">
-        <div class="fieldset"><label class="fl">Salary</label><input class="fi" value="${c.salary}" oninput="setC('${key}','salary',this.value)"></div>
-        <div class="fieldset"><label class="fl">Bonus</label><input class="fi" value="${c.bonus}" oninput="setC('${key}','bonus',this.value)"></div>
+        <div class="fieldset"><label class="fl">Salary</label><input class="fi" value="${esc(c.salary)}" oninput="setC('${key}','salary',this.value)"></div>
+        <div class="fieldset"><label class="fl">Bonus</label><input class="fi" value="${esc(c.bonus)}" oninput="setC('${key}','bonus',this.value)"></div>
       </div>
       <div class="fieldset"><label class="fl">Employment</label>
         <select class="fi" onchange="setC('${key}','emp',this.value)">
@@ -3105,172 +3269,188 @@ function yourPictureBody(){
     </div>`;
   }
 
-  function factfindBody(){
+  function ffTotalsHTML(){
     const h=household();
-    const card=(c,label)=>c.active===false?'':`<div class="miniclient"><h3>${label}</h3>
-      <div class="kv"><span class="kk">Age</span><span class="vv">${c.age||'—'}</span></div>
-      <div class="kv"><span class="kk">Role</span><span class="vv">${c.job||'—'}</span></div>
-      <div class="kv"><span class="kk">Salary</span><span class="vv">${gm(num(c.salary))}</span></div>
-      ${num(c.bonus)?`<div class="kv"><span class="kk">Bonus</span><span class="vv">${gm(num(c.bonus))}</span></div>`:''}
+    return `<div class="miniclient" style="margin-top:14px"><h3>Household income (calculated)</h3>
+      <div class="kv"><span class="kk">Gross / yr</span><span class="vv">${gm(h.gross)}</span></div>
+      <div class="kv"><span class="kk">Net / yr</span><span class="vv">${gm(h.netAnnual)}</span></div>
+      <div class="kv"><span class="kk">Net / mo</span><span class="vv">${gm(h.netMonthly)}</span></div>
     </div>`;
-    return `<div class="row4">
-      ${card(state.c1,state.c1.name||'Client 1')}
-      ${state.c2.active?card(state.c2,state.c2.name||'Client 2'):''}
-      <div class="miniclient"><h3>Household income</h3>
-        <div class="kv"><span class="kk">Gross / yr</span><span class="vv">${gm(h.gross)}</span></div>
-        <div class="kv"><span class="kk">Net / yr</span><span class="vv">${gm(h.netAnnual)}</span></div>
-        <div class="kv"><span class="kk">Net / mo</span><span class="vv">${gm(h.netMonthly)}</span></div>
+  }
+  function refreshLiveTotals(){ const el=document.getElementById('ffTotals'); if(el) el.innerHTML=ffTotalsHTML(); }
+
+  // Confirm Factfind is editable: read each detail back and correct it here,
+  // instead of going back to Introduction. It also holds the three household
+  // figures Your Picture needs (nothing captured them before).
+  function factfindBody(){
+    const hh = state.household || {};
+    return `<p class="empty-note" style="margin:0 0 14px;font-size:13.5px">Read each detail back to the client and correct it here &mdash; no need to go back to Introduction.</p>
+    <div class="row2">
+      ${clientEditor('c1','Client 1')}
+      ${state.c2.active?clientEditor('c2','Client 2'):`<div class="miniclient"><h3>Client 2</h3><button class="add-btn" onclick="addC2()">+ Add second client</button></div>`}
+    </div>
+    <div class="assump" style="margin-top:14px"><h4>Household</h4>
+      <div class="row3">
+        <div class="fieldset"><label class="fl">Dependants</label><input class="fi" placeholder="e.g. two children, 4 and 7" value="${esc(hh.dependants)}" oninput="setHousehold('dependants',this.value)"></div>
+        <div class="fieldset"><label class="fl">Youngest child&rsquo;s age</label><input class="fi" inputmode="numeric" placeholder="e.g. 4" value="${esc(state.salesArc.youngestAge)}" oninput="setSalesArc('youngestAge',this.value)"></div>
+        <div class="fieldset"><label class="fl">Rough monthly outgoings</label><input class="fi" inputmode="decimal" placeholder="e.g. £2,800" value="${esc(state.salesArc.outgoings)}" oninput="setSalesArc('outgoings',this.value)"></div>
       </div>
-      <div class="miniclient"><h3>Property &amp; mortgage</h3>
-        <div class="kv"><span class="kk">Price</span><span class="vv">${gm(num(state.mortgage.price))}</span></div>
-        <div class="kv"><span class="kk">Mortgage</span><span class="vv">${gm(num(state.mortgage.amount))}</span></div>
-        <div class="kv"><span class="kk">Monthly</span><span class="vv">${gm(num(state.mortgage.payment))}</span></div>
-        <div class="kv"><span class="kk">Term</span><span class="vv">${state.mortgage.term||'—'} yrs</span></div>
-      </div>
-    </div>`;
+      <p class="empty-note" style="margin:0;font-size:12.5px">These feed Your Picture &mdash; the lifestyle branch and the years-until-independent figures stay empty without them.</p>
+    </div>
+    <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
+      ${mortgageFieldsHTML(false)}
+    </div>
+    <div id="ffTotals">${ffTotalsHTML()}</div>`;
   }
 
   function stressBody(){
     const a=state.assumptions;
     return `<div class="assump"><h4>Assumptions</h4>
       <div class="row4">
-        <div><label class="fl">Retirement age</label><input class="fi" value="${a.retire}" oninput="setA('retire',this.value)"></div>
-        <div><label class="fl">Death-in-service (× salary)</label><input class="fi" value="${a.dis}" oninput="setA('dis',this.value)"></div>
-        <div><label class="fl">Savings (months)</label><input class="fi" value="${a.savings}" oninput="setA('savings',this.value)"></div>
-        <div><label class="fl">${state.c1.name||'Client 1'} sick pay (mo)</label><input class="fi" value="${a.c1sick}" oninput="setA('c1sick',this.value)"></div>
+        <div><label class="fl">Retirement age</label><input class="fi" value="${esc(a.retire)}" oninput="setA('retire',this.value)"></div>
+        <div><label class="fl">Death-in-service (× salary)</label><input class="fi" value="${esc(a.dis)}" oninput="setA('dis',this.value)"></div>
+        <div><label class="fl">Savings (months)</label><input class="fi" value="${esc(a.savings)}" oninput="setA('savings',this.value)"></div>
+        <div><label class="fl">${esc(state.c1.name||'Client 1')} sick pay (mo)</label><input class="fi" value="${esc(a.c1sick)}" oninput="setA('c1sick',this.value)"></div>
       </div>
-      ${state.c2.active?`<div class="row4" style="margin-top:10px"><div><label class="fl">${state.c2.name||'Client 2'} sick pay (mo)</label><input class="fi" value="${a.c2sick}" oninput="setA('c2sick',this.value)"></div></div>`:''}
+      ${state.c2.active?`<div class="row4" style="margin-top:10px"><div><label class="fl">${esc(state.c2.name||'Client 2')} sick pay (mo)</label><input class="fi" value="${esc(a.c2sick)}" oninput="setA('c2sick',this.value)"></div></div>`:''}
     </div>
     <div id="stressResults">${stressResults()}</div>`;
   }
+  // Same rule as Your Picture: the default 4x multiplier isn't a recorded benefit.
+  // It counts once it's typed in, or the stress-test step is marked complete.
+  function disIsRecorded(){
+    const a=state.assumptions;
+    const v=String(a.dis ?? '').replace(/£/g,'').replace(/,/g,'').trim();
+    return /^\d+(?:\.\d+)?$/.test(v) && (typeof a.dis === 'string' || !!state.complete[SI('stress')]);
+  }
+
   function stressResults(){
     let out='';
     const persons=[['c1',state.c1]]; if(state.c2.active)persons.push(['c2',state.c2]);
+    const a=state.assumptions;
+    const disKnown=disIsRecorded();
     persons.forEach(([key,c])=>{
-      const a=state.assumptions;
+      const name=esc(c.name||(key==='c1'?'Client 1':'Client 2'));
       const netMo=netAnnual(c)/12;
       const monthsToRetire=Math.max(0,(num(a.retire)-num(c.age)))*12;
       const earningsToRetire=netMo*monthsToRetire;
-      const lifeInPlace=num(c.salary)*num(a.dis); // base salary only - DIS typically excludes bonus
+      const lifeInPlace=disKnown ? num(c.salary)*num(a.dis) : null; // base salary only - DIS usually excludes bonus
       const mortgage=num(state.mortgage.amount);
-      const lifeGap=Math.max(0,mortgage-lifeInPlace);
+      const lifeGap=lifeInPlace===null ? null : Math.max(0,mortgage-lifeInPlace);
       const sick=key==='c1'?num(a.c1sick):num(a.c2sick);
       const incomeLasts=sick+num(a.savings);
-      const short=lifeGap>0||netMo>0;
-      out+=`<div class="stress"><div class="stress-head"><h3>${c.name||(key==='c1'?'Client 1':'Client 2')}</h3>
-        <span class="badge ${lifeGap>0?'short':'ok'}">${lifeGap>0?'Shortfall — not enough':'Covered'}</span></div>
+      const badge = lifeGap===null ? '<span class="badge">DIS not confirmed</span>' :
+        `<span class="badge ${lifeGap>0?'short':'ok'}">${lifeGap>0?'Life gap':'DIS would clear mortgage'}</span>`;
+      out+=`<div class="stress"><div class="stress-head"><h3>${name}</h3>${badge}</div>
         <div class="stress-grid">
           <div class="sc"><div class="k">Net monthly</div><div class="v">${gm(netMo)}</div></div>
-          <div class="sc"><div class="k">Earnings to retirement</div><div class="v">${gm(earningsToRetire)}</div><div class="s">${num(c.age)} yrs to ${a.retire}</div></div>
-          <div class="sc"><div class="k">Income lasts</div><div class="v">${incomeLasts} mo</div><div class="s">${sick} sick + ${a.savings} savings</div></div>
-          <div class="sc warn"><div class="k">Life cover in place</div><div class="v">${gm(lifeInPlace)}</div><div class="s">${a.dis}× DIS</div></div>
-          <div class="sc bad"><div class="k">Life gap to clear mortgage</div><div class="v">${gm(lifeGap)}</div><div class="s">vs ${gm(mortgage)} mortgage</div></div>
+          <div class="sc"><div class="k">Earnings to retirement</div><div class="v">${gm(earningsToRetire)}</div><div class="s">${num(c.age)} yrs to ${esc(a.retire)}</div></div>
+          <div class="sc"><div class="k">Income lasts</div><div class="v">${incomeLasts} mo</div><div class="s">${sick} sick + ${num(a.savings)} savings</div></div>
+          <div class="sc warn"><div class="k">Life cover in place</div><div class="v">${lifeInPlace===null?'—':gm(lifeInPlace)}</div><div class="s">${disKnown?esc(a.dis)+'× DIS':'confirm the DIS multiple above'}</div></div>
+          <div class="sc bad"><div class="k">Life gap to clear mortgage</div><div class="v">${lifeGap===null?'—':gm(lifeGap)}</div><div class="s">vs ${gm(mortgage)} mortgage</div></div>
           <div class="sc info"><div class="k">Months to protect</div><div class="v">${monthsToRetire}</div><div class="s">to retirement</div></div>
         </div>
-        <div class="stress-note ${lifeGap>0?'':'ok'}">${lifeGap>0
-          ? `The numbers show ${c.name||'this client'} <b>does not have enough</b> cover: ${gm(lifeGap)} short to clear the mortgage on death, and ${gm(netMo)}/month unprotected if unable to work. Use this to establish the need before recommending.`
-          : `Mortgage would be cleared by existing cover, but ${gm(netMo)}/month of income remains unprotected if unable to work.`}</div>
+        <div class="stress-note ${lifeGap>0||lifeGap===null?'':'ok'}">${lifeGap===null
+          ? `Confirm ${name}&rsquo;s death-in-service multiple (type it above, or mark this step complete) before reading the life-cover gap. ${gm(netMo)}/month of income is unprotected if unable to work.`
+          : lifeGap>0
+          ? `The numbers show ${name} <b>does not have enough</b> cover: ${gm(lifeGap)} short to clear the mortgage on death, and ${gm(netMo)}/month unprotected if unable to work. Use this to establish the need before recommending.`
+          : `Mortgage would be cleared by the recorded death-in-service benefit, but ${gm(netMo)}/month of income remains unprotected if unable to work.`}</div>
       </div>`;
     });
 
-    // ── Extended protection maths ─────────────────────────────────
+    // ── Adviser reference figures (not recommendations) ─────────────
     const h2=household();
-    const netMo=h2.netMonthly;
     const grossYr=h2.gross;
     const mortgage=num(state.mortgage.amount);
-    const propVal=num(state.property&&state.property.value||0);
-    const savings=num(state.assumptions.savings)*num(h2.netMonthly||1)/1; // savings in months × net
+    const propVal=num(state.mortgage.price);            // purchase price as the property value
+    const savingsAmt=num(a.savings)*h2.netMonthly;       // savings are captured as months of net income
 
-    // ── 1. Income Replacement Ratio ──
-    const irrTarget=netMo*0.70;
-    const irrMax=netMo*0.80;
+    // 1. Income protection reference range (per person - IP is capped on each person's own income)
+    const irrTiles = persons.map(([key,c])=>{
+      const nm=esc(c.name||(key==='c1'?'Client 1':'Client 2'));
+      const net=netAnnual(c)/12;
+      return `<div class="sc info"><div class="k">${nm}: 70–80% of net</div><div class="v">${gm(net*0.70)}–${gm(net*0.80)}<span style="font-size:13px">/mo</span></div><div class="s">reference range only</div></div>`;
+    }).join('');
     out += `<div class="stress" style="margin-top:10px">
-      <div class="stress-head"><h3>Income protection — benefit target</h3></div>
+      <div class="stress-head"><h3>Income protection — reference range</h3><span class="badge">Adviser reference</span></div>
       <div class="stress-grid">
-        <div class="sc info"><div class="k">IRR floor (70% of net)</div><div class="v">${gm(irrTarget)}<span style="font-size:13px">/mo</span></div><div class="s">minimum IP benefit to aim for</div></div>
-        <div class="sc info"><div class="k">IRR ceiling (80% of net)</div><div class="v">${gm(irrMax)}<span style="font-size:13px">/mo</span></div><div class="s">insurer max — net of state benefits</div></div>
+        ${irrTiles}
         <div class="sc"><div class="k">State sick pay (SSP)</div><div class="v">£507/mo</div><div class="s">first 28 weeks only (2026/27)</div></div>
       </div>
-      <div class="stress-note ok">Target IP benefit: ${gm(irrTarget)}–${gm(irrMax)}/mo (after deferred period). Insurers cap at 65–70% gross / 80% net. Source the benefit at this level before discussing premiums.</div>
+      <div class="stress-note ok">70–80% of each person&rsquo;s net pay, for reference. Insurer benefit limits vary by provider &mdash; confirm the maximum in your sourcing tool. This is not a recommended benefit level.</div>
     </div>`;
 
-    // ── 2. IHT exposure ──
-    const estateVal = propVal > 0 ? (propVal - mortgage) : 0;
+    // 2. IHT exposure (uses the purchase price as the property value)
+    const estateVal = propVal > 0 ? Math.max(0, propVal - mortgage) : 0;
     const NRB = 325000;
     const RNRB = propVal > 0 ? 175000 : 0;
     const couple = state.c2.active;
     const allowances = couple ? (NRB*2 + RNRB*2) : (NRB + RNRB);
-    const netEstate = estateVal + num(state.assumptions.savings||0)*0; // savings not separately captured here
-    const ihtExposure = Math.max(0, netEstate - allowances) * 0.40;
+    const ihtExposure = Math.max(0, estateVal - allowances) * 0.40;
     const ihtNote = propVal===0
-      ? "Enter property value above to estimate IHT exposure."
+      ? "Add the purchase price (Introduction or Confirm Factfind) to see an estate figure."
       : ihtExposure > 0
-        ? `Potential IHT: ${gm(ihtExposure)} at 40% on estate above ${couple?'£1,000,000 (couple)':'£500,000 (single)'} allowances. Consider whole-of-life in trust.`
-        : `Estate appears within ${couple?'couple':'individual'} allowances (£${allowances.toLocaleString()}) — but frozen thresholds mean this narrows each year.`;
+        ? `Potential IHT: ${gm(ihtExposure)} at 40% on equity above ${couple?'£1,000,000 (couple)':'£500,000 (single)'} of allowances. Whole-of-life in trust is the usual planning tool to discuss. RNRB assumes the home passes to direct descendants; other assets aren't included.`
+        : `Property equity appears within ${couple?'couple':'individual'} allowances (£${allowances.toLocaleString()}) &mdash; other assets aren't included, and frozen thresholds narrow this each year.`;
     out += `<div class="stress" style="margin-top:10px">
-      <div class="stress-head"><h3>IHT exposure estimate</h3></div>
+      <div class="stress-head"><h3>IHT exposure estimate</h3><span class="badge">Adviser reference</span></div>
       <div class="stress-grid">
-        <div class="sc"><div class="k">Property equity (est.)</div><div class="v">${gm(estateVal)}</div><div class="s">property value − mortgage</div></div>
+        <div class="sc"><div class="k">Property equity (est.)</div><div class="v">${gm(estateVal)}</div><div class="s">purchase price − mortgage</div></div>
         <div class="sc"><div class="k">IHT-free allowances</div><div class="v">£${allowances.toLocaleString()}</div><div class="s">${couple?'NRB + RNRB × 2 (couple)':'NRB + RNRB (single)'}</div></div>
         <div class="sc ${ihtExposure>0?'warn':'ok'}"><div class="k">Potential IHT (40%)</div><div class="v">${ihtExposure>0?gm(ihtExposure):'None est.'}</div><div class="s">frozen to Apr 2030</div></div>
       </div>
       <div class="stress-note ${ihtExposure>0?'':'ok'}">${ihtNote}</div>
     </div>`;
 
-    // ── 3. CIC need estimate ──
-    const cicYears = 3; // default: 3 years income
-    const cicBase = grossYr * cicYears;
-    const cicNeed = Math.max(0, cicBase + mortgage*0.1 - 0); // rough: income × 3 + 10% of debts
+    // 3. CIC reference figure - the methodology formula, shown in its parts
+    const cicBase = grossYr * 3;
+    const cicRef = Math.max(0, cicBase + mortgage - savingsAmt);
     out += `<div class="stress" style="margin-top:10px">
-      <div class="stress-head"><h3>Critical illness — starting need</h3></div>
+      <div class="stress-head"><h3>Critical illness — reference figure</h3><span class="badge">Adviser reference</span></div>
       <div class="stress-grid">
-        <div class="sc info"><div class="k">Income × 3 yrs</div><div class="v">${gm(cicBase)}</div><div class="s">typical recovery / adaptation window</div></div>
-        <div class="sc"><div class="k">Debts to clear (est.)</div><div class="v">${gm(mortgage)}</div><div class="s">mortgage (adviser to confirm total)</div></div>
-        <div class="sc warn"><div class="k">Discussion starting point</div><div class="v">${gm(cicNeed)}</div><div class="s">gross income × 3 + 10% debts</div></div>
+        <div class="sc info"><div class="k">Gross income × 3 yrs</div><div class="v">${gm(cicBase)}</div><div class="s">typical recovery / adaptation window</div></div>
+        <div class="sc"><div class="k">Mortgage to clear</div><div class="v">${gm(mortgage)}</div><div class="s">confirm other debts</div></div>
+        <div class="sc"><div class="k">Less savings (est.)</div><div class="v">${gm(savingsAmt)}</div><div class="s">${num(a.savings)} months of net income</div></div>
+        <div class="sc warn"><div class="k">Reference total</div><div class="v">${gm(cicRef)}</div><div class="s">income × 3 + mortgage − savings</div></div>
       </div>
-      <div class="stress-note ok">CIC need = income years + debts to clear − savings. This is a starting point for the conversation, not a recommendation. Adviser to sense-check against client's real priorities and existing cover.</div>
+      <div class="stress-note ok">Built from the methodology formula (income years + debts to clear − savings) as a reference for you. It is not a recommended cover amount &mdash; sense-check it against the client&rsquo;s priorities and existing cover.</div>
     </div>`;
 
-    // ── 4. Deferred period guide ──
-    const c1sick = num(state.assumptions.c1sick);
+    // 4. Deferred period - a matching guide, not a recommendation
+    const c1sick = num(a.c1sick);
     const emp = (state.c1.emp||'').toLowerCase();
     const isNHS = emp.includes('nhs') || (state.c1.job||'').toLowerCase().includes('nhs');
     const isSE = emp.includes('self') || emp.includes('sole');
     let defPeriod, defReason;
-    if(isSE){ defPeriod='4 weeks'; defReason='Self-employed: no sick pay → shortest deferred period recommended.'; }
-    else if(isNHS || c1sick >= 6){ defPeriod='26 weeks'; defReason='6+ months sick pay or NHS: 26-week deferred period aligns to employer benefit.'; }
-    else if(c1sick >= 3){ defPeriod='13 weeks'; defReason='3–6 months sick pay: 13-week deferred period is the natural match.'; }
-    else if(c1sick >= 1){ defPeriod='4 weeks'; defReason='Short sick pay (1–3 months): consider 4-week or 8-week deferred.'; }
+    if(isSE){ defPeriod='4 weeks'; defReason='Self-employed with no sick pay: a short deferred period is the natural match to discuss.'; }
+    else if(isNHS || c1sick >= 6){ defPeriod='26 weeks'; defReason='6+ months sick pay or NHS: a 26-week deferred period lines up with the employer benefit.'; }
+    else if(c1sick >= 3){ defPeriod='13 weeks'; defReason='3–6 months sick pay: a 13-week deferred period lines up with the employer benefit.'; }
+    else if(c1sick >= 1){ defPeriod='4–8 weeks'; defReason='Short sick pay (1–3 months): a 4- or 8-week deferred period lines up with it.'; }
     else { defPeriod='Clarify'; defReason='Sick pay duration not confirmed — clarify before sourcing quotes.'; }
     out += `<div class="stress" style="margin-top:10px">
-      <div class="stress-head"><h3>Deferred period guide</h3></div>
+      <div class="stress-head"><h3>Deferred period guide</h3><span class="badge">Adviser reference</span></div>
       <div class="stress-grid">
         <div class="sc"><div class="k">Sick pay recorded</div><div class="v">${c1sick} mo</div><div class="s">months before income drops</div></div>
-        <div class="sc info"><div class="k">Suggested deferred period</div><div class="v">${defPeriod}</div><div class="s">match to sick-pay end point</div></div>
+        <div class="sc info"><div class="k">Matches sick-pay end</div><div class="v">${defPeriod}</div><div class="s">deferred period to discuss</div></div>
         <div class="sc"><div class="k">Key rule</div><div class="v">Match it</div><div class="s">deferred = sick pay duration</div></div>
       </div>
-      <div class="stress-note ok">${defReason} Shorter deferred = higher premium but less reliance on savings. Confirm with client exactly when income drops before sourcing.</div>
+      <div class="stress-note ok">${defReason} Shorter deferred = higher premium but less reliance on savings. Confirm with the client exactly when income drops before sourcing.</div>
     </div>`;
 
-    // ── 5. Mortgage payment shock ──
+    // 5. Mortgage payment shock - illustrative
     const mpay = num(state.mortgage.payment);
-    const mbal = mortgage;
-    const mterm = num(state.mortgage.term||25);
-    // rough SVR shock: assume current rate implied from payment, then +3%
-    // simpler: show fixed/SVR delta using current payment as base and scaling
-    // (0.075/0.045 ≈ +29% at typical 2026 rates — just use ratio)
     const shock = mpay > 0 ? mpay * 1.30 : 0;
     const shockDelta = shock - mpay;
     out += `<div class="stress" style="margin-top:10px">
-      <div class="stress-head"><h3>Mortgage payment shock (rate reversion)</h3></div>
+      <div class="stress-head"><h3>Mortgage payment shock (rate reversion)</h3><span class="badge">Illustrative</span></div>
       <div class="stress-grid">
         <div class="sc"><div class="k">Current payment</div><div class="v">${gm(mpay)}<span style="font-size:13px">/mo</span></div><div class="s">as entered</div></div>
-        <div class="sc warn"><div class="k">At SVR +3% (est.)</div><div class="v">${gm(shock)}<span style="font-size:13px">/mo</span></div><div class="s">FCA stress rate (+30% est.)</div></div>
-        <div class="sc bad"><div class="k">Extra cost at reversion</div><div class="v">${gm(shockDelta)}<span style="font-size:13px">/mo</span></div><div class="s">payment shock on fixed expiry</div></div>
+        <div class="sc warn"><div class="k">If it rose 30%</div><div class="v">${gm(shock)}<span style="font-size:13px">/mo</span></div><div class="s">illustrative reversion rise</div></div>
+        <div class="sc bad"><div class="k">Extra each month</div><div class="v">${gm(shockDelta)}<span style="font-size:13px">/mo</span></div><div class="s">at that illustrative rise</div></div>
       </div>
       <div class="stress-note ${mpay>0?'':'ok'}">${mpay>0
-        ? `If their fixed rate ends and they revert to SVR, the monthly payment rises by ~${gm(shockDelta)}. If income were also interrupted at this point, the combined exposure is acute — IP cover needs to be sufficient to bridge both.`
-        : 'Enter monthly mortgage payment to calculate the reversion shock.'}</div>
+        ? `A 30% rise is an illustration of reverting to a standard variable rate, not an FCA or lender figure. If the payment rose ~${gm(shockDelta)} while income was also interrupted, the combined pressure is worth talking through.`
+        : 'Enter the monthly mortgage payment to see the illustration.'}</div>
     </div>`;
 
     out += goalsLinking();
@@ -3278,10 +3458,10 @@ function yourPictureBody(){
   }
 
   function healthBody(){
-    const block=(key,c)=>c.active===false?'':`<div class="miniclient" style="margin-bottom:12px"><h3>${c.name||(key==='c1'?'Client 1':'Client 2')}</h3>
-      <div class="fieldset"><label class="fl">Health history (last 5 yrs)</label><textarea class="fi" rows="2" placeholder="e.g. mild asthma, back pain 2023" oninput="setC('${key}','health',this.value);checkUWDebounced();">${c.health||''}</textarea></div>
-      <div class="fieldset"><label class="fl">Family history</label><textarea class="fi" rows="2" placeholder="e.g. father heart attack age 60" oninput="setC('${key}','familyHistory',this.value);checkUWDebounced();">${c.familyHistory||''}</textarea></div>
-      <div class="fieldset"><label class="fl">Lifestyle / hobbies (risk activities)</label><input class="fi" placeholder="e.g. rock climbing, motorcycling" value="${c.lifestyle||''}" oninput="setC('${key}','lifestyle',this.value);checkUWDebounced();"></div>
+    const block=(key,c)=>c.active===false?'':`<div class="miniclient" style="margin-bottom:12px"><h3>${esc(c.name||(key==='c1'?'Client 1':'Client 2'))}</h3>
+      <div class="fieldset"><label class="fl">Health history (last 5 yrs)</label><textarea class="fi" rows="2" placeholder="e.g. mild asthma, back pain 2023" oninput="setC('${key}','health',this.value);checkUWDebounced();">${esc(c.health)}</textarea></div>
+      <div class="fieldset"><label class="fl">Family history</label><textarea class="fi" rows="2" placeholder="e.g. father heart attack age 60" oninput="setC('${key}','familyHistory',this.value);checkUWDebounced();">${esc(c.familyHistory)}</textarea></div>
+      <div class="fieldset"><label class="fl">Lifestyle / hobbies (risk activities)</label><input class="fi" placeholder="e.g. rock climbing, motorcycling" value="${esc(c.lifestyle)}" oninput="setC('${key}','lifestyle',this.value);checkUWDebounced();"></div>
     </div>`;
     return `<div class="row2">${block('c1',state.c1)}${state.c2.active?block('c2',state.c2):''}</div>
       <p class="empty-note">These factors affect price and acceptance — capture live to pre-empt underwriting questions. Health notes here are for the fact-find; enter minimal detail and rely on your sourcing tool for full underwriting.</p>`;
@@ -3291,10 +3471,10 @@ function yourPictureBody(){
     const rows=state.existing.map((e,i)=>`<div class="quote-block">
       <button class="remove-btn" onclick="delExisting(${i})">✕ remove</button>
       <div class="row4">
-        <div><label class="fl">Whose</label><input class="fi" value="${e.who||''}" oninput="setEx(${i},'who',this.value)"></div>
-        <div><label class="fl">Type</label><input class="fi" value="${e.type||''}" oninput="setEx(${i},'type',this.value)"></div>
-        <div><label class="fl">Provider</label><input class="fi" value="${e.provider||''}" oninput="setEx(${i},'provider',this.value)"></div>
-        <div><label class="fl">Sum / benefit</label><input class="fi" value="${e.sum||''}" oninput="setEx(${i},'sum',this.value)"></div>
+        <div><label class="fl">Whose</label><input class="fi" value="${esc(e.who)}" oninput="setEx(${i},'who',this.value)"></div>
+        <div><label class="fl">Type</label><input class="fi" value="${esc(e.type)}" oninput="setEx(${i},'type',this.value)"></div>
+        <div><label class="fl">Provider</label><input class="fi" value="${esc(e.provider)}" oninput="setEx(${i},'provider',this.value)"></div>
+        <div><label class="fl">Sum / benefit</label><input class="fi" value="${esc(e.sum)}" oninput="setEx(${i},'sum',this.value)"></div>
       </div></div>`).join('');
     return `<button class="add-btn" onclick="addExisting()">+ Add policy</button>
       <div style="margin-top:12px">${rows||'<p class="empty-note">No existing cover recorded.</p>'}</div>`;
@@ -3305,13 +3485,13 @@ function yourPictureBody(){
     const rows=state.quotes[kind].map((q,i)=>`<div class="quote-block">
       <button class="remove-btn" onclick="delQuote('${kind}',${i})">✕ remove</button>
       <div class="row4">
-        <div><label class="fl">Client</label><input class="fi" value="${q.client||''}" oninput="setQ('${kind}',${i},'client',this.value)"></div>
-        <div><label class="fl">Provider</label><input class="fi" value="${q.provider||''}" oninput="setQ('${kind}',${i},'provider',this.value)"></div>
-        <div><label class="fl">Benefit / sum</label><input class="fi" value="${q.benefit||''}" oninput="setQ('${kind}',${i},'benefit',this.value)"></div>
-        <div><label class="fl">Monthly premium</label><input class="fi" value="${q.premium||''}" oninput="setQ('${kind}',${i},'premium',this.value)"></div>
+        <div><label class="fl">Client</label><input class="fi" value="${esc(q.client)}" oninput="setQ('${kind}',${i},'client',this.value)"></div>
+        <div><label class="fl">Provider</label><input class="fi" value="${esc(q.provider)}" oninput="setQ('${kind}',${i},'provider',this.value)"></div>
+        <div><label class="fl">Benefit / sum</label><input class="fi" value="${esc(q.benefit)}" oninput="setQ('${kind}',${i},'benefit',this.value)"></div>
+        <div><label class="fl">Monthly premium</label><input class="fi" value="${esc(q.premium)}" oninput="setQ('${kind}',${i},'premium',this.value)"></div>
       </div>
       <div class="row4" style="margin-top:10px">
-        <div><label class="fl">Term</label><input class="fi" value="${q.term||''}" oninput="setQ('${kind}',${i},'term',this.value)"></div>
+        <div><label class="fl">Term</label><input class="fi" value="${esc(q.term)}" oninput="setQ('${kind}',${i},'term',this.value)"></div>
         <div><label class="fl">Priority</label><select class="fi" onchange="setQ('${kind}',${i},'priority',this.value)">
           <option value="essential" ${q.priority==='essential'?'selected':''}>Essential</option>
           <option value="needed" ${q.priority==='needed'?'selected':''}>Needed</option></select></div>
@@ -3326,7 +3506,7 @@ function yourPictureBody(){
     let ess=0,need=0; const essList=[],needList=[];
     ['ip','fib','life','cic'].forEach(k=>state.quotes[k].forEach(q=>{
       const p=num(q.premium); if(p<=0)return;
-      const label=`${k.toUpperCase()}: ${q.provider||'—'} — £${p}/mo`;
+      const label=`${k.toUpperCase()}: ${esc(q.provider||'—')} — £${p}/mo`;
       if(q.priority==='essential'){ess+=p;essList.push(label);}else{need+=p;needList.push(label);}
     }));
     const metrics=(sum)=>`<div class="en-metrics">
@@ -3342,110 +3522,244 @@ function yourPictureBody(){
   }
 
   // ---------- wiring ----------
+  // When guidance refreshes: notes -> 2.5s after typing stops; structured fields
+  // -> when the field is left (change/blur), never on every keystroke. Either way
+  // a request only goes out if the content actually changed (see maybeRequestGuidance).
   let guideTimer;
-  function nudgeGuidance(){ clearTimeout(guideTimer); guideTimer=setTimeout(requestGuidance, 9000); updateFIBVisibility(); }
+  function nudgeGuidance(delay){ clearTimeout(guideTimer); guideTimer=setTimeout(maybeRequestGuidance, delay ?? 2500); updateFIBVisibility(); }
+  function fieldChanged(){ renderSnapshot(); refreshLiveTotals(); updateFIBVisibility(); renderNoteSuggestions(); persistSoon(); }
   function wireBody(id){ /* inputs use inline handlers */ }
-  function setCallPlan(v){
-    state.callPlan = v;
-    nudgeGuidance();
+  function setCallPlan(v){ state.callPlan = v; persistSoon(); }
+  function setSalesArc(field, value){ state.salesArc[field] = value; fieldChanged(); }
+  function setHousehold(field, value){ state.household[field] = value; fieldChanged(); }
+  function setReferralSource(v){ state.referralSource = v; persistSoon(); }
+  function focusLastRow(){
+    const rows=document.querySelectorAll('#stepBody .quote-block');
+    const inp=rows.length && rows[rows.length-1].querySelector('input');
+    if(inp) inp.focus();
   }
 
-  function setSalesArc(field, value){
-    state.salesArc[field] = value;
-    if(typeof nudgeGuidance === 'function') nudgeGuidance();
-  }
+  window.setC=(key,f,v)=>{state[key][f]=v;fieldChanged();};
+  window.setM=(f,v)=>{state.mortgage[f]=v;fieldChanged();};
+  window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();persistSoon();};
+  window.addC2=()=>{state.c2.active=true;renderStep();persistSoon();};
+  window.addExisting=()=>{state.existing.push({});renderStep();focusLastRow();persistSoon();};
+  window.delExisting=i=>{state.existing.splice(i,1);renderStep();persistSoon();nudgeGuidance(1200);};
+  window.setEx=(i,f,v)=>{state.existing[i][f]=v;fieldChanged();};
+  window.addQuote=k=>{state.quotes[k].push({priority:'essential'});renderStep();focusLastRow();persistSoon();};
+  window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);renderStep();persistSoon();nudgeGuidance(1200);};
+  window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;fieldChanged();};
+  // a field was left (blur) or a dropdown changed -> refresh guidance if anything changed
+  document.getElementById('stepBody').addEventListener('change', ()=>nudgeGuidance(800));
 
-  function setReferralSource(v){
-    state.referralSource = v;
-    if(typeof nudgeGuidance === 'function') nudgeGuidance();
-  }
-
-  window.setC=(key,f,v)=>{state[key][f]=v;renderSnapshot();nudgeGuidance();};
-  window.setM=(f,v)=>{state.mortgage[f]=v;renderSnapshot();nudgeGuidance();};
-  window.setA=(f,v)=>{state.assumptions[f]=v;document.getElementById('stressResults').innerHTML=stressResults();};
-  window.addC2=()=>{state.c2.active=true;renderStep();};
-  window.addExisting=()=>{state.existing.push({});renderStep();};
-  window.delExisting=i=>{state.existing.splice(i,1);renderStep();};
-  window.setEx=(i,f,v)=>{state.existing[i][f]=v;renderSnapshot();nudgeGuidance();};
-  window.addQuote=k=>{state.quotes[k].push({priority:'essential'});renderStep();};
-  window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);renderStep();};
-  window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;renderSnapshot();nudgeGuidance();};
-
-  document.getElementById('stepComplete').addEventListener('change',e=>{state.complete[state.current]=e.target.checked;renderRail();});
+  document.getElementById('stepComplete').addEventListener('change',e=>{
+    state.complete[state.current]=e.target.checked; renderRail(); persistSoon();
+    if(STEPS[state.current].id==='stress'){ const el=document.getElementById('stressResults'); if(el) el.innerHTML=stressResults(); }
+  });
   document.getElementById('prevBtn').addEventListener('click',()=>goto(state.current-1));
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
+  document.getElementById('newClientBtn').addEventListener('click',()=>newClient());
 
   // ---------- AI guidance ----------
-  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateDebounced();clearTimeout(guideTimer);guideTimer=setTimeout(requestGuidance,9000);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);});
+  document.getElementById('stepNotes').addEventListener('input',()=>{saveNotes();invalidateDebounced();nudgeGuidance(2500);clearTimeout(uwTimer);uwTimer=setTimeout(checkUW,800);persistSoon();});
 
-  function allNotes(){ return STEPS.map((s,i)=>`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n'); }
+  function allNotes(exclude){
+    const ex=new Set(exclude||[]);
+    return STEPS.map((s,i)=>ex.has(s.id)?'':`[${s.title}] ${state.notes[i]||''}`).filter(x=>x.replace(/\[.*\]\s*/,'').trim()).join('\n');
+  }
 
-  // Build a compact summary of the STRUCTURED fact-find so the AI sees the fields, not just notes
+  // Build a compact summary of the STRUCTURED fact-find so the AI sees the fields, not just notes.
+  // num() everywhere: "250k" / "250,000" used to evaluate to NaN and silently drop the mortgage.
   function factFindContext(){
-    const h=household(), prem=totalPremium();
+    const h=household();
     const lines=[];
+    const money=v=>gm(num(v));
     const c=(cl,label)=>{ if(cl.active===false) return; const bits=[];
       if(cl.name) bits.push(cl.name);
       if(cl.age) bits.push(`age ${cl.age}`);
       if(cl.job) bits.push(cl.job);
       bits.push(cl.emp==='self'?'self-employed':'employed');
-      if(cl.salary) bits.push(`salary £${cl.salary}`);
-      if(cl.bonus && +cl.bonus>0) bits.push(`bonus £${cl.bonus}`);
+      if(num(cl.salary)>0) bits.push(`salary ${money(cl.salary)}`);
+      if(num(cl.bonus)>0) bits.push(`bonus ${money(cl.bonus)}`);
       if(bits.length>1) lines.push(`${label}: ${bits.join(', ')}`); };
     c(state.c1,'Client 1'); c(state.c2,'Client 2');
-    if(h.netMonthly>0) lines.push(`Household net income ~£${Math.round(h.netMonthly).toLocaleString()}/mo (gross £${Math.round(h.gross).toLocaleString()}/yr)`);
-    if(+state.mortgage.amount>0) lines.push(`Mortgage £${(+state.mortgage.amount).toLocaleString()}${state.mortgage.term?`, term ${state.mortgage.term} yrs`:''}${state.mortgage.payment?`, £${(+state.mortgage.payment).toLocaleString()}/mo`:''}`);
+    if(h.netMonthly>0) lines.push(`Household net income ~${gm(h.netMonthly)}/mo (gross ${gm(h.gross)}/yr)`);
+    const m=state.mortgage;
+    if(num(m.amount)>0) lines.push(`Mortgage ${money(m.amount)}${m.term?`, term ${m.term} yrs`:''}${num(m.payment)>0?`, ${money(m.payment)}/mo`:''}`);
+    else if(num(m.payment)>0) lines.push(`Monthly mortgage payment ${money(m.payment)}`);
+    if(num(m.price)>0) lines.push(`Purchase price ${money(m.price)}`);
+    const hh=state.household||{};
+    if(String(hh.dependants||'').trim()) lines.push(`Dependants: ${hh.dependants}`);
+    if(num(state.salesArc.youngestAge)>0) lines.push(`Youngest child's age: ${state.salesArc.youngestAge}`);
+    if(num(state.salesArc.outgoings)>0) lines.push(`Rough monthly household outgoings: ${money(state.salesArc.outgoings)}`);
     if(state.existing.length) lines.push(`Existing cover: ${state.existing.map(e=>[e.who,e.type,e.provider,e.sum].filter(Boolean).join(' ')).filter(Boolean).join('; ')||'recorded'}`);
     ['ip','fib','life','cic'].forEach(k=>state.quotes[k].forEach(q=>{ if(q.provider||q.premium) lines.push(`Quote ${k.toUpperCase()} [${q.priority}]: ${[q.provider,q.benefit,q.premium?'£'+q.premium+'/mo':''].filter(Boolean).join(' ')}`); }));
     return lines.length ? 'FACT-FIND SO FAR:\n'+lines.join('\n') : '';
   }
 
-  async function requestGuidance(){
+  // Short structured profile used ONLY to pick relevant methodology on the server.
+  // No notes, no health details.
+  function guidanceProfile(){
+    const bits=[];
+    [['c1',state.c1],['c2',state.c2]].forEach(([k,c])=>{
+      if(k==='c2' && !c.active) return;
+      if(c.job || c.name) bits.push(`${c.job||'occupation not recorded'} (${c.emp==='self'?'self-employed':'employed'})`);
+    });
+    if(hasDependants()) bits.push('has dependants');
+    if(state.c2.active && (state.c2.name||state.c2.salary)) bits.push('couple');
+    return bits.join('; ');
+  }
+
+  const guidanceCache = {};     // step -> latest guidance
+  const guidanceHash = {};      // step -> what that guidance was built from
+  const guidanceInflight = {};  // step -> hash currently being requested
+  const guidanceSeq = {};       // step -> request counter, so a slow old reply can't overwrite a newer one
+  function guidancePayload(idx){
     const notes=allNotes();
     const ff=factFindContext();
-    const combined=[ff, notes && 'CALL NOTES:\n'+notes].filter(Boolean).join('\n\n');
+    const figures=calculatedFigures();   // the prompt says 'only restate supplied figures' - so supply them
+    const combined=[ff, notes && 'CALL NOTES:\n'+notes, figures].filter(Boolean).join('\n\n');
+    return {combined, hash: STEPS[idx].title+'\u0001'+(state.callPlan||'')+'\u0001'+combined};
+  }
+  function maybeRequestGuidance(){
+    const idx=state.current;
+    if(STEPS[idx].id==='picture') return;                          // co-pilot panel is hidden on Your Picture
+    const {hash}=guidancePayload(idx);
+    if(guidanceCache[idx] && !guidanceCache[idx]._fallback && guidanceHash[idx]===hash) return;  // nothing new
+    if(guidanceInflight[idx]===hash) return;                       // already on its way
+    requestGuidance();
+  }
+
+  async function requestGuidance(force){
+    const stepAtRequest=state.current;
+    const {combined, hash}=guidancePayload(stepAtRequest);
     const status=document.getElementById('guideStatus');
-    const body=document.getElementById('guideBody');
-    // fire if we have any structured data OR notes — not just notes
     if(!combined.trim()||combined.trim().length<15){
-      body.innerHTML='';
-      document.getElementById('guidePassive').style.display='block';
+      if(!guidanceCache[stepAtRequest]) document.getElementById('guidePassive').style.display='block';
       return;
     }
-    document.getElementById('guidePassive').style.display='none';
-    status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> reading…';
-    const stepAtRequest=state.current;
+    if(!force && guidanceInflight[stepAtRequest]===hash) return;
+    guidanceInflight[stepAtRequest]=hash;
+    const seq=(guidanceSeq[stepAtRequest]=(guidanceSeq[stepAtRequest]||0)+1);
+    status.className='mind-live thinking'; status.innerHTML='<span class="d"></span> reading…';
     try{
       const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title, call_plan:state.callPlan})});
+        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title, call_plan:state.callPlan, profile:guidanceProfile()})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
-      guidanceCache[stepAtRequest]=out;          // persist for this step
-      // flags removed - addOpenItems no longer called with out.flags
-      if(state.current===stepAtRequest) paintGuide();
-      status.className='guide-status'; status.innerHTML='<span class="d"></span> ready';
+      if(seq!==guidanceSeq[stepAtRequest]) return;   // superseded by a newer request
+      guidanceCache[stepAtRequest]=out;
+      guidanceHash[stepAtRequest]=hash;
+      updateFieldSuggestions(out.fields);
+      if(state.current===stepAtRequest){
+        if(deckShouldHold()) showPendingGuide(); else paintGuide();
+      }
+      status.className='mind-live'; status.innerHTML='<span class="d"></span> ready';
     }catch(e){
-      status.className='guide-status thinking'; status.innerHTML='<span class="d"></span> offline';
+      if(seq!==guidanceSeq[stepAtRequest]) return;
       console.error(e);
       logFailure(STEPS[stepAtRequest].title, e);
-      const qs = fallbackQuestions(STEPS[stepAtRequest].title);
-      const fallbackOut = {
-        questions: qs,
-        prompts: [],
-        relevant_facts: []
-      };
-      guidanceCache[stepAtRequest] = fallbackOut;
-      if(state.current===stepAtRequest){
-        paintGuide();
-        const passive = document.getElementById('guidePassive');
-        const warning = document.createElement('div');
-        warning.style.cssText = 'background:var(--signal-soft);border-left:3px solid var(--signal);padding:10px 14px;border-radius:0 8px 8px 0;font-size:12.5px;color:#7A3908;margin-bottom:14px;';
-        warning.textContent = 'AI unavailable right now — showing standard questions for this stage.';
-        const body = document.getElementById('guideBody');
-        if(body) body.insertBefore(warning, body.firstChild);
+      status.className='mind-live thinking';
+      // keep real guidance if we already have some for this step; otherwise standard questions
+      if(!guidanceCache[stepAtRequest] || guidanceCache[stepAtRequest]._fallback){
+        guidanceCache[stepAtRequest]={questions:fallbackQuestions(STEPS[stepAtRequest].title), prompts:[], relevant_facts:[], _fallback:true};
+        if(state.current===stepAtRequest) paintGuide();
+        status.innerHTML='<span class="d"></span> offline · standard questions';
+      } else {
+        status.innerHTML='<span class="d"></span> offline · showing last guidance';
       }
+    }finally{
+      if(guidanceInflight[stepAtRequest]===hash) delete guidanceInflight[stepAtRequest];
     }
   }
+
+  // ---------- "spotted in your notes" one-tap fills ----------
+  // /analyze reports figures the adviser typed into the notes but not into a field.
+  // They're offered as chips under the notes box - never written automatically,
+  // and only for fields that are still empty.
+  const FIELD_SUGGEST = {
+    c1_name:{label:'Client 1 name', kind:'text', get:()=>state.c1.name, set:v=>state.c1.name=v},
+    c1_age:{label:'Client 1 age', kind:'age', get:()=>state.c1.age, set:v=>state.c1.age=v},
+    c1_job:{label:'Client 1 job', kind:'text', get:()=>state.c1.job, set:v=>state.c1.job=v},
+    c1_salary:{label:'Client 1 salary', kind:'money', get:()=>state.c1.salary, set:v=>state.c1.salary=v},
+    c1_bonus:{label:'Client 1 bonus', kind:'money', get:()=>state.c1.bonus, set:v=>state.c1.bonus=v},
+    c2_name:{label:'Client 2 name', kind:'text', get:()=>state.c2.name, set:v=>{state.c2.active=true;state.c2.name=v;}},
+    c2_age:{label:'Client 2 age', kind:'age', get:()=>state.c2.age, set:v=>state.c2.age=v, c2:true},
+    c2_job:{label:'Client 2 job', kind:'text', get:()=>state.c2.job, set:v=>state.c2.job=v, c2:true},
+    c2_salary:{label:'Client 2 salary', kind:'money', get:()=>state.c2.salary, set:v=>state.c2.salary=v, c2:true},
+    c2_bonus:{label:'Client 2 bonus', kind:'money', get:()=>state.c2.bonus, set:v=>state.c2.bonus=v, c2:true},
+    mortgage_amount:{label:'Mortgage amount', kind:'money', get:()=>state.mortgage.amount, set:v=>state.mortgage.amount=v},
+    mortgage_payment:{label:'Monthly mortgage payment', kind:'money', get:()=>state.mortgage.payment, set:v=>state.mortgage.payment=v},
+    mortgage_term:{label:'Mortgage term (yrs)', kind:'years', get:()=>state.mortgage.term, set:v=>state.mortgage.term=v},
+    purchase_price:{label:'Purchase price', kind:'money', get:()=>state.mortgage.price, set:v=>state.mortgage.price=v},
+    outgoings_monthly:{label:'Monthly outgoings', kind:'money', get:()=>state.salesArc.outgoings, set:v=>state.salesArc.outgoings=v},
+    youngest_child_age:{label:'Youngest child’s age', kind:'childAge', get:()=>state.salesArc.youngestAge, set:v=>state.salesArc.youngestAge=v},
+    dependants:{label:'Dependants', kind:'text', get:()=>state.household.dependants, set:v=>state.household.dependants=v},
+    // assumptions start as numeric defaults; only a typed (string) value counts as recorded
+    c1_sick_pay_months:{label:'Client 1 sick pay (months)', kind:'months', get:()=>typeof state.assumptions.c1sick==='string'?state.assumptions.c1sick:'', set:v=>state.assumptions.c1sick=v},
+    c2_sick_pay_months:{label:'Client 2 sick pay (months)', kind:'months', get:()=>typeof state.assumptions.c2sick==='string'?state.assumptions.c2sick:'', set:v=>state.assumptions.c2sick=v, c2:true},
+    dis_multiple:{label:'Death-in-service (× salary)', kind:'multiple', get:()=>typeof state.assumptions.dis==='string'?state.assumptions.dis:'', set:v=>state.assumptions.dis=v},
+  };
+  let fieldSuggestions = {};
+  const dismissedSuggestions = new Set();
+  function normaliseSuggestion(kind, raw){
+    const v=String(raw??'').trim();
+    if(!v) return null;
+    if(kind==='text') return v.slice(0,120);
+    const m=v.match(/\d[\d.,]*\s*[km]?/i);
+    if(!m) return null;
+    const n=num(m[0]);
+    if(kind==='money') return n>0 ? String(Math.round(n)) : null;
+    if(kind==='age') return (n>=16&&n<=100) ? String(Math.round(n)) : null;
+    if(kind==='childAge') return (n>=0&&n<=25) ? String(Math.round(n)) : null;
+    if(kind==='years') return (n>=1&&n<=40) ? String(Math.round(n)) : null;
+    if(kind==='months') return (n>=0&&n<=36) ? String(n) : null;
+    if(kind==='multiple') return (n>=0&&n<=10) ? String(n) : null;
+    return null;
+  }
+  function updateFieldSuggestions(fields){
+    if(!fields || typeof fields!=='object' || Array.isArray(fields)) return;
+    Object.entries(fields).forEach(([k,raw])=>{
+      const def=FIELD_SUGGEST[k]; if(!def) return;
+      const v=normaliseSuggestion(def.kind, raw);
+      if(v!==null) fieldSuggestions[k]=v;
+    });
+    renderNoteSuggestions();
+  }
+  function activeSuggestions(){
+    return Object.entries(fieldSuggestions).filter(([k,v])=>{
+      const def=FIELD_SUGGEST[k];
+      if(!def || dismissedSuggestions.has(k+'='+v)) return false;
+      if(def.c2 && !state.c2.active) return false;
+      return !String(def.get()??'').trim();
+    });
+  }
+  function renderNoteSuggestions(){
+    const el=document.getElementById('noteSuggestions');
+    if(!el) return;
+    const list=activeSuggestions();
+    if(!list.length){ el.innerHTML=''; return; }
+    el.innerHTML = '<span class="ns-label">Spotted in your notes</span>' + list.map(([k,v])=>{
+      const def=FIELD_SUGGEST[k];
+      const shown = def.kind==='money' ? gm(Number(v)) : esc(v);
+      return `<span class="ns-chip"><button type="button" class="ns-add" data-k="${k}" onclick="acceptSuggestion('${k}')" title="Add to the fact-find">${esc(def.label)}: <b>${shown}</b> <span class="ns-plus">+ add</span></button><button type="button" class="ns-x" onclick="dismissSuggestion('${k}')" aria-label="Dismiss ${esc(def.label)}">&times;</button></span>`;
+    }).join('') + (list.length>1 ? '<button type="button" class="ns-all" onclick="acceptAllSuggestions()">Add all</button>' : '');
+  }
+  function applySuggestion(k){
+    const def=FIELD_SUGGEST[k], v=fieldSuggestions[k];
+    if(!def || v===undefined || String(def.get()??'').trim()) return;
+    def.set(v);
+    delete fieldSuggestions[k];
+  }
+  function afterSuggestionApplied(){
+    saveNotes();
+    if(STEPS[state.current].id==='picture') goto(state.current); else renderStep();
+    renderSnapshot(); updateFIBVisibility(); persistSoon(); nudgeGuidance(800); renderNoteSuggestions();
+  }
+  function acceptSuggestion(k){ applySuggestion(k); afterSuggestionApplied(); }
+  function acceptAllSuggestions(){ activeSuggestions().forEach(([k])=>applySuggestion(k)); afterSuggestionApplied(); }
+  function dismissSuggestion(k){ dismissedSuggestions.add(k+'='+fieldSuggestions[k]); renderNoteSuggestions(); }
+
 function fallbackQuestions(stepTitle){
     const generic = {
       'Introduction': ['Can you confirm who is with us today, and who this advice covers?', 'What has brought you to look at protection now?'],
@@ -3470,21 +3784,8 @@ function fallbackQuestions(stepTitle){
     }catch(e){ /* logging failure shouldn't itself break anything */ }
   }
 
-  function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-  // guidance cache: one entry per step, persists when navigating
-  const guidanceCache = {};
-  const openItems = [];   // accumulates across the whole case
-
-  function addOpenItems(flags, stepIdx){
-    (flags||[]).forEach(f=>{
-      const text=String(f).trim();
-      if(!text) return;
-      if(!openItems.some(o=>o.text.toLowerCase()===text.toLowerCase())){
-        openItems.push({text, step:stepIdx});
-      }
-    });
-  }
 
 const pendingRatings = [];  // down-votes queued for an optional comment, added at Step 13
 
@@ -3502,12 +3803,12 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     if(rating === 'up'){
       upBtn.style.background = 'var(--verd)'; upBtn.style.opacity = '1'; upBtn.style.color = '#fff';
       downBtn.style.opacity = '.25';
-      sendRating({client_name: state.c1.name||'', step: STEPS[state.current].title, panel, text, rating:'up', comment:''});
+      sendRating({step: STEPS[state.current].title, panel, text, rating:'up', comment:''});
     } else {
       downBtn.style.background = 'var(--signal)'; downBtn.style.opacity = '1'; downBtn.style.color = '#fff';
       upBtn.style.opacity = '.25';
       pendingRatings.push({
-        client_name: state.c1.name||'', step: STEPS[state.current].title,
+        step: STEPS[state.current].title,
         panel, text, rating: 'down', comment: ''
       });
     }
@@ -3534,6 +3835,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const panel = btn.dataset.rpanel;
     const dir = btn.dataset.rdir;
     const text = _rateTextStore[idx] || '';
+    deckInteracted = true;   // rating a card means they're reading the deck
     rateCard(panel, text, dir, btn);
   });
 
@@ -3563,13 +3865,21 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   }
 
 // ── card deck ──
-  let deckCards = [], deckIdx = 0, deckFilter = 'all';
-  const DECK_TYPES = {
-    question:{icon:'?', name:'Question to ask'},
-    prompt:{icon:'\u201C', name:'Prompt to say'},
-    fact:{icon:'\u2726', name:'Fact & knowledge'},
-    flag:{icon:'!', name:'Flag \u00B7 to document'}
-  };
+  let deckCards = [];
+  // Don't swap the cards out from under the adviser while they're reading them:
+  // if they've paged through the cards or the pointer is over the co-pilot panel,
+  // new guidance waits behind a "new guidance" pill instead of replacing the deck.
+  let lastDeckPaint = 0, lastDeckStep = -1, deckInteracted = false, mindHover = false;
+  (function(){
+    const mc = document.querySelector('.mindcol');
+    if(mc){ mc.addEventListener('mouseenter', ()=>{ mindHover = true; }); mc.addEventListener('mouseleave', ()=>{ mindHover = false; }); }
+  })();
+  function deckShouldHold(){
+    if(scriptMode!=='cards' || !deckCards.length || lastDeckStep!==state.current) return false;
+    return deckInteracted || mindHover;
+  }
+  function showPendingGuide(){ const p=document.getElementById('guideNewPill'); if(p) p.style.display=''; }
+  function applyPendingGuide(){ paintGuide(); }
 
 // Build a block of already-calculated figures so the AI never does its own maths
   function salesArcFigures(){
@@ -3577,18 +3887,15 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const outgoings = num(state.salesArc.outgoings);
       const youngestAge = num(state.salesArc.youngestAge);
       const lines = [];
-      let yearsToProtect = 0;
+      if(outgoings > 0) lines.push('Rough monthly household outgoings: ' + gm(outgoings) + ' (' + gm(outgoings*12) + ' a year)');
       if(youngestAge > 0 && youngestAge < 23){
-        yearsToProtect = 23 - youngestAge;
-      }
-      if(outgoings > 0 && yearsToProtect > 0){
-        const need = outgoings * 12 * yearsToProtect;
-        lines.push('Years to protect (until youngest is 23): ' + yearsToProtect + ' years');
-        lines.push('Protection need: ' + gm(outgoings) + '/mo x 12 x ' + yearsToProtect + ' years = ' + gm(need));
-        const h = typeof household === 'function' ? household() : null;
-        if(h && h.gross){
-          const pct = Math.round((need / h.gross) * 100);
-          lines.push('That figure is roughly ' + pct + '% of one year of household gross income (' + gm(h.gross) + '/yr) - a way of sizing how significant the need is.');
+        const yrs = 23 - youngestAge;
+        lines.push('Years until the youngest child turns 23: ' + yrs);
+        if(outgoings > 0){
+          const total = outgoings * 12 * yrs;
+          lines.push('Recorded outgoings over those ' + yrs + ' years: ' + gm(total) + ' - an exposure figure, not a recommended cover amount');
+          const h = household();
+          if(h && h.gross) lines.push('That is ' + (Math.round(total / h.gross * 10) / 10) + ' times one year of household gross income (' + gm(h.gross) + ')');
         }
       }
       [['c1', state.c1], ['c2', state.c2]].forEach(([k, c])=>{
@@ -3597,9 +3904,8 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         const salary = num(c.salary);
         const bonus = num(c.bonus);
         if(bonus > 0 && salary > 0){
-          const total = salary + bonus;
-          const bonusPct = Math.round((bonus/total)*100);
-          lines.push(nm + ': death-in-service cover is almost always based on BASE SALARY ONLY (' + gm(salary) + '), not the ' + gm(bonus) + ' bonus (' + bonusPct + '% of total pay). That bonus portion is typically completely unprotected through work.');
+          const bonusPct = Math.round((bonus/(salary+bonus))*100);
+          lines.push(nm + ': base salary ' + gm(salary) + ', bonus ' + gm(bonus) + ' (' + bonusPct + '% of total pay). Death-in-service is often based on base salary only - check whether this scheme counts the bonus.');
         }
       });
       return lines;
@@ -3621,11 +3927,12 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         const sick = num(k==='c1' ? a.c1sick : a.c2sick);
         const sav = num(a.savings);
         const salary = num(c.salary);
-        const dis = num(a.dis||0) * salary;
+        const dis = disIsRecorded() ? num(a.dis||0) * salary : 0;   // the default multiplier isn't a recorded benefit
         if(sick || sav) lines.push(nm + ' income lasts: ' + (sick + sav) + ' months total (' + sick + ' months sick pay + ' + sav + ' months savings)');
         if(dis) lines.push(nm + ' death-in-service cover: ' + gm(dis));
         if(dis && mortgage) lines.push(nm + ' life cover gap vs mortgage: ' + gm(Math.max(0, mortgage - dis)));
       });
+      salesArcFigures().forEach(l=>lines.push(l));
       return lines.length ? 'CALCULATED FIGURES (these are correct - quote exactly, do not recompute):\n' + lines.join('\n') : '';
     }catch(e){ return ''; }
   }
@@ -3640,7 +3947,6 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     document.getElementById('mtScript').classList.toggle('on', m==='script');
     const deck = document.getElementById('carddeck');
     const sbox = document.getElementById('scriptbox');
-    const filters = document.getElementById('deckFilters');
     if(m==='script'){
       if(deck) deck.style.display='none';
       if(sbox){
@@ -3649,6 +3955,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       }
       if(scriptCache[state.current]) renderScript();
       else fetchScript();
+      setTimeout(prefetchScript, 400);
     } else {
       if(sbox) sbox.style.display='none';
       if(deck && deckCards.length) deck.style.display='block';
@@ -3663,31 +3970,52 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     return blocks.map(b => (b.cue ? b.cue + ': ' : '') + (b.text||'')).join('\n');
   }
 
+  function normaliseScriptBlock(o){
+    return (o && o.text) ? {cue:String(o.cue||''), type:o.type==='coach'?'coach':'say', text:String(o.text)} : null;
+  }
+  function parseScriptLine(line){
+    const t=line.trim().replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+    if(!t || t[0]!=='{') return null;
+    try{ return normaliseScriptBlock(JSON.parse(t)); }catch(e){ return null; }
+  }
+  // Fallback if the model ignores the one-object-per-line format: pull out every
+  // top-level {...} (string-aware) and use them as blocks.
+  function extractJsonObjects(raw){
+    const out=[]; let depth=0, start=-1, inStr=false, escNext=false;
+    for(let i=0;i<raw.length;i++){
+      const ch=raw[i];
+      if(inStr){ if(escNext) escNext=false; else if(ch==='\\') escNext=true; else if(ch==='"') inStr=false; continue; }
+      if(ch==='"'){ inStr=true; continue; }
+      if(ch==='{'){ if(depth===0) start=i; depth++; }
+      else if(ch==='}' && depth>0){ depth--; if(depth===0 && start>=0){ try{ out.push(JSON.parse(raw.slice(start,i+1))); }catch(e){} start=-1; } }
+    }
+    return out;
+  }
+
   async function fetchScript(targetIdx, silent){
     const idx = (typeof targetIdx === 'number') ? targetIdx : state.current;
     if(scriptFetching[idx]) return;
     if(scriptCache[idx]) return;
     scriptFetching[idx] = true;
     const sbox = document.getElementById('scriptbox');
-    if(!silent && sbox) sbox.innerHTML = '<div class="sloading">Writing the script for this stage\u2026</div>';
+    if(!silent && sbox) sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
     try{
       const ff = factFindContext();
       const notes = allNotes();
       const figures = calculatedFigures();
       const combined = [ff, notes && 'CALL NOTES:\n'+notes, figures].filter(Boolean).join('\n\n');
       const prevBlocks = idx > 0 ? scriptCache[idx-1] : null;
-      // stream the script as raw text, render it live, then parse into blocks at the end
-      const token = COPILOT_TOKEN;
-      const streamRes = await fetch(API_BASE+'/copilot/script-stream', {
+      const streamRes = await authFetch(API_BASE+'/copilot/script-stream', {
         method:'POST',
-        headers:{'Content-Type':'application/json', 'X-Copilot-Token': token},
-        body: JSON.stringify({ step: STEPS[idx].title, notes: combined, prev_script: scriptToText(prevBlocks), call_plan: state.callPlan })
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ step: STEPS[idx].title, notes: combined, prev_script: scriptToText(prevBlocks), call_plan: state.callPlan, profile: guidanceProfile() })
       });
       if(!streamRes.ok || !streamRes.body){ throw new Error('stream failed'); }
       const reader = streamRes.body.getReader();
       const decoder = new TextDecoder();
-      let raw = '';
-      let buf = '';
+      let raw = '', buf = '', lineBuf = '';
+      const blocks = [];
+      const show = () => { if(!silent && state.current===idx && scriptMode==='script') renderScriptBlocks(blocks, true); };
       while(true){
         const { done, value } = await reader.read();
         if(done) break;
@@ -3696,33 +4024,37 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         buf = parts.pop();
         for(const part of parts){
           if(!part.startsWith('data: ')) continue;
-          try{
-            const payload = JSON.parse(part.slice(6));
-            if(payload.delta){
-              raw += payload.delta;
-              if(!silent && state.current===idx && scriptMode==='script' && sbox){
-                const dots = '.'.repeat((raw.length % 12) < 4 ? 1 : (raw.length % 12) < 8 ? 2 : 3);
-                sbox.innerHTML = '<div class="sloading">Writing the script for this stage'+dots+'</div>';
-              }
-            }
-          }catch(e){}
+          let payload;
+          try{ payload = JSON.parse(part.slice(6)); }catch(e){ continue; }
+          if(payload.error) throw new Error(payload.error);
+          if(payload.delta){
+            raw += payload.delta; lineBuf += payload.delta;
+            const lines = lineBuf.split('\n');
+            lineBuf = lines.pop();
+            let added = false;
+            for(const ln of lines){ const b = parseScriptLine(ln); if(b){ blocks.push(b); added = true; } }
+            if(added) show();   // each block appears the moment its line is complete
+          }
         }
       }
-      // once streaming is done, parse the raw JSON text into blocks
-      try{
-        const jsonStart = raw.indexOf('{');
-        const jsonEnd = raw.lastIndexOf('}');
-        const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd+1));
-        if(parsed.blocks && parsed.blocks.length){
-          scriptCache[idx] = parsed.blocks;
-          if(state.current===idx && scriptMode==='script') renderScript();
-        }
-      }catch(e){
-        console.error('could not parse streamed script', e, raw);
+      const tail = parseScriptLine(lineBuf);
+      if(tail) blocks.push(tail);
+      if(!blocks.length){
+        extractJsonObjects(raw).forEach(o=>{
+          if(o && Array.isArray(o.blocks)) o.blocks.forEach(b=>{ const nb=normaliseScriptBlock(b); if(nb) blocks.push(nb); });
+          else { const nb=normaliseScriptBlock(o); if(nb) blocks.push(nb); }
+        });
+      }
+      if(blocks.length){
+        scriptCache[idx] = blocks;
+        if(state.current===idx && scriptMode==='script') renderScript();
+      } else if(!silent && sbox && state.current===idx){
+        console.error('could not parse streamed script', raw);
+        sbox.innerHTML = '<div class="sloading">Could not generate a script just now.</div>';
       }
     }catch(e){
       console.error('script fetch failed', e);
-      if(!silent && sbox) sbox.innerHTML = '<div class="sloading">Could not generate a script just now.</div>';
+      if(!silent && sbox && state.current===idx) sbox.innerHTML = '<div class="sloading">Could not generate a script just now.</div>';
     }
     scriptFetching[idx] = false;
   }
@@ -3744,14 +4076,9 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     invalidateTimer = setTimeout(invalidateNextScript, 2500);
   }
 
-  function renderScript(){
+  function renderScriptBlocks(blocks, streaming){
     const sbox = document.getElementById('scriptbox');
     if(!sbox) return;
-    const blocks = scriptCache[state.current];
-    if(!blocks){
-      sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
-      return;
-    }
     let h = '<div class="scriptbox">';
     blocks.forEach(b=>{
       if(b.type === 'coach'){
@@ -3760,15 +4087,25 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         h += `<div class="sblock"><span class="scue">${esc(b.cue||'say')}</span><span class="ssay">"${esc(b.text||'')}"</span></div>`;
       }
     });
+    if(streaming) h += '<div class="sloading">writing…</div>';
     h += '</div>';
     sbox.innerHTML = h;
     const label = document.getElementById('guideStepLabel');
     if(label) label.textContent = 'read-aloud script';
   }
+  function renderScript(){
+    const sbox = document.getElementById('scriptbox');
+    if(!sbox) return;
+    const blocks = scriptCache[state.current];
+    if(!blocks){
+      sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
+      return;
+    }
+    renderScriptBlocks(blocks, false);
+  }
 
   function buildDeck(out){
     const cards = [];
-    if(typeof salesArcFigures === 'function') salesArcFigures().forEach(m=>{ if(m) cards.push({type:'maths', text:m}); });
     (out.questions||[]).forEach(q=>{
       const t = typeof q === 'string' ? q : (q.headline||q.detail||'');
       if(t) cards.push({type:'question', text:t});
@@ -3782,45 +4119,6 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     return cards;
   }
 
-  function deckVisible(){
-    return deckFilter === 'all' ? deckCards : deckCards.filter(c=>c.type===deckFilter);
-  }
-
-  function renderDeckFilters(){
-    const counts = {all: deckCards.length};
-    deckCards.forEach(c=>counts[c.type] = (counts[c.type]||0)+1);
-    const opts = [['all','All'],['question','Ask'],['prompt','Say'],['fact','Facts'],['flag','Flags']];
-    const el = document.getElementById('deckFilters');
-    if(el) el.innerHTML = opts.filter(o=>counts[o[0]]).map(([k,l])=>
-      `<button class="fchip ${deckFilter===k?'on':''}" onclick="setDeckFilter('${k}')">${l} ${counts[k]||0}</button>`).join('');
-  }
-  function setDeckFilter(f){ deckFilter=f; deckIdx=0; renderDeckFilters(); renderDeckCard(); }
-
-  function renderDeckCard(){
-    const list = deckVisible();
-    const card = document.getElementById('deckCard');
-    if(!card) return;
-    if(!list.length){
-      card.className='dcard';
-      card.innerHTML='<div class="dbody" style="color:var(--muted);font-style:italic;">Nothing here yet for this stage.</div>';
-      document.getElementById('deckDots').innerHTML='';
-      return;
-    }
-    if(deckIdx >= list.length) deckIdx = list.length-1;
-    const c = list[deckIdx], t = DECK_TYPES[c.type];
-    card.className = 'dcard t-'+c.type;
-    const safeText = esc(c.text).replace(/'/g, "&#39;");
-    card.innerHTML = `
-      <div class="dtype"><div class="dicon">${t.icon}</div><div class="dname">${t.name}</div></div>
-      <div class="dbody ${c.type==='prompt'?'say':''}">${c.type==='prompt'?'\u201C'+esc(c.text)+'\u201D':esc(c.text)}</div>
-      ${typeof rateBar === 'function' ? rateBar(c.type==='question'?'questions':c.type==='prompt'?'prompts':c.type==='fact'?'facts':'flags', c.text) : ''}`;
-    const label = document.getElementById('guideStepLabel');
-    if(label) label.textContent = `card ${deckIdx+1} of ${list.length}`;
-    document.getElementById('deckPrev').disabled = deckIdx===0;
-    document.getElementById('deckNext').disabled = deckIdx===list.length-1;
-    document.getElementById('deckDots').innerHTML = list.map((c,i)=>
-      `<span class="dd ${i===deckIdx?'on':''} ${c.type==='flag'?'flagdot':''}" onclick="deckIdx=${i};renderDeckCard()"></span>`).join('');
-  }
 // ── four stacked mini-decks (Questions / Prompts / Facts / Flags) ──
   const MINI_TYPES = [
     {key:'question', label:'Questions to ask', icon:'?'},
@@ -3859,17 +4157,10 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   function miniMove(key, d){
     const items = deckCards.filter(c=>c.type===key);
     miniIdx[key] = Math.max(0, Math.min(items.length-1, miniIdx[key]+d));
+    deckInteracted = true;
     renderDeckStack();
   }
-  function miniGoto(key, i){ miniIdx[key]=i; renderDeckStack(); }
-
-  function deckMove(d){
-    const l = deckVisible();
-    deckIdx = Math.max(0, Math.min(l.length-1, deckIdx+d));
-    renderDeckCard();
-  }
-
-  
+  function miniGoto(key, i){ miniIdx[key]=i; deckInteracted = true; renderDeckStack(); }
 
   // ── bottom progress bar ──
   function renderBottomBar(){
@@ -3879,84 +4170,21 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       `<div class="bst ${i===state.current?'on':''} ${state.complete[i]?'done':''}" onclick="goto(${i})"><span class="bn">${String(i+1).padStart(2,'0')}</span>${s.title}</div>`).join('');
   }
 
-  function renderGuide(out, stepIdx){
-    let html='';
-    const questions = out.questions || [];
-    const prompts = out.prompts || [];
-    const facts = out.relevant_facts || [];
-
-    // 1. QUESTIONS TO ASK
-    html += '<div class="qpanel panel-questions"><div class="qpanel-head"><div class="qpanel-icon">?</div><div class="qpanel-name">Questions to ask</div><div class="qpanel-count">'+questions.length+'</div></div>';
-    if(questions.length){
-      questions.forEach((q,i)=>{
-        const text = typeof q === 'string' ? q : (q.headline || q.detail || '');
-        html += '<div class="qitem"><span class="qnum">'+String(i+1).padStart(2,'0')+'</span><div style="flex:1;"><span>'+esc(text)+'</span>'+rateBar('questions', text)+'</div></div>';
-      });
-    } else {
-      html += '<div class="qpanel-empty">No questions yet for this stage.</div>';
-    }
-    html += '</div>';
-
-    // 2. PROMPTS TO SAY
-    html += '<div class="qpanel panel-prompts"><div class="qpanel-head"><div class="qpanel-icon">&#8220;</div><div class="qpanel-name">Prompts to say</div><div class="qpanel-count">'+prompts.length+'</div></div>';
-    if(prompts.length){
-      prompts.forEach(p=>{
-        const text = typeof p === 'string' ? p : (p.detail || p.headline || '');
-        html += '<div class="sayitem">&#8220;'+esc(text)+'&#8221;'+rateBar('prompts', text)+'</div>';
-      });
-    } else {
-      html += '<div class="qpanel-empty">No prompts yet for this stage.</div>';
-    }
-    html += '</div>';
-
-    // 3. FACTS & KNOWLEDGE
-    if(facts.length){
-      html += '<div class="qpanel panel-facts"><div class="qpanel-head"><div class="qpanel-icon">&#10022;</div><div class="qpanel-name">Facts &amp; knowledge</div><div class="qpanel-count">'+facts.length+'</div></div>';
-      facts.forEach(f=>{
-        html += '<div class="factitem"><span class="fdot">&bull;</span><div style="flex:1;"><span>'+esc(f)+'</span>'+rateBar('facts', f)+'</div></div>';
-      });
-      html += '</div>';
-    }
-
-    // 4. FLAGS
-    if(flags.length){
-      html += '<div class="qpanel panel-flags"><div class="qpanel-head"><div class="qpanel-icon">!</div><div class="qpanel-name">Flags &middot; to document</div><div class="qpanel-count">'+flags.length+'</div></div>';
-      flags.forEach(f=>{
-        html += '<div class="flagitem"><span>&rarr;</span><span>'+esc(f)+'</span></div>';
-      });
-      html += '</div>';
-    }
-
-    return html;
-  }
-
-  function renderOpenItems(){
-    if(!openItems.length) return '';
-    let h = '<div class="openpanel"><h5>Open across this case ('+openItems.length+')</h5>';
-    openItems.forEach(o=>{
-      const stepName = STEPS[o.step] ? STEPS[o.step].title : '';
-      h += '<div class="openitem">'+esc(o.text)+'<span class="ostep">step '+(o.step+1)+' &middot; '+esc(stepName)+'</span></div>';
-    });
-    h += '</div>';
-    return h;
-  }
-
-  // paint whatever is cached for the current step, plus the running open items
+  // paint whatever is cached for the current step
   function paintGuide(){
     const idx = state.current;
     const cached = guidanceCache[idx];
     const passive = document.getElementById('guidePassive');
     const deck = document.getElementById('carddeck');
     const label = document.getElementById('guideStepLabel');
+    const pill = document.getElementById('guideNewPill');
+    if(pill) pill.style.display = 'none';
     if(cached){
       deckCards = buildDeck(cached);
-      deckIdx = 0; deckFilter = 'all';
+      lastDeckPaint = Date.now(); lastDeckStep = idx; deckInteracted = false;
       if(passive) passive.style.display = 'none';
-      if(deck) deck.style.display = 'block';
-      renderDeckFilters();
       if(scriptMode === 'script'){
-        const deck0 = document.getElementById('carddeck');
-        if(deck0) deck0.style.display='none';
+        if(deck) deck.style.display='none';
         const sbox0 = document.getElementById('scriptbox');
         if(sbox0){
           sbox0.style.display='block';
@@ -3965,7 +4193,9 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         if(scriptCache[idx]) renderScript();
         else fetchScript();
       } else {
-        renderDeckCard();
+        if(deck) deck.style.display = 'block';
+        renderDeckStack();   // was renderDeckCard(), which targeted elements that no longer exist
+        if(label) label.textContent = 'stage ' + String(idx+1).padStart(2,'0');
       }
     } else {
       deckCards = [];
@@ -3977,6 +4207,16 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   }
 
 
+
+  // Household facts captured in Confirm Factfind (not in the notes), for the summary + email
+  function householdSummary(){
+    const bits=[];
+    const d=String((state.household&&state.household.dependants)||'').trim();
+    if(d) bits.push('dependants: '+d);
+    if(num(state.salesArc.youngestAge)>0) bits.push("youngest child's age: "+state.salesArc.youngestAge);
+    if(num(state.salesArc.outgoings)>0) bits.push('rough monthly outgoings: '+gm(num(state.salesArc.outgoings)));
+    return bits.join('; ');
+  }
 
   // ---------- post-call ----------
   document.getElementById('postcallBtn').addEventListener('click',buildSummary);
@@ -3990,6 +4230,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       clients:[state.c1,state.c2.active?state.c2:null].filter(Boolean).map(c=>`${c.name||'client'}, age ${c.age}, ${c.job}, ${c.emp}, salary £${c.salary}, bonus £${c.bonus}`),
       income:`Net monthly household ≈ ${gm(h.netMonthly)}, gross ${gm(h.gross)}/yr`,
       mortgage:`Mortgage ${gm(num(state.mortgage.amount))}, payment ${gm(num(state.mortgage.payment))}/mo, term ${state.mortgage.term} yrs`,
+      household:householdSummary(),
       existing:state.existing.map(e=>`${e.who||''} ${e.type||''} ${e.provider||''} ${e.sum||''}`),
       quotes:['ip','fib','life','cic'].flatMap(k=>state.quotes[k].map(q=>`${k.toUpperCase()} [${q.priority}]: ${q.provider||''} ${q.benefit||''} £${q.premium||''}/mo`)),
       total:'£'+prem.total, notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
@@ -4024,6 +4265,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const ff={
       clients:[state.c1,state.c2.active?state.c2:null].filter(Boolean).map(c=>`${c.name||'client'}, age ${c.age}, ${c.job}`),
       mortgage:`Mortgage ${gm(num(state.mortgage.amount))}, term ${state.mortgage.term} yrs`,
+      household:householdSummary(),
       notesByStep:STEPS.map((s,i)=>state.notes[i]?`${s.title}: ${state.notes[i]}`:'').filter(Boolean).join(' | ')
     };
     try{
@@ -4048,53 +4290,94 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     setTimeout(()=>document.getElementById('emailStatus').textContent='',1800);
   }
 
-  // ---------- referrals ----------
+  // ---------- referrals + prep ----------
+  // The GHL list loads only when asked (it used to auto-load and could hang the
+  // page ~30s when GHL was slow) and gives up after 8 seconds.
+  let referralOptions = [];
   async function loadReferralList(){
-    const sel=document.getElementById('referralSelect');
-    if(!sel) return;
-    sel.innerHTML='<option value="">Loading…</option>';
+    const st=document.getElementById('referralStatus');
+    if(st) st.textContent='Loading referred clients…';
+    const ctl=new AbortController();
+    const timer=setTimeout(()=>ctl.abort(), 8000);
     try{
-      const res=await authFetch(API_BASE+'/copilot/recent-referrals');
+      const res=await authFetch(API_BASE+'/copilot/recent-referrals',{signal:ctl.signal});
       const data=await res.json();
-      const list=data.referrals||[];
-      if(!list.length){ sel.innerHTML='<option value="">No referred clients yet</option>'; return; }
       const tc=s=>(s||'').replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
-      sel.innerHTML='<option value="">Select a client…</option>'+list.map(r=>`<option value="${r.id}">${tc(r.name)}</option>`).join('');
-    }catch(e){ sel.innerHTML='<option value="">Couldn\'t load</option>'; console.error(e); }
+      referralOptions=(data.referrals||[]).map(r=>({id:String(r.id||''), name:tc(r.name)||'Unnamed referral'})).filter(r=>r.id);
+      const sel=document.getElementById('referralSelect');
+      if(sel){
+        sel.disabled=!referralOptions.length;
+        sel.innerHTML=referralOptions.length ?
+          '<option value="">Select a client…</option>'+referralOptions.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('') :
+          '<option value="">No referred clients found</option>';
+      }
+      if(st) st.textContent=referralOptions.length ? `${referralOptions.length} referred client${referralOptions.length===1?'':'s'} loaded.` : 'No referred clients found.';
+    }catch(e){
+      if(st) st.textContent = e.name==='AbortError' ? 'GHL is slow right now — try again, or paste the email instead.' : 'Couldn’t load referred clients.';
+      console.error(e);
+    }finally{ clearTimeout(timer); }
   }
 
+  // Pull a figure out of free text: "£45k" -> 45000, "£45,000 + £10k bonus" -> 45000.
+  // (The old version stripped every non-digit: "£45k" became 45, "£600k" became 600.)
+  function prepNumber(v){
+    const m=String(v??'').match(/\d[\d.,]*\s*[km]?/i);
+    const n=m?num(m[0]):0;
+    return n>0 ? String(Math.round(n)) : '';
+  }
   function applyPrep(prep){
-    // pre-fill whatever the prep contains; broker fills the rest
+    if(!prep || typeof prep!=='object') return;
     const tc=s=>(s||'').replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());
-    if(prep.client_name){
-      const parts=tc(prep.client_name).split(' ');
-      state.c1.name=tc(prep.client_name);
-    }
-    if(prep.occupation) state.c1.job=tc(prep.occupation);
+    // fill empty fields only - never overwrite something the adviser has typed
+    const fill=(obj,key,val)=>{ if(val!=='' && val!=null && !String(obj[key]??'').trim()) obj[key]=val; };
+    const firstInt=v=>parseInt(String(v??'').match(/\d+/)?.[0]||'',10);
     const kf=prep.key_facts||{};
-    if(kf.age) state.c1.age=(''+kf.age).replace(/\D/g,'')||state.c1.age;
-    if(kf.income) state.c1.salary=(''+kf.income).replace(/[^\d]/g,'')||state.c1.salary;
-    if(kf.mortgage_debt) state.mortgage.amount=(''+kf.mortgage_debt).replace(/[^\d]/g,'')||state.mortgage.amount;
-    if(kf.monthly_payment) state.mortgage.payment=(''+kf.monthly_payment).replace(/[^\d]/g,'')||state.mortgage.payment;
-    // seed the intro notes with situation + opening questions
-    let seed='';
-    if(prep.situation) seed+='SITUATION: '+prep.situation+'\n\n';
-    if(prep.opening_questions&&prep.opening_questions.length) seed+='OPENING QUESTIONS:\n'+prep.opening_questions.map(q=>'• '+q).join('\n');
-    if(seed && !(state.notes[0]||'').trim()) state.notes[0]=seed;
-    renderStep(); renderSnapshot();
+    if(prep.client_name) fill(state.c1,'name',tc(prep.client_name));
+    if(prep.occupation) fill(state.c1,'job',tc(prep.occupation));
+    const age=firstInt(kf.age); if(age>=16&&age<=90) fill(state.c1,'age',String(age));
+    fill(state.c1,'salary',prepNumber(kf.income));
+    fill(state.mortgage,'amount',prepNumber(kf.mortgage_debt));
+    fill(state.mortgage,'payment',prepNumber(kf.monthly_payment));
+    fill(state.mortgage,'price',prepNumber(kf.purchase_price));
+    const term=firstInt(kf.mortgage_term); if(term>=1&&term<=40) fill(state.mortgage,'term',String(term));
+    if(kf.dependants) fill(state.household,'dependants',String(kf.dependants).slice(0,120));
+    if(String(kf.youngest_child_age||'').trim()){ const ya=firstInt(kf.youngest_child_age); if(ya>=0&&ya<=25) fill(state.salesArc,'youngestAge',String(ya)); }
+    const c2=prep.second_client||{};
+    if(c2.name){
+      state.c2.active=true;
+      fill(state.c2,'name',tc(c2.name));
+      if(c2.occupation) fill(state.c2,'job',tc(c2.occupation));
+      const a2=firstInt(c2.age); if(a2>=16&&a2<=90) fill(state.c2,'age',String(a2));
+      fill(state.c2,'salary',prepNumber(c2.income));
+    }
+    // The brief stays separate from the client's own words: it is NOT put in the
+    // notes box, so it can't flow into /analyze or the suitability summary as if
+    // the client had said it.
+    state.prep={
+      situation: String(prep.situation||''),
+      opening_questions: Array.isArray(prep.opening_questions)?prep.opening_questions:[],
+      need_illustrations: Array.isArray(prep.need_illustrations)?prep.need_illustrations:[],
+      watch_for: Array.isArray(prep.watch_for)?prep.watch_for:[]
+    };
+    renderStep(); renderSnapshot(); updateFIBVisibility(); persistSoon();
+    nudgeGuidance(300);   // get the opening guidance ready before the call starts
   }
 
   async function loadReferral(id){
     if(!id) return;
     const st=document.getElementById('referralStatus');
     if(st) st.textContent='Loading brief…';
+    const ctl=new AbortController();
+    const timer=setTimeout(()=>ctl.abort(), 8000);
     try{
-      const res=await authFetch(API_BASE+'/copilot/load/'+id);
+      const res=await authFetch(API_BASE+'/copilot/load/'+encodeURIComponent(id),{signal:ctl.signal});
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
-      if(st) st.textContent='Loaded — fields pre-filled where known.';
-    }catch(e){ if(st) st.textContent='Couldn\'t load this client.'; console.error(e); }
+      const st2=document.getElementById('referralStatus');
+      if(st2) st2.textContent='Loaded — empty fields pre-filled, brief below.';
+    }catch(e){ const st2=document.getElementById('referralStatus'); if(st2) st2.textContent='Couldn’t load this client.'; console.error(e); }
+    finally{ clearTimeout(timer); }
   }
 
   async function prepareFromEmail(){
@@ -4107,12 +4390,69 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
-      if(st) st.textContent='Prepared — fields pre-filled where known.';
-    }catch(e){ if(st) st.textContent='Couldn\'t prepare — check connection.'; console.error(e); }
+      const st2=document.getElementById('referralStatus');
+      if(st2) st2.textContent='Prepared — empty fields pre-filled, brief below.';
+    }catch(e){ const st2=document.getElementById('referralStatus'); if(st2) st2.textContent='Couldn’t prepare — check connection.'; console.error(e); }
   }
   window.loadReferralList=loadReferralList;
   window.loadReferral=loadReferral;
   window.prepareFromEmail=prepareFromEmail;
+
+  // ---------- keep the call through a refresh ----------
+  // The fact-find is kept in this tab's sessionStorage: a refresh or crash
+  // mid-call restores it, closing the tab clears it (client data doesn't linger
+  // on the device), and "New client" clears it on purpose.
+  const STATE_KEY='copilot_case_v1';
+  let persistTimer, lastSavedBody='';
+  function stateSnapshotBody(){
+    const copy=Object.assign({}, state);
+    delete copy._pictureCalc;
+    return JSON.stringify(copy);
+  }
+  let clearingCase = false;
+  function persistNow(){
+    if(clearingCase) return;
+    try{
+      saveNotes();
+      const body=stateSnapshotBody();
+      if(body===lastSavedBody) return;
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({v:1, savedAt:Date.now(), state:JSON.parse(body)}));
+      lastSavedBody=body;
+      setSavedIndicator('Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), true);
+    }catch(e){ setSavedIndicator('Not saved — browser storage unavailable', false); }
+  }
+  function persistSoon(){ clearTimeout(persistTimer); persistTimer=setTimeout(persistNow, 600); }
+  function setSavedIndicator(text, ok){
+    const el=document.getElementById('savedState');
+    if(el){ el.textContent=(ok?'✓ ':'')+text; el.classList.toggle('not-saved', !ok); }
+  }
+  function restoreState(){
+    try{
+      const raw=sessionStorage.getItem(STATE_KEY);
+      if(!raw) return false;
+      const saved=JSON.parse(raw);
+      if(!saved || saved.v!==1 || !saved.state) return false;
+      const s=saved.state;
+      // merge so defaults for any fields added later still exist
+      Object.keys(s).forEach(k=>{
+        if(s[k] && typeof s[k]==='object' && !Array.isArray(s[k]) && state[k] && typeof state[k]==='object' && !Array.isArray(state[k])) Object.assign(state[k], s[k]);
+        else state[k]=s[k];
+      });
+      lastSavedBody=stateSnapshotBody();
+      setSavedIndicator('Restored · saved '+new Date(saved.savedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), true);
+      return true;
+    }catch(e){ console.error('restore failed', e); return false; }
+  }
+  function newClient(){
+    clearTimeout(persistTimer);          // a save queued just before the click must not bring the old client back
+    if(!confirm('Start a new client? This clears everything captured on this screen for the current call.')) return;
+    clearingCase = true;
+    clearTimeout(persistTimer);
+    try{ sessionStorage.removeItem(STATE_KEY); }catch(e){}
+    window.removeEventListener('beforeunload', persistNow);
+    location.reload();
+  }
+  window.addEventListener('beforeunload', persistNow);
 
   // ---------- init ----------
 
@@ -4337,9 +4677,10 @@ function setUWAnswer(condKey, qIdx, field, value){
   let uwDebounceTimer;
   function checkUWDebounced(){ clearTimeout(uwDebounceTimer); uwDebounceTimer = setTimeout(checkUW, 500); }
   function checkUW(){
-    const step = state.current;
-    // only show on Eligibility & Health step (index 6) but scan ALL notes
-    if(step !== 6) return;
+    const container = document.getElementById('uwQuestions');
+    // Show on the Eligibility & Health step (scanning ALL notes). This used to test
+    // index 6 - which is Your Picture, where the panel is hidden - so it never showed.
+    if(STEPS[state.current].id !== 'health'){ if(container) container.innerHTML=''; return; }
     const allText = [
       Object.values(state.notes||{}).join(' '),
       state.c1.health||'', state.c2.health||'',
@@ -4347,7 +4688,6 @@ function setUWAnswer(condKey, qIdx, field, value){
       state.c1.lifestyle||'', state.c2.lifestyle||''
     ].join(' ');
     const conditions = detectConditions(allText);
-    const container = document.getElementById('uwQuestions');
     if(container) container.innerHTML = renderUWQuestions(conditions);
   }
 
@@ -4355,10 +4695,12 @@ function setUWAnswer(condKey, qIdx, field, value){
   // ── FIB visibility based on dependants ──
   function hasDependants(){
     const notes = Object.values(state.notes||{}).join(' ').toLowerCase();
+    const hhDeps = String((state.household&&state.household.dependants)||'').toLowerCase();
     const c1deps = (state.c1.dependants||'').toLowerCase();
     const c2deps = (state.c2.dependants||'').toLowerCase();
+    if(num(state.salesArc.youngestAge) > 0) return true;
     // check if any dependants info exists (not "none" or empty)
-    const depsText = [c1deps, c2deps].join(' ').trim();
+    const depsText = [hhDeps, c1deps, c2deps].join(' ').trim();
     if(depsText && !depsText.match(/^(none|no|nil|0|n\/a|\-)$/)) return true;
     // also check notes for mentions of children/kids/dependants
     const stripped = notes.replace(/\b(no|not|zero|without|none)\s+(dependants?|children|kids|child)\b/g, '');
@@ -4369,9 +4711,8 @@ function setUWAnswer(condKey, qIdx, field, value){
   
   // grey out FIB step in rail if no dependants
   function updateFIBVisibility(){
-    const railNodes = document.querySelectorAll('.step-link');
-    if(railNodes.length > 9){
-      const fibNode = railNodes[9]; // index 9 = step 10 (FIB)
+    const fibNode = document.querySelector(`.step-link[data-i="${SI('fib')}"]`);
+    if(fibNode){
       if(!hasDependants()){
         fibNode.style.opacity='0.35';
         fibNode.style.pointerEvents='none';
@@ -4396,7 +4737,7 @@ function setUWAnswer(condKey, qIdx, field, value){
         '<div style="font-size:40px;margin-bottom:14px;">👨‍👩‍👧</div>' +
         '<div style="font-size:16px;font-weight:600;margin-bottom:8px;">No dependants recorded</div>' +
         '<div style="font-size:14px;max-width:400px;margin:0 auto;">Family Income Benefit is designed to protect dependants. ' +
-        'Add dependants in Step 1 (Introduction) if applicable, and this section will activate.</div></div>';
+        'Add dependants in Confirm Factfind if applicable, and this section will activate.</div></div>';
     }
     updateFIBVisibility();
   }
@@ -4409,7 +4750,7 @@ function setUWAnswer(condKey, qIdx, field, value){
      theme:'keeping the home',
      shortfall:'the family may not be able to keep the home',
      gap:'the mortgage debt would fall to the surviving partner to clear'},
-    {keywords:['children','kids','child','daughter','son','school','education','university','aisha','dependant'],
+    {keywords:['children','kids','child','daughter','son','school','education','university','dependant'],
      theme:'protecting the children',
      shortfall:'the children\'s financial security is exposed',
      gap:'there may not be enough to support the children through to independence'},
@@ -4440,8 +4781,8 @@ function setUWAnswer(condKey, qIdx, field, value){
   ];
 
   function detectGoalThemes(){
-    const goalsNotes = (state.notes[1]||'').toLowerCase(); // step 2 = index 1
-    const introNotes = (state.notes[0]||'').toLowerCase();
+    const goalsNotes = stepNotes('goals').toLowerCase();
+    const introNotes = stepNotes('intro').toLowerCase();
     const allGoals = goalsNotes + ' ' + introNotes;
     return GOAL_THEMES.filter(g => g.keywords.some(k => allGoals.includes(k)));
   }
@@ -4454,8 +4795,8 @@ function setUWAnswer(condKey, qIdx, field, value){
     const netMo = h.netMonthly;
     const c1 = state.c1;
     const salary1 = num(c1.salary);
-    const dis = num(state.assumptions.dis||0) * salary1;
-    const lifeGap = mortgage - dis;
+    const dis = disIsRecorded() ? num(state.assumptions.dis||0) * salary1 : null;   // default multiplier isn't recorded
+    const lifeGap = dis===null ? 0 : mortgage - dis;
     const sickMo = num(state.assumptions.c1sick);
     const savMo = num(state.assumptions.savings);
     const cliffMonth = sickMo + savMo;
@@ -4489,59 +4830,32 @@ function setUWAnswer(condKey, qIdx, field, value){
   
 
   
-  // ── AI-generated per-step prompts (pre-fetched ahead) ──
-  const promptCache = {};   // stepIdx -> [prompts]
-  let promptFetching = {};  // stepIdx -> bool
-
-  async function fetchPromptsFor(stepIdx){
-    if(promptCache[stepIdx] || promptFetching[stepIdx]) return;
-    if(stepIdx < 0 || stepIdx >= STEPS.length) return;
-    promptFetching[stepIdx] = true;
+  // ---------- init ----------
+  const restored = restoreState();
+  renderRail(); renderBottomBar();
+  if(restored){
+    // goto() saves the notes box first, so load the restored notes into it before navigating
+    document.getElementById('stepNotes').value = state.notes[state.current] || '';
+    goto(state.current);        // re-draws the saved step (and the picture, if that's where they were)
+  } else {
+    renderStep(); updateFIBVisibility();
+  }
+  // Session check on load (an old/expired token shows the login now, not mid-call),
+  // then a fresh token every 30 minutes and when the tab regains focus, so an open
+  // tab doesn't expire during a call.
+  let lastSessionRefresh = 0;
+  async function refreshSession(){
+    if(!COPILOT_TOKEN) return;
+    lastSessionRefresh = Date.now();
     try{
-      const ff = factFindContext();
-      const notes = allNotes();
-      const combined = [ff, notes && 'CALL NOTES:\n'+notes].filter(Boolean).join('\n\n');
-      const res = await authFetch(API_BASE+'/copilot/prompts',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({step:STEPS[stepIdx].title, notes:combined})});
-      const out = await res.json();
-      if(out.prompts && out.prompts.length){
-        promptCache[stepIdx] = out.prompts;
-        // if we're currently on this step, repaint
-        if(state.current === stepIdx) paintGuide();
-      }
-    }catch(e){ console.error('prompt fetch failed', e); }
-    promptFetching[stepIdx] = false;
+      const res = await authFetch(API_BASE+'/copilot/session');
+      const data = await res.json();
+      if(data && data.token){ COPILOT_TOKEN = data.token; sessionStorage.setItem('copilot_token', data.token); }
+    }catch(e){ /* 401 already shows the login */ }
   }
-
-  function renderPremadePrompts(stepIdx){
-    const prompts = promptCache[stepIdx];
-    if(!prompts || !prompts.length){
-      // show a subtle loading state only if we're fetching
-      if(promptFetching[stepIdx]){
-        return '<div class="premade-section" style="margin-bottom:20px;"><h5 style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Ready to use</h5><div style="font-size:12.5px;color:var(--muted);font-style:italic;">Preparing prompts…</div></div>';
-      }
-      return '';
-    }
-    let html = '<div class="premade-section" style="margin-bottom:20px;">';
-    html += '<h5 style="font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;">Ready to use</h5>';
-    html += '<div class="g-cards">';
-    for(const p of prompts){
-      html += '<div class="g-card g-premade" style="border-left:3px solid var(--verd);background:rgba(14,107,92,0.04);"><div class="g-detail" style="font-size:13.5px;line-height:1.55;color:var(--ink);">"' + esc(p) + '"</div></div>';
-    }
-    html += '</div></div>';
-    return html;
-  }
-
-  // pre-fetch the next step's prompts whenever we land on a step
-  function prefetchNext(){
-    const next = state.current + 1;
-    if(next < STEPS.length) fetchPromptsFor(next);
-    // also fetch current if not cached (first load)
-    fetchPromptsFor(state.current);
-  }
-
-    renderRail(); renderStep(); renderBottomBar(); updateFIBVisibility(); prefetchNext();
-  if(COPILOT_TOKEN){ hideLogin(); /* GHL DISCONNECTED: was loadReferralList(); re-enable by restoring that call */ } else { showLogin(); }
+  setInterval(refreshSession, 30*60*1000);
+  window.addEventListener('focus', ()=>{ if(Date.now()-lastSessionRefresh > 5*60*1000) refreshSession(); });
+  if(COPILOT_TOKEN){ hideLogin(); refreshSession(); } else { showLogin(); }
 </script>
 
 <div class="btmbar">

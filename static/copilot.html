@@ -2358,6 +2358,142 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
       body.picture-fullscreen-active.picture-notes-open #stepNotes{width:calc(100% - 36px);}
     }
 
+    /* ===== CALL LAYOUT: prep screen, then one notes box + co-pilot ===== */
+    body.cl{padding-bottom:40px;}
+    body.cl .snapshot,
+    body.cl .btmbar,
+    body.cl .rail,
+    body.cl .progress-count,
+    body.cl .step-num,
+    body.cl .complete-toggle{display:none !important;}
+    body.cl:not(.picture-fullscreen-active) .step-card>.navbtns{display:none;}
+    .cl-who{font-weight:650;font-size:17px;letter-spacing:-0.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30vw;}
+    .cl-figs{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+    .cl-figs b{font-family:var(--mono);font-weight:500;color:var(--ink);}
+    .cl-figs i{font-style:normal;color:var(--hair-strong);}
+
+    .cl-strip{margin:0 clamp(12px,2.2vw,36px) 20px;display:flex;flex-direction:column;gap:10px;}
+    .cl-row{display:flex;align-items:center;gap:10px 20px;flex-wrap:wrap;}
+    .cl-row .cl-figs{margin-left:auto;}
+    .cl-phases{min-width:0;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px;}
+    .cl-phases::-webkit-scrollbar{display:none;}
+    .cl-phase{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--hair-strong);background:rgba(255,255,255,0.85);border-radius:14px;padding:9px 16px;font:600 14px var(--sans);color:var(--ink-soft);cursor:pointer;min-height:44px;justify-content:center;transition:background .15s,border-color .15s,color .15s;}
+    .cl-phase small{font:500 11px var(--mono);color:var(--muted);letter-spacing:.02em;}
+    .cl-phase:hover{border-color:var(--verd);color:var(--verd);}
+    .cl-phase.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+    .cl-phase.on small{color:#C9CCE0;}
+    .cl-phase.ready small{color:#0E6B5C;}
+    .cl-phase.ready.on small{color:#A6EFDA;}
+    .cl-arrow{flex:none;color:var(--hair-strong);font-size:18px;line-height:1;}
+    .cl-sub{display:flex;flex-direction:column;gap:8px;}
+    .cl-sub[hidden]{display:none;}
+    .cl-topics{display:flex;flex-wrap:wrap;gap:6px;}
+    .cl-topic{display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;background:transparent;border-radius:999px;padding:6px 12px;font:500 13.5px var(--sans);color:var(--ink-soft);cursor:pointer;min-height:36px;}
+    .cl-topic:hover{background:rgba(255,255,255,0.8);border-color:var(--hair);}
+    .cl-topic.on{background:#fff;border-color:var(--verd);color:var(--verd);font-weight:600;box-shadow:0 0 0 3px var(--verd-soft);}
+    .cl-topic.off{opacity:.5;}
+    .cl-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--hair-strong);flex:none;}
+    .cl-topic.has .cl-dot{background:var(--verd);border-color:var(--verd);}
+    .cl-gaps{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:13px;color:var(--muted);padding:0 4px;}
+    .cl-gaps>span{margin-right:2px;}
+    .cl-gaps button{border:0;background:var(--signal-soft);color:var(--signal);border-radius:999px;padding:3px 10px;font:500 12.5px var(--sans);cursor:pointer;}
+    .cl-gaps button:hover{filter:brightness(0.97);text-decoration:underline;}
+    .cl-gaps.ready{color:#0E6B5C;font-weight:500;}
+    .cl-gaps button.go{background:#0E6B5C;color:#fff;padding:5px 13px;font-weight:600;}
+
+    body.cl .step-card{display:flex;flex-direction:column;}
+    body.cl .step-card h1{font-size:clamp(24px,2vw,30px);margin:0 0 6px;}
+    body.cl .step-desc{font-size:14px;margin-bottom:14px;}
+    body.cl .notes-label{margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-weight:600;color:var(--ink);}
+    .cl-notes-hint{font-weight:400;font-size:12.5px;color:var(--muted);}
+    body.cl-call:not(.picture-fullscreen-active) textarea.notes{min-height:max(280px,38vh);font-size:15.5px;}
+    .voice-chips .vc-text{display:inline-flex;align-items:center;gap:4px;padding:6px 4px 6px 13px;font-size:13px;color:var(--ink);}
+    .voice-chips .vc-text b{font-weight:650;}
+    .voice-chips .vc-text s{color:var(--muted);font-size:12px;}
+    .voice-chips .ns-chip{background:#EEF6F3;border-color:#CFE5DC;}
+    .voice-chips .ns-add{padding:6px 10px;}
+    .voice-chips .vc-who{border-left:1px solid #CFE5DC;font-weight:600;color:#0E6B5C;}
+
+    .cl-fields{margin-top:18px;border-top:1px solid var(--hair);padding-top:6px;}
+    .cl-fields>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 2px;font:600 14px var(--sans);color:var(--ink-soft);border-radius:10px;}
+    .cl-fields>summary::-webkit-details-marker{display:none;}
+    .cl-fields>summary::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin:0 4px 0 2px;}
+    .cl-fields[open]>summary::before{transform:rotate(45deg);}
+    .cl-fields>summary:hover{color:var(--verd);}
+    .cl-fields[open]>#stepBody{padding-top:8px;}
+    .cl-fields.forced{border-top:0;margin-top:0;padding-top:0;}
+    .cl-fields.forced>summary{display:none;}
+
+    .cl-start{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;}
+    .cl-start:empty{display:none;}
+    body.cl-prep .cl-start{margin-top:28px;padding-top:22px;border-top:1px solid var(--hair);}
+    .cl-go{background:linear-gradient(180deg,#7A68DC,#6655CF);color:#fff;border:1px solid #7060D3;border-radius:14px;padding:13px 24px;font:650 15.5px var(--sans);cursor:pointer;min-height:48px;box-shadow:0 5px 12px rgba(102,85,207,0.18);}
+    .cl-go:hover{filter:brightness(1.06);}
+    .cl-start span{font-size:13px;color:var(--muted);}
+
+    /* before the call: full width, no notes, no co-pilot */
+    body.cl-prep .layout{grid-template-columns:minmax(0,1fr);max-width:1100px;margin-left:auto;margin-right:auto;}
+    body.cl-prep .mindcol,
+    body.cl-prep .step-card>.notes-label,
+    body.cl-prep #stepNotes,
+    body.cl-prep #noteSuggestions,
+    body.cl-prep #voiceChips{display:none !important;}
+    .cl-prep-facts{margin-top:18px;}
+
+    /* Your Picture: the picture first, notes (when opened) underneath */
+    body.picture-fullscreen-active .cl-strip,
+    body.picture-fullscreen-active #voiceChips{display:none !important;}
+    body.cl.picture-fullscreen-active #clFields{order:1;}
+    body.cl.picture-fullscreen-active .step-card>.notes-label{order:2;}
+    body.cl.picture-fullscreen-active #stepNotes{order:3;}
+    body.cl.picture-fullscreen-active #noteSuggestions{order:4;}
+    body.cl.picture-fullscreen-active .step-card>.navbtns{order:5;}
+
+    /* voice: one small control, bottom-left */
+    .voice-pill{position:fixed;left:18px;bottom:18px;z-index:96;display:flex;align-items:center;gap:8px;max-width:min(620px,calc(100vw - 36px));padding:6px;background:#1D2236;color:#E9EDF9;border-radius:999px;box-shadow:0 10px 30px rgba(20,24,40,0.28);font-family:var(--sans);}
+    .voice-pill:empty{display:none;}
+    .voice-pill.wb{bottom:86px;}
+    .vp-main{display:inline-flex;align-items:center;gap:8px;border:0;background:rgba(255,255,255,0.08);color:#fff;border-radius:999px;padding:9px 16px;font:600 13.5px var(--sans);cursor:pointer;min-height:40px;white-space:nowrap;}
+    .vp-main:hover{background:rgba(255,255,255,0.16);}
+    .vp-dot{width:9px;height:9px;border-radius:50%;background:#8C93AD;flex:none;}
+    .voice-pill.on .vp-dot{background:#FF6B6B;box-shadow:0 0 0 0 rgba(255,107,107,.6);animation:vpPulse 1.6s ease-out infinite;}
+    @keyframes vpPulse{0%{box-shadow:0 0 0 0 rgba(255,107,107,.55);}100%{box-shadow:0 0 0 9px rgba(255,107,107,0);}}
+    .voice-pill.docked .vp-heard,.voice-pill.docked .vp-toast{max-width:260px;}
+    .vp-heard,.vp-toast{font-size:13px;color:#C9CEE3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;padding-right:4px;}
+    .vp-toast{color:#fff;}
+    .vp-toast button{border:0;background:none;color:#A6EFDA;font:600 13px var(--sans);cursor:pointer;text-decoration:underline;padding:0 2px;}
+    .vp-help{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:transparent;color:#E9EDF9;font:600 14px var(--sans);cursor:pointer;}
+    .vp-help:hover{background:rgba(255,255,255,0.1);}
+    .vp-card{position:absolute;left:0;bottom:calc(100% + 10px);width:min(380px,calc(100vw - 36px));background:#fff;color:var(--ink);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow-md);font-size:13.5px;line-height:1.55;}
+    .vp-card b{display:block;margin-bottom:6px;}
+    .vp-card p{margin:0 0 8px;color:var(--ink-soft);}
+    .vp-card ul{margin:0 0 12px;padding-left:18px;}
+    .vp-card li{margin:2px 0;}
+    .vp-card em{font-style:normal;font-weight:600;color:var(--verd);}
+    .vp-card button{border:1px solid var(--hair-strong);background:#fff;border-radius:10px;padding:7px 14px;font:600 13px var(--sans);cursor:pointer;}
+    .voice-pill.discreet{padding:4px;background:rgba(29,34,54,0.75);}
+    .voice-pill.discreet .vp-main{padding:7px 12px;font-size:12px;min-height:32px;}
+
+    /* docked in the header during the call */
+    .voice-pill.docked{position:relative;left:auto;bottom:auto;z-index:auto;background:transparent;box-shadow:none;padding:0;color:var(--ink);max-width:min(460px,40vw);}
+    .voice-pill.docked .vp-main{background:var(--verd-soft);color:var(--verd);border:1px solid rgba(102,85,207,0.22);min-height:40px;}
+    .voice-pill.docked .vp-main:hover{background:#E4DFF8;}
+    .voice-pill.docked .vp-dot{background:var(--verd);}
+    .voice-pill.docked.on .vp-main{background:#FDECEC;color:var(--red);border-color:#F1C6C8;}
+    .voice-pill.docked.on .vp-dot{background:#E5484D;}
+    .voice-pill.docked .vp-heard{color:var(--muted);font-style:italic;}
+    .voice-pill.docked .vp-toast{color:var(--ink);}
+    .voice-pill.docked .vp-toast button{color:var(--verd);}
+    .voice-pill.docked .vp-help{border-color:var(--hair-strong);color:var(--ink-soft);}
+    .voice-pill.docked .vp-help:hover{background:var(--verd-soft);}
+    .voice-pill.docked .vp-card{top:calc(100% + 12px);bottom:auto;z-index:30;}
+    @media (max-width:860px){
+      .voice-pill.docked{max-width:100%;order:5;}
+      .cl-who{max-width:50vw;}
+      .cl-figs{width:100%;order:10;}
+      .cl-phase{padding:8px 12px;font-size:13px;}
+    }
+
 </style>
 </head>
 <body>
@@ -2372,6 +2508,8 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   </div>
   <header>
     <div class="back">← Back to case</div>
+    <div class="cl-who" id="clWho"></div>
+    <div class="voice-pill docked" id="voiceDock"></div>
     <div class="hdr-spacer"></div>
     <div class="progress-count" id="progressCount">0/13 complete</div>
     <div class="saved" id="savedState" title="This call is kept in this browser tab, so a refresh won't lose it. Closing the tab clears it.">Not saved yet</div>
@@ -2401,6 +2539,15 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- CALL LAYOUT: where we are in the call (replaces the 13-step bar) -->
+  <div class="cl-strip" id="clStrip">
+    <div class="cl-row">
+      <nav class="cl-phases" id="clPhases" aria-label="Call stages"></nav>
+      <div class="cl-figs" id="clFigs"></div>
+    </div>
+    <div class="cl-sub" id="clSub"></div>
   </div>
 
   <!-- SNAPSHOT -->
@@ -2436,10 +2583,15 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
             <label class="switch"><input type="checkbox" id="stepComplete"><span class="slider"></span></label>
           </div>
         </div>
-        <div id="stepBody"></div>
-        <div class="notes-label">Live notes</div>
-        <textarea class="notes" id="stepNotes" placeholder="Type what the client tells you…"></textarea>
+        <div class="notes-label">Notes <span class="cl-notes-hint">One box for the whole call. A heading is added each time the topic changes.</span></div>
+        <textarea class="notes" id="stepNotes" placeholder="Type what the client tells you, in any order…"></textarea>
         <div id="noteSuggestions" class="note-suggestions" aria-live="polite"></div>
+        <div id="voiceChips" class="note-suggestions voice-chips" aria-live="polite"></div>
+        <details class="cl-fields" id="clFields">
+          <summary id="clFieldsSummary">Fields</summary>
+          <div id="stepBody"></div>
+        </details>
+        <div class="cl-start" id="clStart"></div>
         <div class="navbtns">
           <button class="navbtn" id="prevBtn">← Previous</button>
           <button class="navbtn" id="nextBtn">Next →</button>
@@ -2544,6 +2696,11 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
     current: 0,
     complete: {},
     notes: {},
+    // call layout: 'prep' (before the call) or 'call'. The whole call is one notes
+    // box (callNotes); per-step notes are derived from its topic headings.
+    view: 'prep',
+    callNotes: '',
+    lastCallTopic: 'intro',
     // fact-find
     c1:{name:'',nick:'',age:'',job:'',salary:'',bonus:'',emp:'employed'},
     c2:{name:'',nick:'',age:'',job:'',salary:'',bonus:'',emp:'employed',active:true},
@@ -2623,6 +2780,7 @@ function clearScriptBox(){
     if(mindcol) mindcol.style.display = 'none';
     if(btmbar) btmbar.style.display = 'none';
     document.body.classList.add('picture-fullscreen-active');
+    if(typeof renderVoicePill === 'function') setTimeout(renderVoicePill, 0);
     document.body.classList.toggle('ypf-client-view', state.pictureView==='client');
     window.scrollTo(0,0);
   }
@@ -2636,6 +2794,7 @@ function clearScriptBox(){
     if(mindcol) mindcol.style.display = '';
     if(btmbar) btmbar.style.display = '';
     document.body.classList.remove('picture-fullscreen-active','ypf-client-view','picture-notes-open');
+    if(typeof renderVoicePill === 'function') setTimeout(renderVoicePill, 0);
   }
   // Client view hides every coaching element (aims, 'why' notes, prompt leaves,
   // the bridge) so the screen can be shared. Financial facts stay.
@@ -2645,6 +2804,7 @@ function clearScriptBox(){
     if(state.pictureView==='client') document.body.classList.remove('picture-notes-open');
     const b=document.getElementById('ypfViewToggle');
     if(b){ b.textContent = state.pictureView==='client' ? 'Back to adviser view' : 'Client view'; b.setAttribute('aria-pressed', String(state.pictureView==='client')); }
+    if(typeof renderVoicePill === 'function') renderVoicePill();
     persistSoon();
   }
   function togglePictureNotes(){
@@ -2660,9 +2820,18 @@ function clearScriptBox(){
     goto(state.current);   // re-draw the picture with the new figure
   }
 
+  let gotoLastIdx=null, gotoLastView=null;
   function goto(i){
     saveNotes();
     state.current=Math.max(0,Math.min(STEPS.length-1,i));
+    if(state.view==='prep' && STEPS[state.current].id!=='factfind') state.view='call';
+    if(state.view==='call'){
+      const tid=STEPS[state.current].id;
+      if(tid!=='picture') state.lastCallTopic=tid;
+      // a new topic gets its heading in the notes (a re-draw of the same one doesn't)
+      if(gotoLastIdx!==null && (gotoLastIdx!==state.current || gotoLastView!==state.view)) ensureTopicHeading(tid);
+    }
+    gotoLastIdx=state.current; gotoLastView=state.view;
     clearScriptBox(); renderStep(); renderRail(); paintGuide();
     setTimeout(checkUW,200); updateFIBVisibility();
     if(scriptMode==='script') setTimeout(prefetchScript, 400);
@@ -2674,7 +2843,12 @@ function clearScriptBox(){
     if(id==='health') schedulePicturePrecompute();
     persistSoon();
   }
-  function saveNotes(){ state.notes[state.current]=document.getElementById('stepNotes').value; }
+  function saveNotes(){
+    const box=document.getElementById('stepNotes');
+    if(!box) return;
+    state.callNotes=box.value;
+    deriveStepNotes();
+  }
 
   function renderStep(){
     const s=STEPS[state.current];
@@ -2682,11 +2856,12 @@ function clearScriptBox(){
     document.getElementById('stepTitle').textContent=s.title;
     document.getElementById('stepDesc').textContent=s.desc;
     document.getElementById('stepComplete').checked=!!state.complete[state.current];
-    document.getElementById('stepNotes').value=state.notes[state.current]||'';
-    document.getElementById('stepBody').innerHTML=bodyFor(s.id);
+    setNotesBox();
+    document.getElementById('stepBody').innerHTML = state.view==='prep' ? prepScreenBody() : bodyFor(s.id);
     wireBody(s.id);
     renderSnapshot();
     renderNoteSuggestions();
+    renderCallLayout();
     // Guidance is requested by goto()/typing (only when content changed), not on every re-render.
   }
 
@@ -3169,7 +3344,7 @@ function yourPictureBody(){
     if(id==='picture') return yourPictureBody();
     if(id==='en') return enBody();
     if(['ip','fib','life','cic'].includes(id)) return quoteBody(id);
-    if(id==='intro') return introBody();
+    if(id==='intro') return state.view==='call' ? introCallBody() : introBody();
     if(id==='goals') return goalsBody();
     if(id==='close') return renderRatingReview();
     return '';
@@ -3201,7 +3376,7 @@ function yourPictureBody(){
     </div>`;
   }
 
-  function introBody(){
+  function prepPanelHTML(){
     const opts = referralOptions.length ?
       '<option value="">Select a client…</option>' + referralOptions.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('') :
       '<option value="">Press “Show referred clients”</option>';
@@ -3226,21 +3401,33 @@ function yourPictureBody(){
         </div>
       </div>
       ${prepBriefHTML()}
-    </div>
-    <div class="row2">
-      ${clientEditor('c1','Client 1')}
-      ${state.c2.active?clientEditor('c2','Client 2'):`<div class="miniclient"><h3>Client 2</h3><button class="add-btn" onclick="addC2()">+ Add second client</button></div>`}
-    </div>
-    <div class="assump" style="margin-top:14px"><h4>Plan for this call</h4>
+    </div>`;
+  }
+  function callPlanHTML(){
+    return `<div class="assump" style="margin-top:14px"><h4>Plan for this call</h4>
       <p class="empty-note" style="margin:0 0 8px">Jot down how you intend to approach this call - what you'll lead with, anything to be careful of, where you want to get to. The co-pilot will align its guidance to your approach. Not shown to the client.</p>
       <textarea class="fi" rows="3" placeholder="e.g. Lead with income protection - he's reluctant so keep it educational. Get to the bonus/death-in-service gap early. Budget may be tight, phase CIC if needed." oninput="setCallPlan(this.value)">${esc(state.callPlan)}</textarea>
     </div>
     <div class="assump" style="margin-top:14px"><h4>Referral source</h4>
       <div class="fieldset"><label class="fl">Where did this lead come from?</label><input class="fi" placeholder="e.g. Smith Mortgages, existing client Sarah J, website enquiry" value="${esc(state.referralSource)}" oninput="setReferralSource(this.value)"></div>
-    </div>
-    <div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
+    </div>`;
+  }
+  function introBody(){
+    return prepPanelHTML() + `<div class="row2">
+      ${clientEditor('c1','Client 1')}
+      ${state.c2.active?clientEditor('c2','Client 2'):`<div class="miniclient"><h3>Client 2</h3><button class="add-btn" onclick="addC2()">+ Add second client</button></div>`}
+    </div>` + callPlanHTML() + `<div class="assump" style="margin-top:14px"><h4>Property &amp; mortgage</h4>
       ${mortgageFieldsHTML(true)}
     </div>`;
+  }
+  // Before the call: the referral, every fact-find field, and the plan - on one screen.
+  function prepScreenBody(){
+    return prepPanelHTML() + `<div class="cl-prep-facts">` + factfindBody() + `</div>` + callPlanHTML();
+  }
+  // Opening, during the call: the prep brief and plan stay to hand; the fields were done in prep.
+  function introCallBody(){
+    const brief = prepBriefHTML();
+    return (brief || '<p class="empty-note" style="margin:0">No prep brief for this client. Load a referral on the Before the call screen to get one.</p>') + callPlanHTML();
   }
 
   function goalsBody(){
@@ -3556,7 +3743,8 @@ function yourPictureBody(){
     state.complete[state.current]=e.target.checked; renderRail(); persistSoon();
     if(STEPS[state.current].id==='stress'){ const el=document.getElementById('stressResults'); if(el) el.innerHTML=stressResults(); }
   });
-  document.getElementById('prevBtn').addEventListener('click',()=>goto(state.current-1));
+  // On Your Picture, 'back' returns to the topic you came from rather than the step before.
+  document.getElementById('prevBtn').addEventListener('click',()=>{ if(STEPS[state.current].id==='picture' && state.view==='call') goTopic(state.lastCallTopic||'health'); else goto(state.current-1); });
   document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
   document.getElementById('newClientBtn').addEventListener('click',()=>newClient());
 
@@ -3725,6 +3913,7 @@ function yourPictureBody(){
       if(v!==null) fieldSuggestions[k]=v;
     });
     renderNoteSuggestions();
+    if(window.renderVoiceChips) window.renderVoiceChips();
   }
   function activeSuggestions(){
     return Object.entries(fieldSuggestions).filter(([k,v])=>{
@@ -4195,13 +4384,13 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       } else {
         if(deck) deck.style.display = 'block';
         renderDeckStack();   // was renderDeckCard(), which targeted elements that no longer exist
-        if(label) label.textContent = 'stage ' + String(idx+1).padStart(2,'0');
+        if(label) label.textContent = topicLabel(STEPS[idx].id);
       }
     } else {
       deckCards = [];
       if(deck) deck.style.display = 'none';
       if(passive) passive.style.display = 'block';
-      if(label) label.textContent = 'stage ' + String(idx+1).padStart(2,'0');
+      if(label) label.textContent = topicLabel(STEPS[idx].id);
     }
     renderBottomBar();
   }
@@ -4830,14 +5019,764 @@ function setUWAnswer(condKey, qIdx, field, value){
   
 
   
+  // =====================================================================
+  // CALL LAYOUT
+  // Before the call: one prep screen (referral + every fact-find field).
+  // During the call: one notes box with the co-pilot beside it, grouped into a
+  // few stages instead of 13 steps. The steps, state and AI calls underneath are
+  // unchanged - this only changes how they're presented and navigated.
+  // =====================================================================
+  const TOPICS = {
+    intro:'Opening', goals:'Their why', factfind:'Their world', existing:'Already in place',
+    stress:'Stress test', health:'Health', picture:'Your Picture', en:'Essential vs needed',
+    ip:'Income protection', fib:'Family income benefit', life:'Life cover', cic:'Critical illness',
+    close:'Close'
+  };
+  const CALL_PHASES = [
+    {key:'prep', label:'Before the call'},
+    {key:'talk', label:'The conversation', topics:['intro','goals','factfind','existing','stress','health']},
+    {key:'picture', label:'Your Picture', topics:['picture']},
+    {key:'solutions', label:'Solutions', topics:['en','ip','fib','life','cic']},
+    {key:'close', label:'Close', topics:['close']},
+  ];
+  const DRAWER_OPEN_BY_DEFAULT = new Set(['intro','en','ip','fib','life','cic','close']);
+  const drawerChoice = {};
+  function topicLabel(id){ return TOPICS[id] || ((STEPS[SI(id)]||{}).title) || ''; }
+  function phaseKeyOf(id){
+    if(state.view==='prep') return 'prep';
+    const p = CALL_PHASES.find(ph => ph.topics && ph.topics.includes(id));
+    return p ? p.key : 'talk';
+  }
+  function firstName(c, key){ return String(c.nick || c.name || '').trim().split(/\s+/)[0] || (key==='c1' ? 'Client 1' : 'Client 2'); }
+
+  // ---------- one notes box, organised by topic headings ----------
+  // "— Their world —" lines split the box into topics. Each step's notes (which
+  // the AI guidance, Your Picture and the summary read) are derived from them.
+  const HEADING_RX = /^[ \t]*[—–-]{1,3}[ \t]*(.+?)[ \t]*[—–-]{1,3}[ \t]*$/;
+  function headingFor(id){ return '— ' + topicLabel(id) + ' —'; }
+  function topicFromHeading(text){
+    const t = String(text||'').trim().toLowerCase();
+    let s = STEPS.find(st => topicLabel(st.id).toLowerCase()===t || st.title.toLowerCase()===t);
+    // an edited heading still counts: "— Health (Jane) —" is Health
+    if(!s) s = STEPS.find(st => [topicLabel(st.id), st.title].some(l => { l = l.toLowerCase(); return t.startsWith(l) && !/[a-z]/.test(t.charAt(l.length)); }));
+    return s ? s.id : null;
+  }
+  function noteSections(text){
+    const out = []; let cur = {id:null, lines:[]};
+    String(text||'').split('\n').forEach(line => {
+      const m = line.match(HEADING_RX);
+      const id = m && topicFromHeading(m[1]);
+      if(id){ out.push(cur); cur = {id, lines:[]}; }
+      else cur.lines.push(line);
+    });
+    out.push(cur);
+    return out;
+  }
+  function deriveStepNotes(){
+    const by = {};
+    noteSections(state.callNotes).forEach(sec => {
+      const body = sec.lines.join('\n').trim();
+      if(!body) return;
+      // Text above the first heading (e.g. the headings were deleted) goes to Opening,
+      // never to 'Their why' - that text becomes the goal headline on Your Picture.
+      const id = sec.id || 'intro';
+      by[id] = (by[id] ? by[id] + '\n' : '') + body;
+    });
+    const notes = {};
+    STEPS.forEach((s,i) => { if(by[s.id]) notes[i] = by[s.id]; });
+    state.notes = notes;
+  }
+  // A case saved by the old layout has per-step notes: fold them into one box.
+  function migrateNotes(){
+    if(!state.callNotes){
+      const parts = [];
+      STEPS.forEach((s,i) => { const n = String((state.notes||{})[i]||'').trim(); if(n) parts.push(headingFor(s.id) + '\n' + n); });
+      state.callNotes = parts.length ? parts.join('\n\n') + '\n' : '';
+    }
+    deriveStepNotes();
+  }
+  function setNotesBox(){
+    const box = document.getElementById('stepNotes');
+    if(box && box.value !== state.callNotes) box.value = state.callNotes || '';
+  }
+  function writeNotesBox(text){
+    state.callNotes = text;
+    const box = document.getElementById('stepNotes');
+    if(box && box.value !== text){
+      const focused = document.activeElement === box;
+      const atEnd = box.selectionStart >= box.value.length;
+      const ss = box.selectionStart, se = box.selectionEnd;
+      box.value = text;
+      if(focused){
+        if(atEnd){ box.selectionStart = box.selectionEnd = text.length; }
+        else { box.selectionStart = Math.min(ss, text.length); box.selectionEnd = Math.min(se, text.length); }
+      }
+      if(atEnd) box.scrollTop = box.scrollHeight;
+    }
+    deriveStepNotes();
+    persistSoon();
+  }
+  let lastNotesInput = 0, headingTimer = null, pendingHeading = null;
+  // Add the topic's heading at the end of the notes - but never mid-sentence:
+  // if the adviser is typing, wait until they pause.
+  let autoMove = false;
+  function ensureTopicHeading(id){
+    pendingHeading = id;
+    clearTimeout(headingTimer);
+    const since = Date.now() - lastNotesInput;
+    if(autoMove && since < 2500){ headingTimer = setTimeout(() => { if(pendingHeading) applyHeading(pendingHeading); }, 4000); return; }
+    applyHeading(id);
+  }
+  function applyHeading(id){
+    pendingHeading = null; clearTimeout(headingTimer);
+    const box = document.getElementById('stepNotes');
+    let text = box ? box.value : (state.callNotes || '');
+    for(let guard = 0; guard < 5; guard++){
+      const secs = noteSections(text);
+      const last = secs[secs.length-1];
+      const lastEmpty = !last.lines.join('').trim();
+      if(last.id === id) break;
+      if(!text.trim()){ text = headingFor(id) + '\n'; break; }
+      if(last.id && lastEmpty){
+        // the previous topic got no notes - drop its heading, then look again
+        const lines = text.split('\n');
+        for(let i = lines.length-1; i >= 0; i--){
+          const m = lines[i].match(HEADING_RX);
+          if(m && topicFromHeading(m[1])){ lines.splice(i); break; }
+        }
+        text = lines.join('\n').replace(/\s+$/,'');
+        continue;
+      }
+      text = text.replace(/\s+$/,'') + '\n\n' + headingFor(id) + '\n';
+      break;
+    }
+    if(!text.trim()) text = headingFor(id) + '\n';
+    writeNotesBox(text);
+  }
+  function notesChanged(){
+    invalidateDebounced(); nudgeGuidance(2500);
+    clearTimeout(uwTimer); uwTimer = setTimeout(checkUW, 800);
+    updateFIBVisibility(); renderCallLayout(); persistSoon();
+  }
+  function appendNote(text){
+    const t = String(text||'').trim();
+    if(!t) return;
+    if(pendingHeading) applyHeading(pendingHeading);
+    const box = document.getElementById('stepNotes');
+    const cur = (box ? box.value : state.callNotes || '').replace(/\s+$/,'');
+    const line = t.replace(/^\w/, c => c.toUpperCase()) + (/[.!?]$/.test(t) ? '' : '.');
+    writeNotesBox((cur ? cur + '\n' : '') + line + '\n');
+    notesChanged();
+  }
+  document.getElementById('stepNotes').addEventListener('input', () => {
+    lastNotesInput = Date.now();
+    if(pendingHeading){
+      // the adviser finished the line they were on when the conversation moved: the heading goes in now
+      const box = document.getElementById('stepNotes');
+      if(box && box.value.charAt(box.selectionStart - 1) === '\n' && box.selectionStart >= box.value.length){ applyHeading(pendingHeading); }
+      else { clearTimeout(headingTimer); headingTimer = setTimeout(() => { if(pendingHeading) applyHeading(pendingHeading); }, 4000); }
+    }
+    clearTimeout(clLayoutTimer); clLayoutTimer = setTimeout(renderCallLayout, 400);
+  });
+  let clLayoutTimer;
+
+  // ---------- navigation ----------
+  function goTopic(id){
+    const i = SI(id);
+    if(i < 0) return;
+    const fromPhase = phaseKeyOf(STEPS[state.current].id);
+    if(state.view === 'prep') state.view = 'call';
+    goto(i);
+    if(phaseKeyOf(id) !== fromPhase) window.scrollTo(0,0);   // a new stage starts at the top
+  }
+  function callStarted(){ return !!String(state.callNotes||'').trim(); }
+  function startCall(){
+    const resume = callStarted() && state.lastCallTopic ? state.lastCallTopic : 'intro';
+    state.view = 'call'; goto(SI(resume)); ensureTopicHeading(resume); window.scrollTo(0,0);
+  }
+  function openPrep(){ saveNotes(); state.view = 'prep'; goto(SI('factfind')); window.scrollTo(0,0); }
+  function goPhase(key){
+    if(key === 'prep') return openPrep();
+    const ph = CALL_PHASES.find(p => p.key === key);
+    if(!ph) return;
+    const cur = STEPS[state.current].id;
+    if(state.view === 'call' && ph.topics.includes(cur)) return;
+    const last = ph.topics.includes(state.lastCallTopic) ? state.lastCallTopic : ph.topics[0];
+    goTopic(last);
+  }
+  function stepTopic(delta){
+    const id = STEPS[state.current].id;
+    const ph = CALL_PHASES.find(p => p.topics && p.topics.includes(id));
+    if(!ph) return false;
+    const next = ph.topics[ph.topics.indexOf(id) + delta];
+    if(!next) return false;
+    goTopic(next); return true;
+  }
+
+  // What Your Picture still needs - shown as one line, each item jumps to its topic.
+  function pictureGaps(){
+    const gaps = [];
+    if(!stepNotes('goals')) gaps.push({t:'what matters most', id:'goals'});
+    if(!(num(state.c1.salary) > 0)) gaps.push({t:firstName(state.c1,'c1') + "'s salary", id:'factfind'});
+    if(state.c2.active && !(num(state.c2.salary) > 0)) gaps.push({t:firstName(state.c2,'c2') + "'s income", id:'factfind'});
+    if(!(num(state.mortgage.amount) > 0)) gaps.push({t:'mortgage amount', id:'factfind'});
+    if(!(num(state.mortgage.payment) > 0)) gaps.push({t:'monthly payment', id:'factfind'});
+    if(!(num(state.salesArc.outgoings) > 0)) gaps.push({t:'monthly outgoings', id:'factfind'});
+    if(!String((state.household||{}).dependants||'').trim() && !(num(state.salesArc.youngestAge) > 0)) gaps.push({t:'children or dependants', id:'factfind'});
+    const disPolicy = state.existing.some(e => /death|dis/i.test(String(e.type||'')));
+    if(!disIsRecorded() && !disPolicy) gaps.push({t:'death-in-service', id:'existing'});
+    if(typeof state.assumptions.c1sick !== 'string') gaps.push({t:firstName(state.c1,'c1') + "'s sick pay", id:'stress'});
+    return gaps;
+  }
+
+  function renderCallLayout(){
+    const s = STEPS[state.current], id = s.id, prep = state.view === 'prep';
+    document.body.classList.add('cl');
+    document.body.classList.toggle('cl-prep', prep);
+    document.body.classList.toggle('cl-call', !prep);
+
+    // header: who and the key figures, one line
+    const names = [firstName(state.c1,'c1')];
+    if(state.c2.active && (state.c2.name || state.c2.nick)) names.push(firstName(state.c2,'c2'));
+    const who = document.getElementById('clWho');
+    if(who) who.textContent = (state.c1.name || state.c1.nick) ? names.join(' & ') : 'New client';
+    const h = household(), figs = [];
+    if(h.netMonthly > 0) figs.push(`<span><b>${gm(h.netMonthly)}</b>/mo take-home</span>`);
+    if(num(state.mortgage.amount) > 0) figs.push(`<span><b>${gm(num(state.mortgage.amount))}</b> mortgage</span>`);
+    if(num(state.mortgage.payment) > 0) figs.push(`<span><b>${gm(num(state.mortgage.payment))}</b>/mo</span>`);
+    const fe = document.getElementById('clFigs');
+    if(fe) fe.innerHTML = figs.join('<i aria-hidden="true">·</i>');
+
+    // stages
+    const phase = phaseKeyOf(id);
+    const gaps = pictureGaps();
+    const pe = document.getElementById('clPhases');
+    if(pe) pe.innerHTML = CALL_PHASES.map(ph => {
+      const extra = ph.key === 'picture' ? `<small>${gaps.length ? gaps.length + ' to find out' : 'ready'}</small>` : '';
+      return `<button type="button" class="cl-phase ${ph.key===phase?'on':''} ${ph.key==='picture'&&!gaps.length?'ready':''}" onclick="goPhase('${ph.key}')" aria-current="${ph.key===phase?'step':'false'}">${esc(ph.label)}${extra}</button>`;
+    }).join('<span class="cl-arrow" aria-hidden="true">›</span>');
+
+    // topics inside the stage + what Your Picture still needs
+    const sub = document.getElementById('clSub');
+    const ph = CALL_PHASES.find(p => p.key === phase);
+    let subHtml = '';
+    if(!prep && ph && ph.topics && ph.topics.length > 1){
+      subHtml += '<div class="cl-topics">' + ph.topics.map(t => {
+        const has = !!String(state.notes[SI(t)]||'').trim();
+        const off = t === 'fib' && !hasDependants();
+        return `<button type="button" class="cl-topic ${t===id?'on':''} ${has?'has':''} ${off?'off':''}" onclick="goTopic('${t}')" ${off?'title="No dependants recorded - FIB may not apply"':''}><span class="cl-dot" aria-hidden="true"></span>${esc(topicLabel(t))}</button>`;
+      }).join('') + '</div>';
+    }
+    if(!prep && phase === 'talk'){
+      subHtml += gaps.length
+        ? `<div class="cl-gaps"><span>For Your Picture, still to find out:</span> ${gaps.map(g => `<button type="button" onclick="goTopic('${g.id}')">${esc(g.t)}</button>`).join('')}</div>`
+        : `<div class="cl-gaps ready"><span>You have what Your Picture needs.</span> <button type="button" class="go" onclick="goTopic('picture')">Show Your Picture →</button></div>`;
+    }
+    if(sub){ sub.innerHTML = subHtml; sub.hidden = !subHtml; }
+
+    // title
+    const title = document.getElementById('stepTitle'), desc = document.getElementById('stepDesc');
+    if(prep){
+      title.textContent = 'Before the call';
+      desc.textContent = 'Load the referral, check every detail, and plan your approach. None of this is shown to the client.';
+    } else {
+      title.textContent = topicLabel(id);
+      desc.textContent = s.desc;
+    }
+
+    // the fields drawer
+    const d = document.getElementById('clFields');
+    const sum = document.getElementById('clFieldsSummary');
+    if(d){
+      const forced = prep || id === 'picture';
+      clSettingDrawer = true;
+      d.open = forced ? true : (drawerChoice[id] ?? DRAWER_OPEN_BY_DEFAULT.has(id));
+      setTimeout(() => { clSettingDrawer = false; }, 0);
+      d.classList.toggle('forced', forced);
+      if(sum) sum.textContent = id === 'intro' ? 'Prep brief & your plan' : ['en','close'].includes(id) ? topicLabel(id) : ['ip','fib','life','cic'].includes(id) ? 'Quotes' : `${topicLabel(id)} — fields`;
+    }
+
+    // prep: one clear way into the call
+    const st = document.getElementById('clStart');
+    if(st) st.innerHTML = prep
+      ? (callStarted()
+          ? `<button type="button" class="cl-go" onclick="startCall()">Back to the call →</button><span>Picks up at ${esc(topicLabel(state.lastCallTopic||'intro'))}.</span>`
+          : `<button type="button" class="cl-go" onclick="startCall()">Start the call →</button><span>The notes box and the co-pilot open on the next screen.</span>`)
+      : '';
+
+    // Your Picture keeps its own previous / next buttons
+    const pb = document.getElementById('prevBtn'), nb = document.getElementById('nextBtn');
+    if(pb && nb){
+      if(id === 'picture'){ pb.textContent = '← Back to the call'; nb.textContent = 'On to solutions →'; }
+      else { pb.textContent = '← Previous'; nb.textContent = 'Next →'; }
+    }
+    if(typeof renderVoicePill === 'function') renderVoicePill();
+  }
+  let clSettingDrawer = false;
+  document.getElementById('clFields').addEventListener('toggle', e => {
+    if(clSettingDrawer || state.view !== 'call') return;
+    const id = STEPS[state.current].id;
+    if(id !== 'picture') drawerChoice[id] = e.target.open;
+  });
+
+  // =====================================================================
+  // VOICE - hears the adviser only (headset mic), and only when switched on.
+  //  - Following the conversation: when you move to a new topic, the screen
+  //    follows (within the current stage). Low risk: it's only navigation.
+  //  - Figures you say are offered as chips. Nothing is written to the
+  //    fact-find until you tap one.
+  //  - Commands start with "co-pilot": "co-pilot, note ...", "co-pilot, show
+  //    the picture", "co-pilot, next", "co-pilot, client view" ...
+  // Uses the browser's speech recognition (Chrome / Edge).
+  // =====================================================================
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const voice = {on:false, recog:null, lastSwitch:0, lastHeard:'', interim:'', toast:'', toastUndo:null, helpOpen:false, chips:[]};
+
+  // topic cues - what an adviser says when moving into each topic
+  const TOPIC_CUES = {
+    goals:[/\bwhy (this|the|that) (house|home|property|place)\b/, /\bwhat (matters|is important|'s important) (most )?to you\b/, /\bwhat made you (choose|pick|go for)\b/, /\bwhy now\b/, /\bwhat (do|would) you want to protect\b/, /\bforever home\b/],
+    factfind:[/\bwhat do you (both )?do for (a living|work)\b/, /\bwhat do you (both )?earn\b/, /\b(your|the) (basic )?salary\b/, /\bhow much (are you|you're) borrowing\b/, /\b(the|your) monthly (mortgage )?payment\b/, /\bmortgage term\b/, /\b(your|the) (monthly )?outgoings\b/, /\bhow old are (the|your) (kids|children)\b/, /\bany (kids|children|dependants)\b/, /\bconfirm (a few|your|some) details\b/],
+    existing:[/\b(any|existing|already got|already have) (life )?(cover|insurance|policies|protection)\b/, /\bdeath[- ]in[- ]service\b/, /\bcover (through|with|from) (work|your employer)\b/, /\banything in place\b/],
+    stress:[/\bsick pay\b/, /\bif you (couldn'?t|could not|were unable to|can'?t) work\b/, /\bif you were (off )?sick\b/, /\bhow long could you (manage|cope|keep (going|up|paying))\b/, /\b(any|how much (have you got |do you have )?(in )?|much in )savings\b/],
+    health:[/\b(any|your) health (conditions?|issues|problems)\b/, /\bany medical (history|conditions?)\b/, /\bdo you (smoke|vape)\b/, /\bhave you (smoked|vaped)\b/, /\b(any|on any|take any) medication\b/, /\bseen (a|your) (gp|doctor)\b/, /\bfamily history\b/, /\bheight and weight\b/, /\bany (dangerous |risky |extreme )?(hobbies|sports)\b/],
+    ip:[/\bincome protection\b/], fib:[/\bfamily income benefit\b/], life:[/\blife (cover|insurance) (quote|options?|would)\b/, /\bthe life cover\b/],
+    cic:[/\bcritical illness\b/], en:[/\bessential (versus|vs|and) needed\b/, /\bwhat'?s essential\b/],
+  };
+  function scoreTopics(lc){
+    const scores = {};
+    Object.entries(TOPIC_CUES).forEach(([id, list]) => { const n = list.filter(rx => rx.test(lc)).length; if(n) scores[id] = n; });
+    return scores;
+  }
+  function followConversation(lc){
+    if(state.view !== 'call') return;
+    const cur = STEPS[state.current].id;
+    if(cur === 'picture') return;                               // client-facing: commands only
+    const ae = document.activeElement;
+    if(ae && ae.closest && ae.closest('#stepBody')) return;      // typing in a field - don't redraw under them
+    const ph = CALL_PHASES.find(p => p.topics && p.topics.includes(cur));
+    if(!ph || ph.topics.length < 2) return;
+    const scores = scoreTopics(lc);
+    const ranked = Object.entries(scores).filter(([id]) => ph.topics.includes(id)).sort((a,b) => b[1]-a[1]);
+    if(!ranked.length) return;
+    if(ranked.length > 1 && ranked[0][1] === ranked[1][1]) return; // unclear - stay put
+    const target = ranked[0][0];
+    if(target === cur || scores[cur]) return;
+    if(Date.now() - voice.lastSwitch < 6000) return;              // don't ping-pong
+    voice.lastSwitch = Date.now();
+    const from = cur;
+    autoMove = true;
+    try { goTopic(target); } finally { autoMove = false; }
+    voiceToast(`Moved to ${topicLabel(target)}`, () => goTopic(from));
+  }
+
+  // ---------- spoken figures ----------
+  const SMALL = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,a:1};
+  const TENS = {twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+  // "forty five thousand" -> "45000", "six months" -> "6 months" (only used for reading figures)
+  const NUMWORD = '(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)';
+  const NUMSEQ = new RegExp(String.raw`\b(?:a\s+(?=hundred|thousand))?` + NUMWORD + String.raw`(?:(?:\s+|-)(?:and\s+)?` + NUMWORD + String.raw`)*\b`, 'gi');
+  function wordsToDigits(text){
+    return String(text).replace(NUMSEQ, (seq, at, whole) => {
+      // "45 thousand" stays as it is - spokenMoney() reads the unit
+      if(/^(hundred|thousand|million)\b/i.test(seq) && /\d\s*$/.test(whole.slice(0, at))) return seq;
+      // split into separate numbers: "four and seven" is 4 and 7, "a hundred and twenty" is 120
+      const words = seq.toLowerCase().split(/[\s-]+/).filter(Boolean);
+      const groups = []; let g = [], joiner = [];
+      const MULT = ['hundred','thousand','million'];
+      words.forEach((w, i) => {
+        const prev = g[g.length-1];
+        if(w === 'and'){
+          if(prev && MULT.includes(prev)){ return; }        // "hundred and fifty" - same number
+          groups.push(g); g = []; joiner.push(' and '); return;
+        }
+        const unit = (w in SMALL) && w !== 'a' && SMALL[w] < 20;
+        const prevUnit = prev && (prev in SMALL) && prev !== 'a';
+        const prevTen = prev && (prev in TENS);
+        if(g.length && ((unit && prevUnit) || ((w in TENS) && (prevUnit || prevTen)) || (unit && prevTen && SMALL[w] >= 10))){
+          groups.push(g); g = []; joiner.push(' ');
+        }
+        g.push(w);
+      });
+      groups.push(g);
+      const val = ws => { let total = 0, cur = 0;
+        ws.forEach(w => {
+          if(w === 'a') cur += 1;
+          else if(w in SMALL) cur += SMALL[w];
+          else if(w in TENS) cur += TENS[w];
+          else if(w === 'hundred') cur = (cur || 1) * 100;
+          else if(w === 'thousand'){ total += (cur || 1) * 1000; cur = 0; }
+          else if(w === 'million'){ total += (cur || 1) * 1000000; cur = 0; }
+        });
+        return String(total + cur); };
+      return groups.filter(x => x.length).map((x, i) => (i ? joiner[i-1] : '') + val(x)).join('');
+    });
+  }
+  // "45,000" / "45k" / "45 thousand" / "45 grand" -> 45000
+  function spokenMoney(numText, unit){
+    let n = parseFloat(String(numText).replace(/,/g,''));
+    if(!isFinite(n)) return 0;
+    if(/^(k|thousand|grand)$/i.test(unit||'')) n *= 1000;
+    if(/^(m|million)$/i.test(unit||'')) n *= 1000000;
+    return Math.round(n);
+  }
+  const MONEY = String.raw`£?\s?(\d[\d,]*(?:\.\d+)?)\s?(k|thousand|grand|m|million)?\b`;
+  // Who is each part of a sentence about? Split where a client's first name is said:
+  // "Jane, you earn 45k, and Sam's on 38" -> two parts. Nothing else is guessed:
+  // "your wife" depends on who's being spoken to, so with no name the chip asks "whose?".
+  // A first name that's also an ordinary word (Will, May, Grace…) only counts when
+  // the transcript capitalises it mid-sentence.
+  const COMMON_WORD_NAMES = new Set(['will','may','grace','bill','mark','rose','frank','hope','faith','joy','art','sue','pat','dawn','jack','june','april','summer','ray','chase','mercy','robin','holly','ivy','pearl','ruby','amber','sky','penny','rich','victor','neil','dean','sandy','jay','drew','cliff','gene','rob','sally']);
+  function personSegments(raw){
+    const marks = [];
+    [['c1',state.c1],['c2',state.c2]].forEach(([k,c]) => {
+      if(k === 'c2' && !state.c2.active) return;
+      [c.name, c.nick].filter(Boolean).forEach(n => {
+        const f = String(n).trim().split(/\s+/)[0].replace(/[^A-Za-z'-]/g,'');
+        if(!f) return;
+        const common = COMMON_WORD_NAMES.has(f.toLowerCase());
+        const proper = f.charAt(0).toUpperCase() + f.slice(1).toLowerCase();
+        const rx = common ? new RegExp('(?<=\\S\\s+)\\b' + proper + '\\b', 'g') : new RegExp('\\b' + f + '\\b', 'gi');
+        for(const m of raw.matchAll(rx)) marks.push({at:m.index, who:k});
+      });
+    });
+    marks.sort((x,y) => x.at - y.at);
+    if(!marks.length) return [{who:null, text:raw}];
+    const segs = [];
+    if(marks[0].at > 0) segs.push({who:null, text:raw.slice(0, marks[0].at)});
+    marks.forEach((m,i) => segs.push({who:m.who, text:raw.slice(m.at, i+1 < marks.length ? marks[i+1].at : raw.length)}));
+    return segs;
+  }
+  function parseSpokenFigures(raw){
+    const lc = wordsToDigits(' ' + raw.toLowerCase() + ' ');
+    const found = [];
+    const add = (field, value, perPerson, who) => found.push({field, value:String(value), perPerson,
+      who: perPerson ? (who || (state.c2.active ? null : 'c1')) : null});
+    let m;
+    // --- figures about one person: read part by part, so each lands on the right client
+    const otherMoney = /\b(mortgage|borrow|borrowing|loan|price|deposit|savings?)\b/.test(lc);
+    const seen = new Set();
+    personSegments(String(raw)).forEach(({who: segWho, text:rawSeg}) => {
+      let who = segWho;
+      const t = wordsToDigits(' ' + rawSeg.toLowerCase() + ' ');
+      // "Sam, your wife earns…" - the name is who's being spoken to, not whose figure it is
+      if(who && /\b(your|his|her) (wife|husband|partner|fianc[eé]e?|other half)\b/.test(t)) who = null;
+      const addP = (field, v) => { const key = field + ':' + (who||'?'); if(seen.has(key)) return; seen.add(key); add(field, v, true, who); };
+      if((m = t.match(new RegExp(String.raw`\b(earn|earns|earning|salary|salaries|paid|on|making|basic)\b[^.£\d]{0,20}` + MONEY + String.raw`(?:\s?(a|per) (year|annum))?`)))){
+        const v = spokenMoney(m[2], m[3]);
+        if(v >= 10000 && v <= 1000000 && (m[3] || /,\d{3}/.test(m[2]) || m[4] || m[1] !== 'on') && !(otherMoney && ['on','paid','making'].includes(m[1]))) addP('salary', v);
+      }
+      if((m = t.match(new RegExp(String.raw`\bbonus\b[^.£\d]{0,20}` + MONEY)))){ const v = spokenMoney(m[1], m[2]); if(v >= 500) addP('bonus', v); }
+      if((m = t.match(/\b(\d{1,2})\s?months?\b[^.]{0,20}\b(full pay|sick pay|full)\b/) || t.match(/\bsick pay\b[^.\d]{0,25}(\d{1,2})\s?months?\b/))){
+        const n = +m[1]; if(n <= 36) addP('sick_pay_months', n);
+      }
+      if(/\bno (company |occupational )?sick pay\b|\bjust (ssp|statutory)\b/.test(t)) addP('sick_pay_months', 0);
+      if((m = t.match(/\b(you'?re|you are|aged|age is|he'?s|she'?s)\s+(\d{2})\b(?!\s*(k|thousand|grand|months?|years? ago|%|a month|per))/))){ const n = +m[2]; if(n >= 18 && n <= 80) addP('age', n); }
+    });
+    // --- household figures
+    const monthly = new RegExp(MONEY + String.raw`\s?(a month|per month|monthly|pcm|a calendar month)`);
+    if((m = lc.match(monthly))){
+      const v = spokenMoney(m[1], m[2]);
+      if(v > 0){
+        if(/\b(outgoings?|bills|spend|spending|living costs?|to run|costs? you)\b/.test(lc)) add('outgoings_monthly', v, false);
+        else if(/\b(mortgage|payment|repayment|repayments)\b/.test(lc)) add('mortgage_payment', v, false);
+      }
+    }
+    if((m = lc.match(new RegExp(String.raw`\b(mortgage|borrowing|borrow|loan)\b[^.£\d]{0,25}` + MONEY)))){
+      const v = spokenMoney(m[2], m[3]);
+      const after = lc.slice(m.index + m[0].length, m.index + m[0].length + 14);
+      if(v >= 20000 && !/^\s?(a month|per month|monthly|pcm)/.test(after)) add('mortgage_amount', v, false);
+    }
+    if((m = lc.match(new RegExp(String.raw`\b(purchase price|price|paying|buying it for|house is|property is|valued at)\b[^.£\d]{0,20}` + MONEY)))){
+      const v = spokenMoney(m[2], m[3]); if(v >= 50000) add('purchase_price', v, false);
+    }
+    if(/\b(mortgage|term)\b/.test(lc) && (m = lc.match(/\b(\d{1,2})\s?(years|year|yrs)\b(?!\s*old)/))){
+      const n = +m[1]; if(n >= 5 && n <= 40) add('mortgage_term', n, false);
+    }
+    if((m = lc.match(/\byoungest\b[^.\d]{0,25}(\d{1,2})\b/))){ const n = +m[1]; if(n <= 25) add('youngest_child_age', n, false); }
+    if(/\b(kids|children|sons?|daughters?|boys|girls)\b/.test(lc) && !/\bno (kids|children)\b/.test(lc)){
+      const ages = [...lc.matchAll(/\b(?:aged?|are|is|and|,)\s*(\d{1,2})\b(?!\s*(k|thousand|grand|months?|years? ago|pm|a month|%))/g)].map(x => +x[1]).filter(a => a <= 25);
+      const count = (lc.match(/\b(\d)\s+(kids|children|boys|girls)\b/) || [])[1];
+      if(ages.length){
+        const sorted = ages.slice().sort((a,b) => a-b);
+        add('dependants', `${ages.length} ${ages.length === 1 ? 'child' : 'children'} (${sorted.join(' and ')})`, false);
+        if(!found.some(f => f.field === 'youngest_child_age')) add('youngest_child_age', sorted[0], false);
+      } else if(count){ add('dependants', `${count} children`, false); }
+    }
+    if(/\bno (kids|children|dependants)\b/.test(lc)) add('dependants', 'None', false);
+    if((m = lc.match(/\b(\d(?:\.\d)?)\s?(times|x)\b[^.]{0,30}\b(salary|death[- ]in[- ]service)\b/) || lc.match(/\bdeath[- ]in[- ]service\b[^.\d]{0,30}(\d(?:\.\d)?)\s?(times|x)\b/))){
+      const n = parseFloat(m[1]); if(n >= 0 && n <= 10) add('dis_multiple', n, false);
+    }
+    if(/\bno death[- ]in[- ]service\b/.test(lc)) add('dis_multiple', 0, false);
+    return found;
+  }
+  function fieldKeyFor(field, who){
+    if(['salary','bonus','age'].includes(field)) return who + '_' + field;
+    if(field === 'sick_pay_months') return who + '_sick_pay_months';
+    return field;
+  }
+  function offerVoiceFigures(raw){
+    const found = parseSpokenFigures(raw);
+    let added = 0;
+    found.forEach(f => {
+      const whos = f.perPerson ? (f.who ? [f.who] : ['c1','c2']) : [null];
+      const valid = whos.filter(w => {
+        const key = f.perPerson ? fieldKeyFor(f.field, w) : f.field;
+        const def = FIELD_SUGGEST[key];
+        if(!def || (def.c2 && !state.c2.active)) return false;
+        const v = normaliseSuggestion(def.kind, f.value);
+        if(v === null) return false;
+        return String(def.get() ?? '').trim() !== v;   // nothing to offer if it already says this
+      });
+      if(!valid.length) return;
+      // the AI already offered exactly this from the typed notes - don't offer it twice
+      if(valid.length === 1){
+        const key = f.perPerson ? fieldKeyFor(f.field, valid[0]) : f.field;
+        const def = FIELD_SUGGEST[key];
+        if(fieldSuggestions[key] !== undefined && fieldSuggestions[key] === normaliseSuggestion(def.kind, f.value) && activeSuggestions().some(([k]) => k === key)) return;
+      }
+      const slot = f.field + '|' + valid.join(',');
+      voice.chips = voice.chips.filter(c => (c.field + '|' + c.whos.join(',')) !== slot);
+      voice.chips.push({id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), field: f.field, value: f.value, whos: valid, perPerson: f.perPerson});
+      added++;
+    });
+    if(voice.chips.length > 6) voice.chips = voice.chips.slice(-6);
+    if(added) renderVoiceChips();
+  }
+  const FIELD_WORD = {salary:'salary', bonus:'bonus', age:'age', sick_pay_months:'sick pay (months)', outgoings_monthly:'monthly outgoings', mortgage_payment:'mortgage payment', mortgage_amount:'mortgage', purchase_price:'purchase price', mortgage_term:'mortgage term', youngest_child_age:"youngest child's age", dependants:'dependants', dis_multiple:'death-in-service (× salary)'};
+  function voiceChipValue(c){
+    const key = c.perPerson ? fieldKeyFor(c.field, c.whos[0]) : c.field;
+    const def = FIELD_SUGGEST[key];
+    const v = def ? normaliseSuggestion(def.kind, c.value) : c.value;
+    if(def && def.kind === 'money') return gm(Number(v)) + (['outgoings_monthly','mortgage_payment'].includes(c.field) ? '/mo' : '');
+    if(c.field === 'mortgage_term') return v + ' years';
+    return String(v);
+  }
+  function renderVoiceChips(){
+    const el = document.getElementById('voiceChips');
+    if(!el) return;
+    const aiOffered = new Map(activeSuggestions());
+    voice.chips = voice.chips.filter(c => c.whos.some(w => {
+      const key = c.perPerson ? fieldKeyFor(c.field, w) : c.field;
+      const def = FIELD_SUGGEST[key]; if(!def) return false;
+      const v = normaliseSuggestion(def.kind, c.value);
+      if(c.whos.length === 1 && aiOffered.get(key) === v) return false;   // already offered from the notes
+      return String(def.get() ?? '').trim() !== v;
+    }));
+    if(!voice.chips.length){ el.innerHTML = ''; return; }
+    el.innerHTML = '<span class="ns-label">🎙 Heard you say</span>' + voice.chips.map(c => {
+      const key0 = c.perPerson ? fieldKeyFor(c.field, c.whos[0]) : c.field;
+      const def0 = FIELD_SUGGEST[key0];
+      const current = def0 && String(def0.get() ?? '').trim();
+      const replace = current && c.whos.length === 1;
+      const whoLabel = c.perPerson && c.whos.length === 1 ? firstName(state[c.whos[0]], c.whos[0]) + "'s " : '';
+      const buttons = c.whos.length > 1
+        ? c.whos.map(w => `<button type="button" class="ns-add vc-who" onclick="acceptVoiceChip('${c.id}','${w}')">${esc(firstName(state[w], w))}</button>`).join('')
+        : `<button type="button" class="ns-add" onclick="acceptVoiceChip('${c.id}','${c.whos[0]||''}')"><span class="ns-plus">${replace ? 'replace' : '+ add'}</span></button>`;
+      return `<span class="ns-chip vc-chip"><span class="vc-text">${esc(whoLabel + (FIELD_WORD[c.field]||c.field))}: <b>${esc(voiceChipValue(c))}</b>${replace ? ` <s>${esc(def0.kind==='money'?gm(num(current)):current)}</s>` : ''}${c.whos.length > 1 ? ' — whose?' : ''}</span>${buttons}<button type="button" class="ns-x" onclick="dismissVoiceChip('${c.id}')" aria-label="Dismiss">&times;</button></span>`;
+    }).join('');
+  }
+  function acceptVoiceChip(id, who){
+    const c = voice.chips.find(x => x.id === id);
+    if(!c) return;
+    const key = c.perPerson ? fieldKeyFor(c.field, who || 'c1') : c.field;
+    const def = FIELD_SUGGEST[key];
+    const v = def && normaliseSuggestion(def.kind, c.value);
+    if(def && v !== null){ def.set(v); }
+    voice.chips = voice.chips.filter(x => x.id !== id);
+    afterSuggestionApplied();
+    renderVoiceChips(); renderCallLayout();
+  }
+  function dismissVoiceChip(id){ voice.chips = voice.chips.filter(x => x.id !== id); renderVoiceChips(); }
+  // Files the chips that fill an EMPTY field for one known person. A chip that would
+  // replace a figure, or needs 'whose?', stays for its own tap.
+  function acceptAllVoiceChips(){
+    const done = new Set();
+    voice.chips.filter(c => c.whos.length === 1).forEach(c => {
+      const key = c.perPerson ? fieldKeyFor(c.field, c.whos[0]) : c.field;
+      const def = FIELD_SUGGEST[key]; const v = def && normaliseSuggestion(def.kind, c.value);
+      if(def && v !== null && !String(def.get() ?? '').trim()){ def.set(v); done.add(c.id); }
+    });
+    voice.chips = voice.chips.filter(c => !done.has(c.id));
+    afterSuggestionApplied(); renderVoiceChips(); renderCallLayout();
+  }
+
+  // ---------- "co-pilot, ..." commands ----------
+  const WAKE_RX = /^\s*(?:hey\s+|ok\s+|okay\s+)?(?:co[\s-]?pilot|copilot|co[\s-]?pilots)\b[\s,.:!-]*/i;
+  const BRANCH_WORDS = [
+    ['illness', /\b(illness|ill|sick|couldn'?t work|off work)\b/], ['death', /\b(dies|death|died|passed away|pass away)\b/],
+    ['lifestyle', /\b(lifestyle|way of life|everyday)\b/], ['existing', /\b(already helping|in place|existing|what'?s helping)\b/],
+    ['goal', /\b(what matters|goal|goals|why)\b/], ['all', /\b(whole (picture|thing)|overview|everything|zoom out|all of it)\b/],
+  ];
+  const TOPIC_WORDS = [
+    ['prep', /\b(prep|before the call)\b/], ['intro', /\b(opening|intro|introduction)\b/], ['goals', /\b(their why|the why|goals?|motivations?)\b/],
+    ['factfind', /\b(their world|fact ?find|details)\b/], ['existing', /\b(existing|already in place|in place|current cover)\b/],
+    ['stress', /\b(stress test|stress)\b/], ['health', /\b(health|medical|underwriting)\b/], ['en', /\b(essential)\b/],
+    ['ip', /\b(income protection)\b/], ['fib', /\b(family income)\b/], ['life', /\b(life cover|life insurance)\b/],
+    ['cic', /\b(critical illness)\b/], ['close', /\b(close|next steps|wrap up)\b/], ['picture', /\b(picture)\b/],
+  ];
+  function inPicture(){ return state.view === 'call' && STEPS[state.current].id === 'picture'; }
+  function runCommand(cmd){
+    const c = cmd.trim().replace(/[.!?]+$/,'');
+    const lc = c.toLowerCase();
+    const wb = window.pcVoice && window.pcVoice.isOpen();
+    let m;
+    if((m = c.match(/^(?:add (?:a )?note|note(?: that)?|take a note|make a note)[\s,.:-]*(.*)$/i))){
+      if(!m[1].trim()){ voiceToast('Say “co-pilot, note” then what to write'); return; }
+      if(state.view !== 'call') startCall();
+      appendNote(m[1]); voiceToast('Added to your notes'); return;
+    }
+    if(/^(stop|stop listening|pause|mute|go to sleep)\b/.test(lc)){ stopListening(); return; }
+    if(/^(help|what can i say|commands)\b/.test(lc)){ voice.helpOpen = true; renderVoicePill(); return; }
+    if(/^(add|file|accept) (them |those |it )?all$|^(add|file) (those|them)$/.test(lc)){
+      activeSuggestions().forEach(([k]) => applySuggestion(k));   // the ones spotted in the typed notes too
+      acceptAllVoiceChips(); voiceToast('Filed them'); return;
+    }
+    if(/\bclient view\b/.test(lc)){
+      if(wb) window.pcVoice.setMode('client');
+      else if(inPicture()){ if(state.pictureView !== 'client') togglePictureView(); }
+      else { voiceToast('Client view is on Your Picture — say “co-pilot, show the picture” first. Nothing changed.'); return; }
+      voiceToast('Client view'); return;
+    }
+    if(/\badviser view\b|\badvisor view\b/.test(lc)){
+      if(wb) window.pcVoice.setMode('adviser');
+      else if(inPicture()){ if(state.pictureView === 'client') togglePictureView(); }
+      else { voiceToast('Already in the adviser view'); return; }
+      voiceToast('Adviser view'); return;
+    }
+    if(/\bwhiteboard\b/.test(lc) && !/\bclose\b/.test(lc)){
+      if(!inPicture()) goTopic('picture');
+      setTimeout(() => { if(window.openPictureCanvas) window.openPictureCanvas(); }, 350);
+      voiceToast('Opening the whiteboard'); return;
+    }
+    if(/^(back to (the )?call|close (the )?(picture|whiteboard)|exit)\b/.test(lc)){
+      if(wb){ window.pcVoice.close(); voiceToast('Whiteboard closed'); return; }
+      if(inPicture()){ goTopic(state.lastCallTopic || 'health'); return; }
+    }
+    if(wb){
+      if(/^(next|next one|next thought|next prompt|carry on|go on)\b/.test(lc)){ window.pcVoice.next(); return; }
+      if(/^(back|previous|go back|last one)\b/.test(lc)){ window.pcVoice.prev(); return; }
+      const b = BRANCH_WORDS.find(([,rx]) => rx.test(lc));
+      if(b){ window.pcVoice.branch(b[0]); return; }
+    }
+    if(/^(next|next topic|move on)\b/.test(lc)){ if(!stepTopic(1)) voiceToast('That’s the last topic here'); return; }
+    if(/^(back|previous|go back)\b/.test(lc)){ if(!stepTopic(-1)) voiceToast('That’s the first topic here'); return; }
+    if(/\b(show|open|bring up)\b.*\bpicture\b|^picture$|^your picture$/.test(lc)){ goTopic('picture'); return; }
+    if(/\bstart the call\b/.test(lc)){ startCall(); return; }
+    const t = TOPIC_WORDS.find(([,rx]) => rx.test(lc));
+    if(t){ if(t[0] === 'prep') openPrep(); else goTopic(t[0]); voiceToast(t[0] === 'prep' ? 'Before the call' : topicLabel(t[0])); return; }
+    voiceToast(`Didn’t catch a command in “${c.slice(0,60)}”`);
+  }
+  function handleUtterance(raw){
+    const text = String(raw||'').trim();
+    if(!text) return;
+    voice.lastHeard = text; voice.interim = '';
+    const w = text.match(WAKE_RX);
+    if(w){ runCommand(text.slice(w[0].length)); renderVoicePill(); return; }
+    const lc = ' ' + wordsToDigits(text.toLowerCase()) + ' ';
+    followConversation(lc);
+    if(state.view === 'call') offerVoiceFigures(text);
+    renderVoicePill();
+  }
+
+  // ---------- microphone ----------
+  let voiceRestarts = 0;
+  function startListening(){
+    if(!SR){ voiceToast('Voice needs Chrome or Edge on this computer'); return; }
+    if(voice.recog) return;
+    try{
+      const r = new SR();
+      r.continuous = true; r.interimResults = true; r.lang = 'en-GB';
+      r.onresult = e => {
+        let interim = '';
+        for(let i = e.resultIndex; i < e.results.length; i++){
+          const res = e.results[i];
+          if(res.isFinal) handleUtterance(res[0].transcript);
+          else interim += res[0].transcript;
+        }
+        voice.interim = interim; renderVoicePill();
+      };
+      r.onerror = e => {
+        if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+          voice.on = false; voice.recog = null;
+          voiceToast('Microphone blocked — allow it for this site, then press Listen');
+        } else if(e.error === 'network'){
+          voiceToast('Voice lost its connection — retrying');
+        }
+      };
+      r.onend = () => {
+        if(voice.on && voiceRestarts < 50){ voiceRestarts++; try{ r.start(); return; }catch(_){ } }
+        voice.recog = null; voice.on = false; renderVoicePill();
+      };
+      voice.recog = r; voice.on = true; voiceRestarts = 0;
+      r.start();
+      voiceToast(state.view === 'prep' ? 'Listening — say “co-pilot, start the call” when you’re ready' : 'Listening to you');
+    }catch(err){ voice.recog = null; voice.on = false; voiceToast('Couldn’t start the microphone'); }
+    renderVoicePill();
+  }
+  function stopListening(){
+    voice.on = false;
+    const r = voice.recog; voice.recog = null;
+    if(r){ r.onend = null; try{ r.stop(); }catch(_){ } }
+    voice.interim = ''; voiceToast('Stopped listening');
+    renderVoicePill();
+  }
+  // a successful stretch of listening resets the restart budget
+  setInterval(() => { if(voice.on) voiceRestarts = Math.max(0, voiceRestarts - 1); }, 60000);
+
+  let toastTimer2;
+  function voiceToast(text, undo){
+    voice.toast = text; voice.toastUndo = undo || null;
+    clearTimeout(toastTimer2);
+    toastTimer2 = setTimeout(() => { voice.toast = ''; voice.toastUndo = null; renderVoicePill(); }, undo ? 6000 : 3500);
+    renderVoicePill();
+  }
+  function voiceUndo(){ const u = voice.toastUndo; voice.toast = ''; voice.toastUndo = null; if(u) u(); renderVoicePill(); }
+  function renderVoicePill(){
+    // In the call it sits in the header; on Your Picture (no header) it floats bottom-left.
+    const wbOpen = !!(window.pcVoice && window.pcVoice.isOpen());
+    const floating = wbOpen || document.body.classList.contains('picture-fullscreen-active');
+    const el = document.getElementById(floating ? 'voicePill' : 'voiceDock');
+    const other = document.getElementById(floating ? 'voiceDock' : 'voicePill');
+    if(other) other.innerHTML = '';
+    if(!el) return;
+    const clientFacing = document.body.classList.contains('ypf-client-view') || (window.pcVoice && window.pcVoice.isOpen() && window.pcVoice.mode() === 'client');
+    el.classList.toggle('on', voice.on);
+    el.classList.toggle('wb', wbOpen);          // sit above the whiteboard's bottom bar
+    el.classList.toggle('discreet', clientFacing);
+    const heard = voice.interim || voice.lastHeard;
+    el.innerHTML = `
+      <button type="button" class="vp-main" onclick="${voice.on ? 'stopListening()' : 'startListening()'}" aria-pressed="${voice.on}">
+        <span class="vp-dot" aria-hidden="true"></span>${voice.on ? (clientFacing ? 'Listening' : 'Listening · stop') : '🎙 Listen'}
+      </button>
+      ${!clientFacing && voice.toast ? `<span class="vp-toast">${esc(voice.toast)}${voice.toastUndo ? ' <button type="button" onclick="voiceUndo()">undo</button>' : ''}</span>` : ''}
+      ${!clientFacing && !voice.toast && voice.on && heard ? `<span class="vp-heard">“${esc(heard.slice(-90))}”</span>` : ''}
+      ${!clientFacing ? `<button type="button" class="vp-help" onclick="voice.helpOpen=!voice.helpOpen;renderVoicePill()" aria-expanded="${voice.helpOpen}" aria-label="What can I say?">?</button>` : ''}
+      ${voice.helpOpen && !clientFacing ? `<div class="vp-card" role="dialog" aria-label="Voice commands">
+        <b>It only hears your headset mic, and only while Listening is on.</b>
+        <p>As you move to a new topic, the screen follows. Figures you say appear as chips under the notes — nothing is filed until you tap.</p>
+        <p>Start with <em>“co-pilot”</em>:</p>
+        <ul><li>“co-pilot, note Jane has mild asthma”</li><li>“co-pilot, go to health” · “next” · “back”</li><li>“co-pilot, show the picture” · “whiteboard”</li><li>In the whiteboard: “next”, “illness”, “death”, “whole picture”</li><li>“co-pilot, client view” · “adviser view”</li><li>“co-pilot, add them all” · “stop listening”</li></ul>
+        <button type="button" onclick="voice.helpOpen=false;renderVoicePill()">Got it</button></div>` : ''}`;
+  }
+  document.addEventListener('DOMContentLoaded', renderVoicePill);
+  // the whiteboard's own adviser/client buttons: keep the voice control discreet in client view
+  document.addEventListener('click', e => { if(e.target.closest && e.target.closest('#pcOverlay,#ypfOpenCanvas')) setTimeout(renderVoicePill, 50); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') setTimeout(renderVoicePill, 50); });
+  window.voice = voice;
+  Object.assign(window, {goTopic, goPhase, startCall, openPrep, startListening, stopListening, voiceUndo, renderVoicePill,
+    acceptVoiceChip, dismissVoiceChip, acceptAllVoiceChips, handleUtterance, renderVoiceChips});
+
   // ---------- init ----------
   const restored = restoreState();
   renderRail(); renderBottomBar();
   if(restored){
     // goto() saves the notes box first, so load the restored notes into it before navigating
-    document.getElementById('stepNotes').value = state.notes[state.current] || '';
+    migrateNotes();
+    document.getElementById('stepNotes').value = state.callNotes || '';
     goto(state.current);        // re-draws the saved step (and the picture, if that's where they were)
   } else {
+    state.view='prep'; state.current=SI('factfind');   // a new case opens on the prep screen
+    gotoLastIdx=state.current; gotoLastView=state.view;
     renderStep(); updateFIBVisibility();
   }
   // Session check on load (an old/expired token shows the login now, not mid-call),
@@ -4861,6 +5800,9 @@ function setUWAnswer(condKey, qIdx, field, value){
 <div class="btmbar">
   <div class="btmsteps" id="btmSteps"></div>
 </div>
+
+<!-- voice: one small control, bottom-left, on every screen -->
+<div class="voice-pill" id="voicePill" aria-live="polite"></div>
 
 <style>
 /* ===== Picture Canvas (whiteboard view) — fully scoped under #pcOverlay ===== */
@@ -5728,6 +6670,16 @@ function setUWAnswer(condKey, qIdx, field, value){
   }
 
   window.openPictureCanvas = pcOpen;
+  // voice control of the whiteboard ("co-pilot, next", "co-pilot, illness" ...)
+  window.pcVoice = {
+    isOpen: () => overlay.classList.contains('pc-open'),
+    next: () => pcGoStep(step + 1),
+    prev: () => pcGoStep(Math.max(0, step - 1)),
+    branch: value => pcSetBranch(value),
+    setMode: value => { if(value !== mode) pcSetMode(value); if(typeof renderVoicePill === 'function') renderVoicePill(); },
+    mode: () => mode,
+    close: () => pcClose(),
+  };
 })();
 
 </script>

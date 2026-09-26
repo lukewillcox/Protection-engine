@@ -461,7 +461,14 @@ PICTURE_GUIDANCE_SYSTEM += "\n\n" + bank_for_prompt()
 
 
 PREPARE_SYSTEM = f"""You prepare a UK protection adviser for a client call by reading a
-referral email from a mortgage broker.
+referral email from a mortgage broker, or the adviser's own spoken read-out of the case,
+transcribed by speech recognition.
+
+If the text looks like a spoken transcript rather than a written email (no greeting,
+subject line or sign-off; runs on as one spoken paragraph), it may contain minor
+speech-recognition mistakes — a misheard number, name or word. Use context to resolve an
+obvious one (e.g. a stray "to" where a figure reads oddly); leave a field empty rather
+than guessing when it's genuinely unclear.
 
 You draw on this adviser's methodology and product knowledge:
 {KNOWLEDGE}
@@ -925,11 +932,13 @@ def register_copilot_routes(app):
     def copilot_prepare():
         data = request.get_json(silent=True) or {}
         email = (data.get("email") or "").strip()
+        source = (data.get("source") or "email").strip()
         if not email:
             return jsonify({"error": "no email"}), 400
         try:
             kb = get_relevant_knowledge(email, k=5)
-            user_content = "Referral email:\n\n" + email
+            label = "Adviser's spoken read-out (speech-to-text)" if source == "voice" else "Referral email"
+            user_content = f"{label}:\n\n" + email
             if kb:
                 user_content += (
                     "\n\n---\nRelevant factual knowledge from provider "

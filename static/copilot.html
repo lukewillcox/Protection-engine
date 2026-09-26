@@ -3393,9 +3393,10 @@ function yourPictureBody(){
         </div>
       </div>
       <div style="margin-top:12px">
-        <label class="fl">…or paste a referral email</label>
-        <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare"></textarea>
+        <label class="fl">…or paste a referral email, or press 🎙 and read it out</label>
+        <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare — or press 🎙 and read it out"></textarea>
         <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+          <button class="add-btn" id="prepVoiceBtn" onclick="togglePrepVoice()" title="Read the referral out loud">🎙 Read it out</button>
           <button class="add-btn" onclick="prepareFromEmail()">Prepare from email</button>
           <span class="empty-note" id="referralStatus" style="margin:0;font-size:13px"></span>
         </div>
@@ -4569,13 +4570,13 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     finally{ clearTimeout(timer); }
   }
 
-  async function prepareFromEmail(){
+  async function prepareFromEmail(source){
     const email=(document.getElementById('pasteEmail')?.value||'').trim();
     const st=document.getElementById('referralStatus');
-    if(!email){ if(st) st.textContent='Paste an email first.'; return; }
+    if(!email){ if(st) st.textContent=(source==='voice' ? 'Didn’t catch anything — try again.' : 'Paste an email first.'); return; }
     if(st) st.textContent='Preparing…';
     try{
-      const res=await authFetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const res=await authFetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, source: source||'email'})});
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
@@ -4586,6 +4587,60 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   window.loadReferralList=loadReferralList;
   window.loadReferral=loadReferral;
   window.prepareFromEmail=prepareFromEmail;
+
+  // ---------- read the referral out loud, before the call ----------
+  // Separate from the main call 'voice' engine below (which only exists once the
+  // call has started) - this only ever runs on the prep screen, feeds the same
+  // textarea the "paste a referral email" box uses, then calls the same
+  // prepareFromEmail() so it goes through the one extraction path either way.
+  const prepVoice = {on:false, recog:null, restarts:0};
+  function renderPrepVoiceBtn(){
+    const b=document.getElementById('prepVoiceBtn');
+    if(b) b.textContent = prepVoice.on ? '⏹ Stop & prepare' : '🎙 Read it out';
+  }
+  function togglePrepVoice(){
+    if(prepVoice.on){ stopPrepVoice(true); return; }
+    const st=document.getElementById('referralStatus');
+    if(!SR){ if(st) st.textContent='Voice needs Chrome or Edge on this computer.'; return; }
+    try{
+      const r = new SR();
+      r.continuous = true; r.interimResults = true; r.lang = 'en-GB';
+      r.onresult = e => {
+        let interim = '';
+        for(let i=e.resultIndex; i<e.results.length; i++){
+          const res = e.results[i];
+          if(res.isFinal){
+            const ta = document.getElementById('pasteEmail');
+            if(ta) ta.value = (ta.value.trim() ? ta.value.trim()+' ' : '') + res[0].transcript.trim();
+          } else interim += res[0].transcript;
+        }
+        const st2=document.getElementById('referralStatus');
+        if(st2) st2.textContent = interim ? ('Listening… ' + interim) : 'Listening — press stop when you’re done';
+      };
+      r.onerror = e => {
+        if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+          prepVoice.on=false; prepVoice.recog=null; renderPrepVoiceBtn();
+          const st2=document.getElementById('referralStatus'); if(st2) st2.textContent='Microphone blocked — allow it for this site.';
+        }
+      };
+      r.onend = () => {
+        if(prepVoice.on && prepVoice.restarts < 50){ prepVoice.restarts++; try{ r.start(); return; }catch(_){ } }
+        prepVoice.recog=null; prepVoice.on=false; renderPrepVoiceBtn();
+      };
+      prepVoice.recog=r; prepVoice.on=true; prepVoice.restarts=0;
+      r.start();
+      if(st) st.textContent='Listening — press stop when you’re done';
+      renderPrepVoiceBtn();
+    }catch(err){ prepVoice.recog=null; prepVoice.on=false; }
+  }
+  function stopPrepVoice(andPrepare){
+    prepVoice.on=false;
+    const r=prepVoice.recog; prepVoice.recog=null;
+    if(r){ r.onend=null; try{ r.stop(); }catch(_){ } }
+    renderPrepVoiceBtn();
+    if(andPrepare) prepareFromEmail('voice');
+  }
+  window.togglePrepVoice=togglePrepVoice;
 
   // ---------- keep the call through a refresh ----------
   // The fact-find is kept in this tab's sessionStorage: a refresh or crash
@@ -5191,6 +5246,7 @@ function setUWAnswer(condKey, qIdx, field, value){
   }
   function callStarted(){ return !!String(state.callNotes||'').trim(); }
   function startCall(){
+    if(typeof prepVoice!=='undefined' && prepVoice.on) stopPrepVoice(false);
     const resume = callStarted() && state.lastCallTopic ? state.lastCallTopic : 'intro';
     state.view = 'call'; goto(SI(resume)); ensureTopicHeading(resume); window.scrollTo(0,0);
   }

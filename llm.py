@@ -76,6 +76,45 @@ def claude_text(system, user, model, max_tokens=1500):
     return _extract_text(resp).strip()
 
 
+def _repair_truncated_json(text):
+    """Best-effort recovery for a response that got cut off mid-value when it hit
+    max_tokens. Walks the text tracking bracket/string depth, remembers the last
+    point it was at a clean "key": value boundary (a comma at the top of the
+    current nesting), cuts everything after that, and closes whatever objects/
+    arrays were still open. Returns None if nothing was ever safely complete.
+
+    e.g. '{"a":"1","b":{"c":"2","d":"unterm' -> '{"a":"1","b":{"c":"2"}}'
+    - loses "d", keeps everything that finished before it."""
+    stack = []
+    last_safe_stack = None
+    last_safe_end = 0
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if stack:
+                stack.pop()
+        elif ch == "," and stack:
+            last_safe_end = i
+            last_safe_stack = list(stack)
+    if last_safe_stack is None:
+        return None
+    closers = {"{": "}", "[": "]"}
+    return text[:last_safe_end].rstrip() + "".join(closers[c] for c in reversed(last_safe_stack))
+
+
 def claude_json(system, user, model, max_tokens=1500, effort=None):
     """Return Claude's response parsed as JSON (handles fences).
     effort: optional "low"/"medium"/"high" - limits how long the model reasons
@@ -102,6 +141,19 @@ def claude_json(system, user, model, max_tokens=1500, effort=None):
                 return _json.loads(cleaned[start:end + 1])
             except ValueError:
                 pass
+        # Hit the token cap mid-value: recover whatever fields finished before
+        # the cut, rather than losing everything the adviser just said.
+        if getattr(resp, "stop_reason", None) == "max_tokens":
+            repaired = _repair_truncated_json(cleaned)
+            if repaired:
+                try:
+                    result = _json.loads(repaired)
+                    log.warning("claude_json: hit max_tokens and was truncated - recovered a "
+                                "partial result (%d of %d chars); some fields will be missing",
+                                len(repaired), len(cleaned))
+                    return result
+                except ValueError:
+                    pass
         log.error("claude_json could not parse response (stop_reason=%s, output_tokens=%s): %r",
                   getattr(resp, "stop_reason", "?"),
                   getattr(getattr(resp, "usage", None), "output_tokens", "?"),

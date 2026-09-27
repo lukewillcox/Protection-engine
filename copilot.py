@@ -502,7 +502,7 @@ exposure (e.g. "the debt is £600k"), never to produce "you need £X of cover".
 Return ONLY valid JSON:
 {{
   "client_name": "extracted name or empty",
-  "occupation": "extracted occupation or empty",
+  "occupation": "a few words only - the job/role itself, e.g. 'Electrician' or 'Former logistics business owner' - never a sentence explaining it",
   "key_facts": {{"age":"","income":"","mortgage_debt":"","monthly_payment":"","mortgage_term":"","purchase_price":"","mortgage_type":"","deposit":"","dependants":"","youngest_child_age":""}},
   "second_client": {{"name":"","age":"","occupation":"","income":""}},
   "situation": "one-line summary of their circumstances",
@@ -512,8 +512,11 @@ Return ONLY valid JSON:
 }}
 For key_facts and second_client, fill only what the email evidences; leave others "".
 second_client is a joint applicant/partner named in the email - leave it all "" if there isn't one.
-Copy figures as written in the email (e.g. "£45k", "£1,450 a month"); never convert or calculate them.
-Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each concise."""
+Every key_facts and second_client value is SHORT - the figure or phrase itself only (e.g. "£45k",
+"£1,450 a month", "two children, 4 and 6"), never a sentence, clause or parenthetical explaining
+where it came from or what it means - even when reading from a rambling spoken transcript, pull out
+just the figure, don't copy the surrounding sentence. Never convert or calculate a figure.
+Max 4 need_illustrations, max 6 opening_questions, max 4 watch_for, each one short and concise."""
 
 LEAD_EXTRACT_SYSTEM = """You extract a structured lead from a referral email sent to a
 UK protection adviser by a mortgage broker.
@@ -539,7 +542,7 @@ def extract_lead_from_email(email_text: str) -> dict:
 
 
 def generate_prep(email_text: str) -> dict:
-    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=2500)
+    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=4000)
 
 
 STEP_PURPOSE = {
@@ -945,7 +948,7 @@ def register_copilot_routes(app):
                     "documents (use only if genuinely relevant; never quote a "
                     "premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE, max_tokens=2500))
+            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE, max_tokens=4000))
         except Exception:
             log.exception("copilot prepare failed")
             return jsonify({"error": "prepare failed"}), 200

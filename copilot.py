@@ -539,7 +539,7 @@ def extract_lead_from_email(email_text: str) -> dict:
 
 
 def generate_prep(email_text: str) -> dict:
-    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=1000)
+    return claude_json(PREPARE_SYSTEM, "Referral email:\n\n" + email_text, MODEL_PREPARE, max_tokens=2500)
 
 
 STEP_PURPOSE = {
@@ -945,7 +945,7 @@ def register_copilot_routes(app):
                     "documents (use only if genuinely relevant; never quote a "
                     "premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE, max_tokens=1000))
+            return jsonify(claude_json(PREPARE_SYSTEM, user_content, MODEL_PREPARE, max_tokens=2500))
         except Exception:
             log.exception("copilot prepare failed")
             return jsonify({"error": "prepare failed"}), 200

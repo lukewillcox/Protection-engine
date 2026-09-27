@@ -3393,13 +3393,21 @@ function yourPictureBody(){
         </div>
       </div>
       <div style="margin-top:12px">
-        <label class="fl">…or paste a referral email, or press 🎙 and read it out</label>
-        <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare — or press 🎙 and read it out"></textarea>
+        <label class="fl">…or paste a referral email</label>
+        <textarea class="fi" id="pasteEmail" rows="2" placeholder="Paste referral email, then press Prepare"></textarea>
         <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
-          <button class="add-btn" id="prepVoiceBtn" onclick="togglePrepVoice()" title="Read the referral out loud">🎙 Read it out</button>
           <button class="add-btn" onclick="prepareFromEmail()">Prepare from email</button>
           <span class="empty-note" id="referralStatus" style="margin:0;font-size:13px"></span>
         </div>
+      </div>
+      <div style="margin-top:12px">
+        <label class="fl">…or just talk it through</label>
+        <p class="empty-note" style="margin:0 0 6px;font-size:13px">Press record, describe the client and their situation out loud, press stop — it fills the fields the same way pasting an email does.</p>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="add-btn" id="prepVoiceBtn" onclick="togglePrepVoice()" title="Talk through the referral">🎙 Start talking</button>
+          <span class="empty-note" id="prepVoiceStatus" style="margin:0;font-size:13px"></span>
+        </div>
+        <textarea class="fi" id="prepVoiceText" rows="2" style="margin-top:8px" placeholder="What you say appears here as you talk"></textarea>
       </div>
       ${prepBriefHTML()}
     </div>`;
@@ -4570,37 +4578,45 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     finally{ clearTimeout(timer); }
   }
 
-  async function prepareFromEmail(source){
-    const email=(document.getElementById('pasteEmail')?.value||'').trim();
-    const st=document.getElementById('referralStatus');
-    if(!email){ if(st) st.textContent=(source==='voice' ? 'Didn’t catch anything — try again.' : 'Paste an email first.'); return; }
+  // Shared by "paste a referral email" and "just talk it through" - both end up
+  // sending text to the same /copilot/prepare extraction, just flagged by source
+  // so the model knows a voice one may carry speech-recognition mistakes.
+  async function runPrepare(text, source, statusElId){
+    const st=document.getElementById(statusElId);
+    if(!text){ if(st) st.textContent=(source==='voice' ? 'Didn’t catch anything — try again.' : 'Paste an email first.'); return; }
     if(st) st.textContent='Preparing…';
     try{
-      const res=await authFetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, source: source||'email'})});
+      const res=await authFetch(API_BASE+'/copilot/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email: text, source})});
       const prep=await res.json();
       if(prep.error) throw new Error(prep.error);
       applyPrep(prep);
-      const st2=document.getElementById('referralStatus');
-      if(st2) st2.textContent='Prepared — empty fields pre-filled, brief below.';
-    }catch(e){ const st2=document.getElementById('referralStatus'); if(st2) st2.textContent='Couldn’t prepare — check connection.'; console.error(e); }
+      if(st) st.textContent='Prepared — empty fields pre-filled, brief below.';
+    }catch(e){
+      if(st) st.textContent='Couldn’t prepare: ' + (e && e.message ? e.message : 'check connection') + '.';
+      console.error(e);
+    }
+  }
+  function prepareFromEmail(){
+    runPrepare((document.getElementById('pasteEmail')?.value||'').trim(), 'email', 'referralStatus');
   }
   window.loadReferralList=loadReferralList;
   window.loadReferral=loadReferral;
   window.prepareFromEmail=prepareFromEmail;
 
-  // ---------- read the referral out loud, before the call ----------
-  // Separate from the main call 'voice' engine below (which only exists once the
-  // call has started) - this only ever runs on the prep screen, feeds the same
-  // textarea the "paste a referral email" box uses, then calls the same
-  // prepareFromEmail() so it goes through the one extraction path either way.
+  // ---------- "just talk it through", before the call ----------
+  // Its own box and status line - separate from "paste a referral email" so
+  // talking never touches or depends on that section. Also separate from the
+  // main call 'voice' engine below (which only exists once the call has
+  // started); this only ever runs on the prep screen. Either way it ends up
+  // at the same runPrepare() extraction above.
   const prepVoice = {on:false, recog:null, restarts:0};
   function renderPrepVoiceBtn(){
     const b=document.getElementById('prepVoiceBtn');
-    if(b) b.textContent = prepVoice.on ? '⏹ Stop & prepare' : '🎙 Read it out';
+    if(b) b.textContent = prepVoice.on ? '⏹ Stop & prepare' : '🎙 Start talking';
   }
   function togglePrepVoice(){
     if(prepVoice.on){ stopPrepVoice(true); return; }
-    const st=document.getElementById('referralStatus');
+    const st=document.getElementById('prepVoiceStatus');
     if(!SR){ if(st) st.textContent='Voice needs Chrome or Edge on this computer.'; return; }
     try{
       const r = new SR();
@@ -4610,17 +4626,17 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
         for(let i=e.resultIndex; i<e.results.length; i++){
           const res = e.results[i];
           if(res.isFinal){
-            const ta = document.getElementById('pasteEmail');
+            const ta = document.getElementById('prepVoiceText');
             if(ta) ta.value = (ta.value.trim() ? ta.value.trim()+' ' : '') + res[0].transcript.trim();
           } else interim += res[0].transcript;
         }
-        const st2=document.getElementById('referralStatus');
+        const st2=document.getElementById('prepVoiceStatus');
         if(st2) st2.textContent = interim ? ('Listening… ' + interim) : 'Listening — press stop when you’re done';
       };
       r.onerror = e => {
         if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
           prepVoice.on=false; prepVoice.recog=null; renderPrepVoiceBtn();
-          const st2=document.getElementById('referralStatus'); if(st2) st2.textContent='Microphone blocked — allow it for this site.';
+          const st2=document.getElementById('prepVoiceStatus'); if(st2) st2.textContent='Microphone blocked — allow it for this site.';
         }
       };
       r.onend = () => {
@@ -4638,7 +4654,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const r=prepVoice.recog; prepVoice.recog=null;
     if(r){ r.onend=null; try{ r.stop(); }catch(_){ } }
     renderPrepVoiceBtn();
-    if(andPrepare) prepareFromEmail('voice');
+    if(andPrepare) runPrepare((document.getElementById('prepVoiceText')?.value||'').trim(), 'voice', 'prepVoiceStatus');
   }
   window.togglePrepVoice=togglePrepVoice;
 

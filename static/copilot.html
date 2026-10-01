@@ -2777,6 +2777,16 @@ function clearScriptBox(){
     }
   }
 
+  // Your Picture opens straight onto the whiteboard. Once per visit: closing it leaves the
+  // static map, and re-drawing the step (e.g. after capturing outgoings) doesn't reopen it.
+  let pictureWbShown = false;
+  function maybeAutoOpenWhiteboard(){
+    if(window.__autoWhiteboard === false || pictureWbShown || state.view !== 'call') return;
+    pictureWbShown = true;
+    setTimeout(() => {
+      if(STEPS[state.current].id === 'picture' && window.openPictureCanvas && !(window.pcVoice && window.pcVoice.isOpen())) window.openPictureCanvas();
+    }, 0);
+  }
   function enterPictureFullscreen(){
     const header = document.querySelector('header');
     const snapshot = document.querySelector('.snapshot');
@@ -2852,8 +2862,8 @@ function clearScriptBox(){
     setTimeout(checkUW,200); updateFIBVisibility();
     if(scriptMode==='script') setTimeout(prefetchScript, 400);
     const id = STEPS[state.current] && STEPS[state.current].id;
-    if(id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); loadPictureGuidance(); }
-    else { exitPictureFullscreen(); maybeRequestGuidance(); }
+    if(id==='picture'){ enterPictureFullscreen(); enrichPictureLinks(); loadPictureGuidance(); maybeAutoOpenWhiteboard(); }
+    else { pictureWbShown=false; if(window.pcVoice && window.pcVoice.isOpen()) window.pcVoice.close(); exitPictureFullscreen(); maybeRequestGuidance(); }
     // Build Your Picture in the background while they're on the step before it,
     // so it opens instantly instead of loading in front of the client.
     if(id==='health') schedulePicturePrecompute();
@@ -5821,7 +5831,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     }
     if(/\bwhiteboard\b/.test(lc) && !/\bclose\b/.test(lc)){
       if(!inPicture()) goTopic('picture');
-      setTimeout(() => { if(window.openPictureCanvas) window.openPictureCanvas(); }, 350);
+      setTimeout(() => { if(window.openPictureCanvas && !(window.pcVoice && window.pcVoice.isOpen())) window.openPictureCanvas(); }, 350);
       voiceToast('Opening the whiteboard'); return;
     }
     if(/^(back to (the )?call|close (the )?(picture|whiteboard)|exit)\b/.test(lc)){
@@ -6919,6 +6929,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     pcData = pcBuildData();
     loadingEl.style.display = 'none';
     pcRenderAll();
+    if(state.pictureView === 'client') pcSetMode('client');   // already showing the client? open that way
     viewport.focus({preventScroll: true});
   }
   function pcClose(){

@@ -2338,6 +2338,13 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
     .ypf-capture label{font-size:12.5px;color:var(--muted);flex-basis:100%;}
     .ypf-capture input{flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:14px var(--sans);background:#fff;}
     .ypf-capture button{border:1px solid var(--green);background:var(--green);color:#fff;border-radius:8px;padding:8px 14px;font:600 13px var(--sans);cursor:pointer;}
+    /* Cover in place: the same cards flip from the shortfall to what the quoted cover would do */
+    .ypf-after{display:none;}
+    body.ypf-cover-on .ypf-after{display:block;}
+    body.ypf-cover-on .ypf-before{display:none !important;}
+    .ypf-figure-block.ypf-good{background:var(--green-soft);color:var(--green);}
+    .ypf-goal-after{font-family:var(--serif);font-size:17px;line-height:1.5;color:var(--green);margin-top:18px;}
+    body.ypf-client-view .ypf-goal-after{font-size:19px;}
     body.ypf-client-view .ypf-leaves,
     body.ypf-client-view .ypf-leaves-centre,
     body.ypf-client-view .ypf-leaf-aim,
@@ -2782,6 +2789,7 @@ function clearScriptBox(){
     document.body.classList.add('picture-fullscreen-active');
     if(typeof renderVoicePill === 'function') setTimeout(renderVoicePill, 0);
     document.body.classList.toggle('ypf-client-view', state.pictureView==='client');
+    document.body.classList.toggle('ypf-cover-on', pictureCoverOn);
     window.scrollTo(0,0);
   }
   function exitPictureFullscreen(){
@@ -2793,11 +2801,19 @@ function clearScriptBox(){
     if(snapshot) snapshot.style.display = '';
     if(mindcol) mindcol.style.display = '';
     if(btmbar) btmbar.style.display = '';
-    document.body.classList.remove('picture-fullscreen-active','ypf-client-view','picture-notes-open');
+    pictureCoverOn = false;
+    document.body.classList.remove('picture-fullscreen-active','ypf-client-view','picture-notes-open','ypf-cover-on');
     if(typeof renderVoicePill === 'function') setTimeout(renderVoicePill, 0);
   }
   // Client view hides every coaching element (aims, 'why' notes, prompt leaves,
   // the bridge) so the screen can be shared. Financial facts stay.
+  let pictureCoverOn = false;   // view state only: the client always starts on the shortfall
+  function togglePictureCover(){
+    pictureCoverOn = !pictureCoverOn;
+    document.body.classList.toggle('ypf-cover-on', pictureCoverOn);
+    const b=document.getElementById('ypfCoverToggle');
+    if(b){ b.textContent = pictureCoverOn ? 'Back to the shortfall' : 'Show cover in place'; b.setAttribute('aria-pressed', String(pictureCoverOn)); }
+  }
   function togglePictureView(){
     state.pictureView = state.pictureView==='client' ? 'adviser' : 'client';
     document.body.classList.toggle('ypf-client-view', state.pictureView==='client');
@@ -2915,6 +2931,23 @@ function yourPictureBody(){
     const secondaryGap = persons.length > 1 && mortgage !== null && covers[1] !== null ?
       Math.max(0,mortgage-covers[1]) : null;
 
+    // Cover the adviser has priced (prep screen / product steps). Matched to a person by the
+    // quote's Client field; blank means the first client. All arithmetic stays here.
+    const quotedFor = (kind, idx) => {
+      const ids = [persons[idx][0], persons[idx][1].name, persons[idx][1].nick].filter(Boolean).map(normalise);
+      return (state.quotes[kind]||[]).filter(q => {
+        const who = normalise(q.client);
+        return who ? ids.includes(who) : idx === 0;
+      }).reduce((t,q)=>t+num(q.benefit),0);
+    };
+    const qIp = quotedFor('ip',0), qLife = quotedFor('life',0), qFib = quotedFor('fib',0), qCic = quotedFor('cic',0);
+    const qLife2 = persons.length > 1 ? quotedFor('life',1) : 0;
+    const hasCover = qIp > 0 || qLife > 0 || qFib > 0 || qCic > 0;
+    const illnessAfter = illnessGap !== null ? Math.max(0, illnessGap - qIp) : null;
+    const deathAfter = deathGap !== null ? Math.max(0, deathGap - qLife) : null;
+    const illnessSolved = illnessGap === 0 || (illnessGap !== null && qIp > 0 && illnessAfter === 0);
+    const deathSolved = deathGap === 0 || (deathGap !== null && qLife > 0 && deathAfter === 0);
+
     const goalText = stepNotes('goals');
     const highlight = goalText.match(/\b(?:settled in (?:this|their|the) home|keep(?:ing)? (?:this|their|the) home|(?:this|their|the) home|financial security|standard of living|their children|our children|retirement)\b/i);
     const goalHtml = !goalText ? missing : highlight ?
@@ -3022,6 +3055,9 @@ function yourPictureBody(){
         </div>
         <div class="ypf-view-controls">
           <button type="button" class="ypf-view-btn ypf-adviser-only" onclick="togglePictureNotes()" title="Open the notes box without leaving this screen">&#9998; Notes</button>
+          ${hasCover ?
+            `<button type="button" class="ypf-view-btn" id="ypfCoverToggle" onclick="togglePictureCover()" aria-pressed="${pictureCoverOn}">${pictureCoverOn ? 'Back to the shortfall' : 'Show cover in place'}</button>` :
+            `<span class="ypf-view-btn ypf-adviser-only" id="ypfCoverHint" style="opacity:.55;cursor:default" title="Add the cover you've priced on the Before the call screen">No cover added yet</span>`}
           <button type="button" class="ypf-view-btn" id="ypfViewToggle" onclick="togglePictureView()" aria-pressed="${state.pictureView==='client'}" title="Hide your coaching notes before sharing this screen">${state.pictureView==='client' ? 'Back to adviser view' : 'Client view'}</button>
         </div>
       </header>
@@ -3074,7 +3110,11 @@ function yourPictureBody(){
               What matters most
             </div>
             <h2 id="ypf-goal-heading" data-fallback-html="${goalHtml.replace(/"/g,'&quot;')}">${goalHtml}</h2>
-            <p class="ypf-goal-caption">The life you’re protecting. Not just the numbers.</p>
+            <p class="ypf-goal-caption ypf-before">The life you’re protecting. Not just the numbers.</p>
+            <p class="ypf-goal-caption ypf-after ypf-goal-after" id="ypf-goal-after">${!hasCover ? 'The life you’re protecting. Not just the numbers.' :
+              illnessSolved && deathSolved ?
+                `${persons.length > 1 ? `${secondaryName} wouldn’t be left carrying the mortgage alone. ` : ''}The payments can carry on and the home stays secure.` :
+                `This would take a real share of the mortgage burden off ${persons.length > 1 ? secondaryName : 'the family'}, with some of the gap still to talk through.`}</p>
           </section>
           <article class="ypf-card ypf-risk ypf-illness" aria-labelledby="ypf-illness-heading">
             <div class="ypf-node-top">
@@ -3086,12 +3126,26 @@ function yourPictureBody(){
               <span class="ypf-node-index">01 / INCOME</span>
             </div>
             <h3 id="ypf-illness-heading">If illness stops work</h3>
-            <div class="ypf-figure-block">
+            <div class="ypf-figure-block ypf-before">
               <div class="ypf-figure">${money(illnessGap)}${illnessGap !== null ? '<span class="ypf-figure-unit">/ month</span>' : ''}</div>
               <div class="ypf-figure-description">Illustrative mortgage shortfall</div>
             </div>
-            <p class="ypf-consequence" id="ypf-illness-consequence">${illnessConsequence}</p>
-            <div class="ypf-calculation">
+            <div class="ypf-after" id="ypf-illness-after">
+              <div class="ypf-figure-block ypf-good">
+                <div class="ypf-figure">${qIp > 0 ? gm(qIp) + '<span class="ypf-figure-unit">/ month</span>' : '<span class="ypf-figure-unit">not yet priced</span>'}</div>
+                <div class="ypf-figure-description">${qIp > 0 ? 'Paid to the household if illness stops work' : 'No income protection added'}</div>
+              </div>
+              <p class="ypf-consequence">${qIp > 0 ?
+                (illnessAfter === 0 || illnessGap === 0 ?
+                  `That would keep the ${money(payment)} mortgage payment going${persons.length > 1 ? `, without ${secondaryName} having to find it alone` : ''}.` :
+                  illnessAfter === null ?
+                  'A regular monthly income would carry on while the household recovers.' :
+                  `That covers ${gm(qIp)} of the ${money(illnessGap)} monthly shortfall, leaving ${gm(illnessAfter)} a month to plan for.`) :
+                'Without income protection the monthly shortfall stays as shown.'}${qCic > 0 ? ` If a serious illness is diagnosed, ${gm(qCic)} would be paid as a lump sum.` : ''}</p>
+              <div class="ypf-calculation">${qIp > 0 ? `<strong>${gm(qIp)} a month of cover${illnessGap !== null ? ` against a ${money(illnessGap)} shortfall` : ''}.</strong><br>` : ''}Illustration of the cover as quoted, subject to underwriting, policy terms and exclusions.</div>
+            </div>
+            <p class="ypf-consequence ypf-before" id="ypf-illness-consequence">${illnessConsequence}</p>
+            <div class="ypf-calculation ypf-before">
               <strong>${money(payment)} mortgage payment − ${money(continuingIncome)} continuing income.</strong><br>
               Illustrates ${primaryName} unable to work after sick pay ends.${persons.length > 1 ?
                 ` Assumes ${secondaryName}’s estimated net earnings continue unchanged.` :
@@ -3109,12 +3163,27 @@ function yourPictureBody(){
               <span class="ypf-node-index">02 / MORTGAGE</span>
             </div>
             <h3 id="ypf-death-heading">${persons.length > 1 ? 'If one of them dies' : `If ${primaryName} dies`}</h3>
-            <div class="ypf-figure-block">
+            <div class="ypf-figure-block ypf-before">
               <div class="ypf-figure">${money(deathGap)}</div>
               <div class="ypf-figure-description">Mortgage gap if ${primaryName} dies</div>
             </div>
-            <p class="ypf-consequence" id="ypf-death-consequence">${deathConsequence}</p>
-            <div class="ypf-calculation">
+            <div class="ypf-after" id="ypf-death-after">
+              <div class="ypf-figure-block ypf-good">
+                <div class="ypf-figure">${qLife > 0 ? gm(qLife) : qFib > 0 ? gm(qFib) + '<span class="ypf-figure-unit">/ month</span>' : '<span class="ypf-figure-unit">not yet priced</span>'}</div>
+                <div class="ypf-figure-description">${qLife > 0 ? `Paid out if ${primaryName} dies` : qFib > 0 ? 'Paid to the household each month' : 'No life cover added'}</div>
+              </div>
+              <p class="ypf-consequence">${qLife > 0 ?
+                (deathAfter === 0 || deathGap === 0 ?
+                  `The mortgage could be cleared, so the home stays${persons.length > 1 ? ` and ${secondaryName} isn't left carrying it` : ''}.` :
+                  deathAfter === null ?
+                  'A lump sum would be paid towards the mortgage and the family’s costs.' :
+                  `That clears ${gm(Math.min(qLife, deathGap))} of the ${money(deathGap)} gap, leaving ${gm(deathAfter)}.`) :
+                qFib > 0 ? 'A regular income would be paid to the household instead of a lump sum.' :
+                'Without life cover the gap stays as shown.'}${qLife > 0 && qFib > 0 ? ` Plus ${gm(qFib)} a month to the household.` : ''}${qLife2 > 0 ? ` If ${secondaryName} died, ${gm(qLife2)} would be paid.` : ''}</p>
+              <div class="ypf-calculation">${qLife > 0 ? `<strong>${gm(qLife)} of cover${deathGap !== null ? ` against a ${money(deathGap)} gap` : ''}.</strong><br>` : ''}Illustration of the cover as quoted, subject to underwriting, policy terms and exclusions.</div>
+            </div>
+            <p class="ypf-consequence ypf-before" id="ypf-death-consequence">${deathConsequence}</p>
+            <div class="ypf-calculation ypf-before">
               <strong>${money(mortgage)} mortgage − ${money(covers[0])} cover.</strong><br>
               ${secondaryNote}
             </div>
@@ -3157,7 +3226,8 @@ function yourPictureBody(){
           <span class="ypf-legend-item"><span class="ypf-dot"></span>What matters &amp; what helps</span>
           <span class="ypf-legend-item"><span class="ypf-dot ypf-amber"></span>Gaps to explore</span>
         </div>
-        <p class="ypf-disclaimer">A conversation starter, not a recommendation. Mortgage gaps assume the relevant death-in-service benefit is available in full to reduce the loan. Where no separate DIS policy is recorded, cover uses the recorded salary multiplier assumption on base salary only. Benefits depend on employment and scheme terms. Net income is estimated using the app’s tax calculation. Income assumptions and other cover, savings and spending need to be confirmed.</p>
+        <p class="ypf-disclaimer ypf-after">With cover in place is an illustration of the cover as quoted. It assumes the plans are taken out and pay out as described, and is subject to underwriting, policy terms, conditions and exclusions. It is not a guarantee of any payment.</p>
+        <p class="ypf-disclaimer ypf-before">A conversation starter, not a recommendation. Mortgage gaps assume the relevant death-in-service benefit is available in full to reduce the loan. Where no separate DIS policy is recorded, cover uses the recorded salary multiplier assumption on base salary only. Benefits depend on employment and scheme terms. Net income is estimated using the app’s tax calculation. Income assumptions and other cover, savings and spending need to be confirmed.</p>
       </footer>
     </div>`;
   }
@@ -3430,8 +3500,19 @@ function yourPictureBody(){
     </div>`;
   }
   // Before the call: the referral, every fact-find field, and the plan - on one screen.
+  // Cover the adviser has already priced in their own tool. Same data as the product
+  // steps (state.quotes) - entered here before the call, it drives the "cover in place"
+  // view on Your Picture. The app only records it; it doesn't price or recommend.
+  function prepQuotesHTML(){
+    const kinds=[['ip','Income Protection'],['life','Life Cover'],['fib','Family Income Benefit'],['cic','Critical Illness']];
+    return `<div class="assump prep-quotes" id="prepQuotes" style="margin-bottom:16px">
+      <h4>Cover you&rsquo;ve priced &mdash; optional</h4>
+      <p class="empty-note" style="margin:0 0 10px;font-size:13px">Add the cover you&rsquo;ve sourced in your own tool. On Your Picture you can then flip from the shortfall to what this cover would do, using these figures. Benefit = the monthly amount (income protection, family income benefit) or the sum assured (life, critical illness).</p>
+      ${kinds.map(([k,l])=>`<div class="prep-quote-kind" data-kind="${k}" style="margin-top:10px"><div class="fl" style="font-weight:600">${l}</div>${quoteBody(k,true)}</div>`).join('')}
+    </div>`;
+  }
   function prepScreenBody(){
-    return prepPanelHTML() + `<div class="cl-prep-facts">` + factfindBody() + `</div>` + callPlanHTML();
+    return prepPanelHTML() + prepQuotesHTML() + `<div class="cl-prep-facts">` + factfindBody() + `</div>` + callPlanHTML();
   }
   // Opening, during the call: the prep brief and plan stay to hand; the fields were done in prep.
   function introCallBody(){
@@ -3676,12 +3757,12 @@ function yourPictureBody(){
       <div style="margin-top:12px">${rows||'<p class="empty-note">No existing cover recorded.</p>'}</div>`;
   }
 
-  function quoteBody(kind){
+  function quoteBody(kind, bare){
     const labels={ip:'Income Protection',fib:'Family Income Benefit',life:'Life Cover',cic:'Critical Illness'};
     const rows=state.quotes[kind].map((q,i)=>`<div class="quote-block">
       <button class="remove-btn" onclick="delQuote('${kind}',${i})">✕ remove</button>
       <div class="row4">
-        <div><label class="fl">Client</label><input class="fi" value="${esc(q.client)}" oninput="setQ('${kind}',${i},'client',this.value)"></div>
+        <div><label class="fl">Client</label><input class="fi" placeholder="blank = first client" value="${esc(q.client)}" oninput="setQ('${kind}',${i},'client',this.value)"></div>
         <div><label class="fl">Provider</label><input class="fi" value="${esc(q.provider)}" oninput="setQ('${kind}',${i},'provider',this.value)"></div>
         <div><label class="fl">Benefit / sum</label><input class="fi" value="${esc(q.benefit)}" oninput="setQ('${kind}',${i},'benefit',this.value)"></div>
         <div><label class="fl">Monthly premium</label><input class="fi" value="${esc(q.premium)}" oninput="setQ('${kind}',${i},'premium',this.value)"></div>
@@ -3692,7 +3773,7 @@ function yourPictureBody(){
           <option value="essential" ${q.priority==='essential'?'selected':''}>Essential</option>
           <option value="needed" ${q.priority==='needed'?'selected':''}>Needed</option></select></div>
       </div></div>`).join('');
-    return `<div style="margin-bottom:6px;font-size:12.5px;color:var(--ink-soft)">Enter quotes you've sourced in your certified tool. This tool captures and organises — it doesn't price or recommend.</div>
+    return `${bare?'':`<div style="margin-bottom:6px;font-size:12.5px;color:var(--ink-soft)">Enter quotes you've sourced in your certified tool. This tool captures and organises — it doesn't price or recommend.</div>`}
       <button class="add-btn" onclick="addQuote('${kind}')">+ Add ${labels[kind]} quote</button>
       <div style="margin-top:12px">${rows||'<p class="empty-note">No quotes added.</p>'}</div>`;
   }
@@ -3742,8 +3823,21 @@ function yourPictureBody(){
   window.addExisting=()=>{state.existing.push({});renderStep();focusLastRow();persistSoon();};
   window.delExisting=i=>{state.existing.splice(i,1);renderStep();persistSoon();nudgeGuidance(1200);};
   window.setEx=(i,f,v)=>{state.existing[i][f]=v;fieldChanged();};
-  window.addQuote=k=>{state.quotes[k].push({priority:'essential'});renderStep();focusLastRow();persistSoon();};
-  window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);renderStep();persistSoon();nudgeGuidance(1200);};
+  // On the prep screen only the quotes panel is redrawn - a full renderStep() would wipe
+  // a referral email or spoken transcript the adviser has typed but not yet prepared.
+  function redrawQuotes(kind, focus){
+    const panel=state.view==='prep' ? document.getElementById('prepQuotes') : null;
+    if(panel){
+      panel.outerHTML=prepQuotesHTML();
+      if(focus){
+        const rows=document.querySelectorAll('#prepQuotes .prep-quote-kind[data-kind="'+kind+'"] .quote-block');
+        const inp=rows.length && rows[rows.length-1].querySelector('input');
+        if(inp) inp.focus();
+      }
+    } else { renderStep(); if(focus) focusLastRow(); }
+  }
+  window.addQuote=k=>{state.quotes[k].push({priority:'essential'});redrawQuotes(k,true);persistSoon();};
+  window.delQuote=(k,i)=>{state.quotes[k].splice(i,1);redrawQuotes(k,false);persistSoon();nudgeGuidance(1200);};
   window.setQ=(k,i,f,v)=>{state.quotes[k][i][f]=v;fieldChanged();};
   // a field was left (blur) or a dropdown changed -> refresh guidance if anything changed
   document.getElementById('stepBody').addEventListener('change', ()=>nudgeGuidance(800));

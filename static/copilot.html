@@ -3032,6 +3032,8 @@ function yourPictureBody(){
       monthlyPayment: payment,
       continuingIncome,
       outgoings,
+      cover: { has: hasCover, ip: qIp, life: qLife, fib: qFib, cic: qCic, life2: qLife2,
+               illnessAfter, deathAfter, illnessSolved, deathSolved },
       stats: pictureStats
     };
 
@@ -5809,6 +5811,14 @@ function setUWAnswer(condKey, qIdx, field, value){
       else { voiceToast('Already in the adviser view'); return; }
       voiceToast('Adviser view'); return;
     }
+    if(/\bcover in place\b|\bshow (the )?cover\b|\bwith (the )?cover\b/.test(lc) || /\b(back to|show) (the )?shortfall\b/.test(lc)){
+      const wantOn = !/\b(back to|show) (the )?shortfall\b/.test(lc);
+      if(wb) window.pcVoice.setCover(wantOn);
+      else if(inPicture() && document.getElementById('ypfCoverToggle')){
+        if(wantOn !== document.body.classList.contains('ypf-cover-on')) togglePictureCover();
+      } else { voiceToast('Cover in place is on Your Picture — add the cover you’ve priced first. Nothing changed.'); return; }
+      voiceToast(wantOn ? 'Cover in place' : 'Back to the shortfall'); return;
+    }
     if(/\bwhiteboard\b/.test(lc) && !/\bclose\b/.test(lc)){
       if(!inPicture()) goTopic('picture');
       setTimeout(() => { if(window.openPictureCanvas) window.openPictureCanvas(); }, 350);
@@ -6049,6 +6059,12 @@ function setUWAnswer(condKey, qIdx, field, value){
 #pcOverlay .pc-symbol { width:25px; height:25px; display:inline-grid; place-items:center; flex-shrink:0; border:1.3px solid currentColor; border-radius:50%; font-family:var(--pc-sans); font-size:15px; letter-spacing:0; }
 #pcOverlay .pc-risk-head .pc-symbol { border-radius:5px; }
 #pcOverlay .pc-card .pc-figure { font:400 37px/1.1 var(--pc-serif); margin:15px 0 9px; letter-spacing:-.7px; }
+#pcOverlay .pc-card.pc-covered { background:var(--pc-green-bg); border-color:#9DBFAA; }
+#pcOverlay .pc-covered .pc-card-label { color:var(--pc-green); }
+#pcOverlay .pc-covered .pc-figure { color:var(--pc-green); }
+#pcOverlay .pc-card .pc-cover-goal { font:400 20px/1.45 var(--pc-serif); color:var(--pc-green); margin:16px 0 0; }
+#pcOverlay .pc-cover-toggle { font:600 12px var(--pc-sans); padding:7px 13px; border-radius:7px; border:1px solid var(--pc-green); background:white; color:var(--pc-green); cursor:pointer; margin-right:6px; }
+#pcOverlay .pc-cover-toggle[aria-pressed="true"] { background:var(--pc-green); color:white; }
 #pcOverlay .pc-card .pc-sub { font-size:17px; color:#4F5962; line-height:1.45; margin:0; }
 #pcOverlay .pc-card .pc-qualification { margin:10px 0 0; font-size:14px; line-height:1.4; color:#744B2E; }
 #pcOverlay .pc-leaf { display:flex; flex-direction:column; padding:22px 25px 18px; }
@@ -6175,6 +6191,7 @@ function setUWAnswer(condKey, qIdx, field, value){
         <div class="pc-branch-tabs" id="pcBranchTabs" aria-label="Focus a branch"></div>
       </div>
       <div class="pc-tools-right">
+        <button type="button" class="pc-cover-toggle" id="pcCoverToggle" aria-pressed="false" hidden>Cover in place</button>
         <span class="pc-small" id="pcModeHint">Prompts &amp; their sources</span>
         <div class="pc-segment" aria-label="Choose view">
           <button type="button" id="pcAdviserMode" aria-pressed="true">Adviser</button>
@@ -6340,6 +6357,7 @@ function setUWAnswer(condKey, qIdx, field, value){
       primaryCover: calc.primaryCover ?? null, secondaryCover: calc.secondaryCover ?? null,
       continuingIncome: calc.continuingIncome ?? null,
       outgoings: calc.outgoings ?? null,
+      cover: calc.cover || {has:false},
       goalSummary: links.goalSummary || calc.goalText || '',
       goalHighlight: links.goalHighlight || '',
       illnessSentence: links.illnessSentence || (document.getElementById('ypf-illness-consequence') ? document.getElementById('ypf-illness-consequence').textContent : ''),
@@ -6388,11 +6406,67 @@ function setUWAnswer(condKey, qIdx, field, value){
     });
   }
 
+  // ---- cover in place: the same board told the other way round. Instead of "£X needs
+  // covering" each card says what is now coming in and what it covers. Figures are the
+  // adviser's priced quotes against the already-calculated gaps - nothing is worked out by AI.
+  let coverOn = false;
+  function pcCoverText(d){
+    const c = d.cover || {}, two = !!d.secondaryName, sec = esc(d.secondaryName), pri = esc(d.primaryName);
+    const m = v => gm(v);
+    const out = {};
+    out.illness = c.ip > 0 ?
+      (c.illnessAfter === 0 || d.illnessGap === 0 ?
+        `Now ${m(c.ip)} a month is coming in, covering the ${pcMoney(d.illnessGap)} shortfall. The ${pcMoney(d.monthlyPayment)} mortgage payment keeps going${two ? `, and ${sec} isn’t left to find it alone` : ''}.` :
+        c.illnessAfter === null ?
+        `Now ${m(c.ip)} a month is coming in while ${pri} can’t work.` :
+        `Now ${m(c.ip)} a month is coming in, covering ${m(c.ip)} of the ${pcMoney(d.illnessGap)} shortfall, with ${m(c.illnessAfter)} a month still to plan for.`) :
+      `No income protection added yet, so the ${pcMoney(d.illnessGap)} shortfall is still open.`;
+    out.death = c.life > 0 ?
+      (c.deathAfter === 0 || d.deathGap === 0 ?
+        `Now ${m(c.life)} is coming in, covering the ${pcMoney(d.deathGap)} mortgage gap. The mortgage can be cleared and the home stays${two ? `, with ${sec} not left carrying it` : ''}.` :
+        c.deathAfter === null ?
+        `Now ${m(c.life)} is coming in towards the mortgage and the family’s costs.` :
+        `Now ${m(c.life)} is coming in, covering ${m(Math.min(c.life, d.deathGap))} of the ${pcMoney(d.deathGap)} mortgage gap, with ${m(c.deathAfter)} still to plan for.`) :
+      c.fib > 0 ? `Now ${m(c.fib)} a month would come in to the household, instead of a lump sum.` :
+      `No life cover added yet, so the ${pcMoney(d.deathGap)} mortgage gap is still open.`;
+    out.goal = c.illnessSolved && c.deathSolved ?
+      `${two ? `${sec} isn’t left carrying the mortgage alone. ` : ''}The payments carry on and the home stays secure.` :
+      `A real share of the mortgage burden comes off ${two ? sec : 'the family'}, with some of the gap still to talk through.`;
+    return out;
+  }
+  // numbers-kind lines so they still show in client view
+  function pcCoverLeaves(d){
+    const c = d.cover || {}, two = !!d.secondaryName, t = pcCoverText(d), pri = d.primaryName;
+    const mk = (branch, i, text) => ({domId: 'cover-' + branch + '-' + i, branch, kind: 'numbers', bankId: null, text, why: ''});
+    const leaves = {goal: [], illness: [], death: []};
+    leaves.goal.push(mk('goal', 0, plainText(t.goal)));
+    if(c.ip > 0){
+      leaves.illness.push(mk('illness', 0, `${gm(c.ip)} a month would be coming in while ${pri} can’t work.`));
+      if(d.monthlyPayment !== null) leaves.illness.push(mk('illness', 1, c.illnessAfter === 0 || d.illnessGap === 0 ?
+        `Against the ${gm(d.monthlyPayment)} mortgage payment, that covers the shortfall in full.` :
+        `Against the ${gm(d.monthlyPayment)} mortgage payment, that leaves ${c.illnessAfter === null ? 'a part still to look at' : gm(c.illnessAfter) + ' a month still to look at'}.`));
+    }
+    if(c.cic > 0) leaves.illness.push(mk('illness', 2, `If a serious illness is diagnosed, ${gm(c.cic)} would be paid as a lump sum.`));
+    if(c.life > 0){
+      leaves.death.push(mk('death', 0, `${gm(c.life)} would be paid out if ${pri} dies.`));
+      if(d.deathGap !== null) leaves.death.push(mk('death', 1, c.deathAfter === 0 || d.deathGap === 0 ?
+        `Against the ${gm(d.deathGap)} mortgage gap, the mortgage could be cleared.` :
+        `Against the ${gm(d.deathGap)} mortgage gap, that leaves ${gm(c.deathAfter)} still to look at.`));
+    }
+    if(c.fib > 0) leaves.death.push(mk('death', 2, `${gm(c.fib)} a month would also be paid to the household.`));
+    if(two && c.life2 > 0) leaves.death.push(mk('death', 3, `If ${d.secondaryName} died instead, ${gm(c.life2)} would be paid out.`));
+    return leaves;
+  }
+
   function pcVisible(n){ return mode === 'adviser' || !n.kind || n.kind === 'numbers'; }
 
   function pcBuildNodes(){
     const d = pcData;
-    const visibleGoalLeaves = d.branches.goal.filter(l => mode === 'adviser' || l.kind === 'numbers');
+    const showCover = coverOn && d.cover && d.cover.has;
+    const coverLeaves = showCover ? pcCoverLeaves(d) : null;
+    const coverText = showCover ? pcCoverText(d) : null;
+    const branchLeaves = k => showCover && coverLeaves[k] ? coverLeaves[k] : d.branches[k];
+    const visibleGoalLeaves = branchLeaves('goal').filter(l => mode === 'adviser' || l.kind === 'numbers');
     const visibleLifestyleLeaves = (d.branches.lifestyle || []).filter(l => mode === 'adviser' || l.kind === 'numbers');
 
     // The lifestyle card sits above the goal card. It only pushes goal/illness/
@@ -6412,8 +6486,8 @@ function setUWAnswer(condKey, qIdx, field, value){
     const existingHead = {x: HEAD.existing.x, y: HEAD.existing.y + SHIFT, w: HEAD.existing.w, h: HEAD.existing.h};
 
     const goalLeaves = pcGoalRow(visibleGoalLeaves, SHIFT);
-    const illLeaves = pcStack(illHead.y + illHead.h, 110, illHead.x, illHead.w, d.branches.illness.filter(l => mode === 'adviser' || l.kind === 'numbers'));
-    const deathLeaves = pcStack(deathHead.y + deathHead.h, 110, deathHead.x, deathHead.w, d.branches.death.filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const illLeaves = pcStack(illHead.y + illHead.h, 110, illHead.x, illHead.w, branchLeaves('illness').filter(l => mode === 'adviser' || l.kind === 'numbers'));
+    const deathLeaves = pcStack(deathHead.y + deathHead.h, 110, deathHead.x, deathHead.w, branchLeaves('death').filter(l => mode === 'adviser' || l.kind === 'numbers'));
     const existLeaves = pcStack(existingHead.y + existingHead.h, 105, existingHead.x, existingHead.w, d.branches.existing.filter(l => mode === 'adviser' || l.kind === 'numbers'));
 
     const covers = [d.primaryCover, d.secondaryCover].filter((v, i) => i === 0 || d.secondaryName);
@@ -6433,11 +6507,11 @@ function setUWAnswer(condKey, qIdx, field, value){
       {id: 'lifestyle', branch: 'lifestyle', type: 'support', x: HEAD.lifestyle.x, y: HEAD.lifestyle.y, w: HEAD.lifestyle.w, h: HEAD.lifestyle.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">£</span> Everyday life</div><h3>Maintaining their lifestyle</h3><div class="pc-figure">${pcMoney(d.outgoings)}${d.outgoings !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Rough monthly outgoing to keep life as it is</p><p class="pc-qualification">${d.outgoings !== null ? 'Separate from the mortgage payment below.' : 'Capture a rough monthly figure to see what everyday life costs.'}</p>`},
       {id: 'goal', branch: 'goal', type: 'root', x: goalHead.x, y: goalHead.y, w: goalHead.w, h: goalHead.h,
-        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">◎</span> What matters most</div><h2>${pcGoalHeadingHTML(d)}</h2>`},
-      {id: 'illness', branch: 'illness', type: 'risk-head', x: illHead.x, y: illHead.y, w: illHead.w, h: illHead.h,
-        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 01</div><h3>If illness stops work</h3><div class="pc-figure">${pcMoney(d.illnessGap)}${d.illnessGap !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Illustrative mortgage shortfall</p><p class="pc-qualification">${esc(d.illnessSentence || 'Mortgage only — not the total household gap.')}</p>`},
-      {id: 'death', branch: 'death', type: 'risk-head', x: deathHead.x, y: deathHead.y, w: deathHead.w, h: deathHead.h,
-        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 02</div><h3>${d.secondaryName ? 'If one of them dies' : ('If ' + esc(d.primaryName) + ' dies')}</h3><div class="pc-figure">${pcMoney(d.deathGap)}</div><p class="pc-sub">Mortgage gap if ${esc(d.primaryName)} dies</p><p class="pc-qualification">${esc(d.deathSentence || 'Provisional until employer benefits are confirmed.')}</p>`},
+        html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">◎</span> What matters most${showCover ? ' · protected' : ''}</div><h2>${pcGoalHeadingHTML(d)}</h2>${showCover ? `<p class="pc-cover-goal">${coverText.goal}</p>` : ''}`},
+      {id: 'illness', branch: 'illness', type: showCover ? 'risk-head pc-covered' : 'risk-head', x: illHead.x, y: illHead.y, w: illHead.w, h: illHead.h,
+        html: showCover ? `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">✓</span> Cover in place · 01</div><h3>If illness stops work</h3><div class="pc-figure">${d.cover.ip > 0 ? gm(d.cover.ip) + '<span style="font:20px var(--pc-sans)"> / month</span>' : 'not yet priced'}</div><p class="pc-sub">${d.cover.ip > 0 ? 'Coming in if illness stops work' : 'No income protection added'}</p><p class="pc-qualification">${coverText.illness}</p>` : `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 01</div><h3>If illness stops work</h3><div class="pc-figure">${pcMoney(d.illnessGap)}${d.illnessGap !== null ? '<span style="font:20px var(--pc-sans)"> / month</span>' : ''}</div><p class="pc-sub">Illustrative mortgage shortfall</p><p class="pc-qualification">${esc(d.illnessSentence || 'Mortgage only — not the total household gap.')}</p>`},
+      {id: 'death', branch: 'death', type: showCover ? 'risk-head pc-covered' : 'risk-head', x: deathHead.x, y: deathHead.y, w: deathHead.w, h: deathHead.h,
+        html: showCover ? `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">✓</span> Cover in place · 02</div><h3>${d.secondaryName ? 'If one of them dies' : ('If ' + esc(d.primaryName) + ' dies')}</h3><div class="pc-figure">${d.cover.life > 0 ? gm(d.cover.life) : d.cover.fib > 0 ? gm(d.cover.fib) + '<span style="font:20px var(--pc-sans)"> / month</span>' : 'not yet priced'}</div><p class="pc-sub">${d.cover.life > 0 ? 'Coming in if ' + esc(d.primaryName) + ' dies' : d.cover.fib > 0 ? 'Paid to the household' : 'No life cover added'}</p><p class="pc-qualification">${coverText.death}</p>` : `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">!</span> Risk scenario · 02</div><h3>${d.secondaryName ? 'If one of them dies' : ('If ' + esc(d.primaryName) + ' dies')}</h3><div class="pc-figure">${pcMoney(d.deathGap)}</div><p class="pc-sub">Mortgage gap if ${esc(d.primaryName)} dies</p><p class="pc-qualification">${esc(d.deathSentence || 'Provisional until employer benefits are confirmed.')}</p>`},
       {id: 'existing', branch: 'existing', type: 'support', x: existingHead.x, y: existingHead.y, w: existingHead.w, h: existingHead.h,
         html: `<div class="pc-card-label"><span class="pc-symbol" aria-hidden="true">+</span> Already helping · check first</div><h3>Death-in-service cover</h3><dl>${coverRows.join('')}</dl>`},
       nextNode
@@ -6517,7 +6591,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     mini.setAttribute('viewBox', `0 0 ${WORLD_W} ${worldH}`);
     document.getElementById('pcMiniWires').innerHTML = wires.replace(/class="[^"]*"/g, '');
     document.getElementById('pcMiniCards').innerHTML = nodes.filter(pcVisible).map(n =>
-      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="16" fill="${n.type === 'risk-head' ? '#EBD3BF' : n.id === 'goal' ? '#8DAF9A' : n.type === 'support' ? '#CCDCCE' : '#E0E2D8'}" stroke="${n.branch === 'illness' || n.branch === 'death' ? '#B58D6D' : '#94A68D'}" stroke-width="7"/>`
+      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="16" fill="${n.type === 'risk-head' ? '#EBD3BF' : n.type === 'risk-head pc-covered' ? '#B9D6C4' : n.id === 'goal' ? '#8DAF9A' : n.type === 'support' ? '#CCDCCE' : '#E0E2D8'}" stroke="${n.branch === 'illness' || n.branch === 'death' ? '#B58D6D' : '#94A68D'}" stroke-width="7"/>`
     ).join('');
     pcUpdateTransform();
   }
@@ -6648,6 +6722,21 @@ function setUWAnswer(condKey, qIdx, field, value){
     pcAnnounce(mode === 'client' ? 'Client view. Coaching prompts hidden; financial facts and unknowns remain.' : 'Adviser view. All prompts restored.');
   }
 
+  function pcRefreshCoverToggle(){
+    const b = document.getElementById('pcCoverToggle'); if(!b) return;
+    const has = !!(pcData && pcData.cover && pcData.cover.has);
+    b.hidden = !has;
+    b.setAttribute('aria-pressed', String(coverOn));
+    b.textContent = coverOn ? 'Back to the shortfall' : 'Cover in place';
+  }
+  function pcSetCover(on){
+    if(!(pcData && pcData.cover && pcData.cover.has)){ pcToast('Add the cover you’ve priced on the Before the call screen first.'); return; }
+    coverOn = !!on; step = -1;
+    pcRefreshCoverToggle();
+    pcBuildNodes(); pcCreateCards(); pcLayout(); pcUpdateProgress(); pcFitWhole();
+    pcAnnounce(coverOn ? 'Cover in place. Each card now shows what is coming in and what it covers.' : 'Back to the shortfall.');
+  }
+
   function pcExportNotes(){
     const d = pcData;
     const lines = [
@@ -6684,7 +6773,8 @@ function setUWAnswer(condKey, qIdx, field, value){
       `<button type="button" class="pc-tab" data-pc-branch="${k}" aria-pressed="${k === 'goal'}"><span class="pc-tab-symbol" aria-hidden="true">${branchLabels[k].sym}</span>${branchLabels[k].label}</button>`
     ).join('');
     tabsEl.querySelectorAll('.pc-tab').forEach(b => b.addEventListener('click', () => pcSetBranch(b.dataset.pcBranch)));
-    checked.clear(); step = -1; mode = 'adviser'; branch = 'goal'; scale = .6; tx = 0; ty = 0;
+    checked.clear(); step = -1; mode = 'adviser'; branch = 'goal'; scale = .6; tx = 0; ty = 0; coverOn = false;
+    pcRefreshCoverToggle();
     pcBuildNodes(); pcCreateCards(); pcLayout(); pcUpdateProgress();
     requestAnimationFrame(() => pcSetBranch('goal'));
   }
@@ -6693,6 +6783,7 @@ function setUWAnswer(condKey, qIdx, field, value){
   let pcWired = false, pcReturnFocus = null;
   function pcWireOnce(){
     if(pcWired) return; pcWired = true;
+    document.getElementById('pcCoverToggle').addEventListener('click', () => pcSetCover(!coverOn));
 
     document.getElementById('pcCards').addEventListener('click', e => {
       if(hasMoved) return;
@@ -6844,6 +6935,8 @@ function setUWAnswer(condKey, qIdx, field, value){
     branch: value => pcSetBranch(value),
     setMode: value => { if(value !== mode) pcSetMode(value); if(typeof renderVoicePill === 'function') renderVoicePill(); },
     mode: () => mode,
+    setCover: value => { if(value !== coverOn) pcSetCover(value); },
+    cover: () => coverOn,
     close: () => pcClose(),
   };
 })();

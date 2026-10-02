@@ -5993,6 +5993,7 @@ function setUWAnswer(condKey, qIdx, field, value){
 #pcOverlay .pc-header-right, #pcOverlay .pc-client, #pcOverlay .pc-actions,
 #pcOverlay .pc-toolbar, #pcOverlay .pc-tools-left, #pcOverlay .pc-tools-right { display:flex; align-items:center; gap:12px; }
 #pcOverlay.pc-client-mode .pc-source-button { display:none !important; }
+#pcOverlay .pc-cover-toggle.pc-cover-none { opacity:.55; }
 #pcOverlay .pc-client { padding-right:18px; border-right:1px solid var(--pc-border); gap:10px; }
 #pcOverlay .pc-avatar { width:35px; height:35px; border:1px solid #C8D6CD; border-radius:50%; display:grid; place-items:center; color:var(--pc-green); font:14px var(--pc-serif); flex-shrink:0; }
 #pcOverlay .pc-client strong { display:block; font-size:13px; }
@@ -6706,6 +6707,7 @@ function setUWAnswer(condKey, qIdx, field, value){
     document.getElementById('pcAdviserMode').setAttribute('aria-pressed', String(mode === 'adviser'));
     document.getElementById('pcClientMode').setAttribute('aria-pressed', String(mode === 'client'));
     document.getElementById('pcModeHint').textContent = mode === 'adviser' ? 'Prompts & their sources' : 'The family, facts & unknowns';
+    pcRefreshCoverToggle();
     pcBuildNodes(); pcCreateCards(); pcLayout(); pcUpdateProgress(); pcFitWhole();
     pcAnnounce(mode === 'client' ? 'Client view. Coaching prompts hidden; financial facts and unknowns remain.' : 'Adviser view. All prompts restored.');
   }
@@ -6713,9 +6715,13 @@ function setUWAnswer(condKey, qIdx, field, value){
   function pcRefreshCoverToggle(){
     const b = document.getElementById('pcCoverToggle'); if(!b) return;
     const has = !!(pcData && pcData.cover && pcData.cover.has);
-    b.hidden = !has;
+    // No cover priced yet: the adviser still sees the button (dimmed, saying why) so it never just vanishes;
+    // the client never does.
+    b.hidden = !has && mode === 'client';
+    b.classList.toggle('pc-cover-none', !has);
+    b.title = has ? '' : 'Add the cover you\u2019ve priced on the Before the call screen to show cover in place';
     b.setAttribute('aria-pressed', String(coverOn));
-    b.textContent = coverOn ? 'Back to the shortfall' : 'Cover in place';
+    b.textContent = !has ? 'Cover in place \u00b7 none added yet' : coverOn ? 'Back to the shortfall' : 'Cover in place';
   }
   function pcSetCover(on){
     if(!(pcData && pcData.cover && pcData.cover.has)){ pcToast('Add the cover you’ve priced on the Before the call screen first.'); return; }

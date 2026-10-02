@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import threading
 import datetime
 from flask import request, jsonify
@@ -199,8 +200,22 @@ Return ONLY valid JSON matching:
   "fields": {{"c1_salary": "55k"}},
   "questions": ["a direct question the adviser should ask the client next"],
   "prompts": ["a phrase the adviser can say out loud to explain or frame something"],
-  "relevant_facts": ["a short factual point with source in brackets"]
+  "relevant_facts": ["a short factual point with source in brackets"],
+  "answered": ["the exact text of an on-screen card that the notes now answer"],
+  "asks_covered": [0]
 }}
+
+"answered": the user message may list CARDS ALREADY ON THE ADVISER'S SCREEN. Copy the
+exact text of every one the notes now answer or settle (the client has said it, or it
+has clearly been asked and answered) so the app can take it off the screen. Use []
+when none, or when no cards were listed. Never put a question in "questions" that the
+notes already answer; if a listed card is still open and still the best next move you
+may keep it, otherwise offer a new angle.
+
+"asks_covered": the user message may list THE SCRIPT'S ASKS FOR THIS STEP, numbered from 0.
+Return the numbers of the asks whose answer the call notes now contain (the client has
+clearly told the adviser what that ask is looking for). Be conservative - when unsure,
+leave it out. Use [] when none, or when no asks were listed.
 
 "fields" lets the app offer one-tap fills for structured fields the adviser has
 only typed into the CALL NOTES. Include a key ONLY when the call notes state
@@ -265,10 +280,15 @@ Write a short script for THIS STEP ONLY. It must:
 - Stay strictly within this step's purpose. Do not drift into later topics.
 - Include coaching notes for likely client reactions (silence, pushback,
   confusion) — these are the most valuable part for a nervous adviser.
-- If a PREVIOUS STAGE SCRIPT is supplied, open with a short natural bridge
-  from it ("So that's the income side covered — now let's look at...").
-  Do NOT repeat its content, just connect to it so the call flows as one
-  conversation rather than disconnected sections.
+- If a PREVIOUS STAGE SCRIPT is supplied, open with ONE short "say" block whose
+  cue is exactly "BRIDGE": a neutral hand-off into this step ("Thanks — let's
+  move on to ..."). This script is written BEFORE the client has finished
+  answering the previous stage, so the bridge must assert NOTHING about what
+  they said, decided, have in place or agreed ("what you've got sorted",
+  "now that we've settled...", "thanks for that background" are all wrong).
+  Name the topic you are moving to and stop. The app swaps in a line that
+  responds to what the client actually said. Do NOT repeat the previous
+  script's content.
 
 FACTS — CRITICAL (most important rule):
 - NEVER assert a fact about this client that was not explicitly supplied
@@ -587,6 +607,8 @@ def register_copilot_routes(app):
         if not notes:
             return jsonify({"error": "no notes"}), 400
         step = (data.get("step") or "").strip()
+        shown = [str(x).strip()[:300] for x in (data.get("shown") or [])[:12] if str(x).strip()]
+        script_asks = [str(x).strip()[:300] for x in (data.get("script_asks") or [])[:10] if str(x).strip()]
         try:
             kb = get_relevant_knowledge(_profile_query(step, data.get("profile")), k=5)
             user_content = ""
@@ -609,13 +631,26 @@ def register_copilot_routes(app):
                     "stated approach):\n" + plan + "\n\n"
                 )
             user_content += "Fact-find notes so far (across all steps):\n\n" + notes
+            if script_asks:
+                user_content += ("\n\n---\nTHE SCRIPT'S ASKS FOR THIS STEP (numbered from 0):\n"
+                                 + "\n".join(str(i) + ": " + a for i, a in enumerate(script_asks)))
+            if shown:
+                user_content += ("\n\n---\nCARDS ALREADY ON THE ADVISER'S SCREEN (from your previous answer):\n- "
+                                 + "\n- ".join(shown))
             if kb:
                 user_content += (
                     "\n\n---\nRelevant factual knowledge from provider "
                     "documents and guidance (use only if genuinely relevant; "
                     "never quote a premium or recommend a specific product):\n\n" + kb
                 )
-            return jsonify(claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1100))
+            out = claude_json(ANALYZE_SYSTEM, user_content, MODEL_ANALYZE, max_tokens=1100)
+            if isinstance(out, dict):
+                # only ever retire a card that really was on screen
+                raw = out.get("answered")
+                out["answered"] = [a for a in raw if isinstance(a, str) and a in shown] if isinstance(raw, list) else []
+                rawc = out.get("asks_covered")
+                out["asks_covered"] = sorted({int(i) for i in rawc if isinstance(i, int) and not isinstance(i, bool) and 0 <= i < len(script_asks)}) if isinstance(rawc, list) else []
+            return jsonify(out)
         except Exception:
             log.exception("copilot analyze failed")
             return jsonify({"error": "analyze failed"}), 200
@@ -795,6 +830,50 @@ def register_copilot_routes(app):
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
         })
+
+
+    BRIDGE_SYSTEM = """You write ONE spoken hand-off line (one or two short sentences) that a UK protection
+adviser says when moving from one stage of a client call to the next.
+
+You are given the stage they are leaving, the stage they are moving to and what it is for, and the
+adviser's most recent call notes (what the client has just said).
+
+Rules:
+- Acknowledge the client's last answer ONLY using what the recent notes literally say. If the notes
+  are empty or say nothing usable, give a plain neutral hand-off and acknowledge nothing.
+- Never claim anything was agreed, decided, settled, "sorted" or "covered". Never say a client
+  "has" cover, savings or a benefit unless the recent notes say so in those words.
+- No figures unless they appear in the recent notes. Never state a premium, product, provider or
+  recommended cover amount. No pressure or urgency.
+- Never mention FCA or regulatory status, fees, or recourse.
+- Natural spoken English, warm, brief. Lead into the next topic by naming it in plain words.
+Return ONLY JSON: {"bridge": "the line to say"}"""
+
+    _BRIDGE_BANNED = re.compile(r"FCA|regulated|no fee|recourse|guarantee|you'?re covered|you are covered|sorted|all settled|act now|limited time", re.I)
+
+    @app.post("/copilot/bridge")
+    def copilot_bridge():
+        data = request.get_json(silent=True) or {}
+        to_step = (data.get("to_step") or "").strip()
+        from_step = (data.get("from_step") or "").strip()
+        recent = (data.get("recent_notes") or "").strip()[-900:]
+        fallback = (data.get("fallback") or "").strip()[:400]
+        if not to_step:
+            return jsonify({"bridge": fallback})
+        try:
+            user = ("Leaving: " + (from_step or "the previous stage") + "\nMoving to: " + to_step + "\n"
+                    + ("This stage is for: " + STEP_PURPOSE.get(to_step, "") + "\n" if STEP_PURPOSE.get(to_step) else "")
+                    + "\nAdviser's most recent notes (what the client has just said):\n"
+                    + (recent or "(nothing captured yet)"))
+            out = claude_json(BRIDGE_SYSTEM, user, MODEL_ANALYZE, max_tokens=250)
+            line = (out.get("bridge") if isinstance(out, dict) else "") or ""
+            line = str(line).strip()
+            if not line or len(line) > 400 or _BRIDGE_BANNED.search(line):
+                return jsonify({"bridge": fallback})
+            return jsonify({"bridge": line})
+        except Exception:
+            log.exception("bridge failed")
+            return jsonify({"bridge": fallback})
 
 
     @app.post("/copilot/rate")

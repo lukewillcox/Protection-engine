@@ -1432,6 +1432,14 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.035),0 6px 18px rgba(5,10,25,0.08);
 }
 
+.asks{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 18px;padding-bottom:12px;border-bottom:1px dashed var(--border);}
+.asks-label{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px;}
+.ask-chip{border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:999px;padding:4px 10px;font:500 12px var(--sans);cursor:pointer;}
+.ask-chip.done{background:#E8F3EF;border-color:#B9DACF;color:#0E6B5C;}
+.asks-nudge{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0 0;padding:10px 14px;border:1px solid #E9D9A8;background:#FBF6E4;border-radius:10px;font-size:13px;color:#5A4A12;}
+.asks-nudge span{flex:1 1 220px;}
+.asks-nudge button{border:1px solid #0E6B5C;background:#0E6B5C;color:#fff;border-radius:8px;padding:6px 12px;font:600 12.5px var(--sans);cursor:pointer;}
+.asks-nudge button.alt{background:transparent;color:#0E6B5C;}
 .sblock{margin-bottom:26px;}
 .sblock:last-child{margin-bottom:0;}
 
@@ -2144,6 +2152,13 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
       color:#fff;
       box-shadow:none;
     }
+    .ypf-page.ypf-launch{min-height:0;padding:0;}
+    .ypf-launch-main{max-width:640px;margin:0 auto;padding:10vh 24px 24px;text-align:center;}
+    .ypf-launch h1{font-family:var(--serif);font-size:36px;font-weight:500;margin:6px 0 4px;color:var(--ink);}
+    .ypf-launch-names{margin:0 0 26px;font-size:16px;color:var(--muted);}
+    .ypf-launch-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+    .ypf-launch-hint{margin:16px auto 0;max-width:520px;font-size:13px;line-height:1.5;color:var(--muted);}
+    .ypf-launch .ypf-capture{max-width:460px;margin:22px auto 0;text-align:left;}
     .ypf-page{
       --background:#F6F5F1;
       --surface:#FFFFFF;
@@ -2763,7 +2778,7 @@ textarea.notes::placeholder{color:#717B90;font-style:normal;}
       return `<div class="step-link ${active?'active':''} ${done?'done':''}" data-i="${i}">
         <span class="dot">${done?'✓':(i+1)}</span>${s.title}</div>`;
     }).join('');
-    rail.querySelectorAll('.step-link').forEach(el=>el.addEventListener('click',()=>goto(+el.dataset.i)));
+    rail.querySelectorAll('.step-link').forEach(el=>el.addEventListener('click',()=>navTo(+el.dataset.i)));
     const n=Object.values(state.complete).filter(Boolean).length;
     document.getElementById('progressCount').textContent=n+'/13 complete';
   }
@@ -2778,7 +2793,7 @@ function clearScriptBox(){
   }
 
   // Your Picture opens straight onto the whiteboard. Once per visit: closing it leaves the
-  // static map, and re-drawing the step (e.g. after capturing outgoings) doesn't reopen it.
+  // launch page, and re-drawing the step (e.g. after capturing outgoings) doesn't reopen it.
   let pictureWbShown = false;
   function maybeAutoOpenWhiteboard(){
     if(window.__autoWhiteboard === false || pictureWbShown || state.view !== 'call') return;
@@ -2846,7 +2861,7 @@ function clearScriptBox(){
     goto(state.current);   // re-draw the picture with the new figure
   }
 
-  let gotoLastIdx=null, gotoLastView=null;
+  let gotoLastIdx=null, gotoLastView=null, bridgeArrival=null;
   function goto(i){
     saveNotes();
     state.current=Math.max(0,Math.min(STEPS.length-1,i));
@@ -2857,8 +2872,13 @@ function clearScriptBox(){
       // a new topic gets its heading in the notes (a re-draw of the same one doesn't)
       if(gotoLastIdx!==null && (gotoLastIdx!==state.current || gotoLastView!==state.view)) ensureTopicHeading(tid);
     }
+    // Arriving on a new step mid-call: remember what the client had just said, so the script's
+    // opening bridge can answer it (the script itself is written ahead of time and stays neutral).
+    if(state.view==='call' && gotoLastIdx!==null && gotoLastIdx!==state.current){
+      bridgeArrival = {idx:state.current, from:STEPS[gotoLastIdx].title, tail:String(state.callNotes||'').slice(-900), text:null, state:'idle'};
+    } else if(state.view!=='call' || gotoLastIdx===null){ bridgeArrival = null; }
     gotoLastIdx=state.current; gotoLastView=state.view;
-    clearScriptBox(); renderStep(); renderRail(); paintGuide();
+    hideAsksNudge(); clearScriptBox(); renderStep(); renderRail(); paintGuide();
     setTimeout(checkUW,200); updateFIBVisibility();
     if(scriptMode==='script') setTimeout(prefetchScript, 400);
     const id = STEPS[state.current] && STEPS[state.current].id;
@@ -3042,205 +3062,37 @@ function yourPictureBody(){
       monthlyPayment: payment,
       continuingIncome,
       outgoings,
+      illnessConsequence, deathConsequence,
       cover: { has: hasCover, ip: qIp, life: qLife, fib: qFib, cic: qCic, life2: qLife2,
                illnessAfter, deathAfter, illnessSolved, deathSolved },
       stats: pictureStats
     };
 
-    return `<div class="ypf-page">
-      <header class="ypf-page-header">
-        <div>
-          <p class="ypf-eyebrow">Protection, with purpose</p>
-          <h1>Your protection picture</h1>
+    // The picture itself lives on the whiteboard. This page is only the doorway to it, plus the
+    // few things an adviser needs before opening it (what's still missing, the outgoings capture).
+    const missingBits = [];
+    if(mortgage === null) missingBits.push('mortgage amount');
+    if(payment === null) missingBits.push('monthly payment');
+    if(householdNet === null) missingBits.push('income');
+    if(covers[0] === null) missingBits.push('death-in-service cover');
+    const namesLine = esc(persons.map(nameOf).join(' & '));
+    return `<div class="ypf-page ypf-launch">
+      <main class="ypf-launch-main">
+        <p class="ypf-eyebrow">Protection, with purpose</p>
+        <h1>Your protection picture</h1>
+        <p class="ypf-launch-names">${namesLine}</p>
+        <div class="ypf-launch-actions">
+          <button type="button" class="ypf-guide-btn ypf-guide-btn-primary" id="ypfOpenCanvas" onclick="if(window.openPictureCanvas) openPictureCanvas();">Open the whiteboard &#8599;</button>
+          <button type="button" class="ypf-guide-btn ypf-adviser-only" onclick="togglePictureNotes()" title="Open the notes box without leaving this screen">&#9998; Notes</button>
         </div>
-        <div class="ypf-client">
-          <div class="ypf-client-icon" aria-hidden="true">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="8" r="3"/>
-              <path d="M3.5 19v-1.5a5.5 5.5 0 0 1 11 0V19M16 5.5a3 3 0 0 1 0 5.5M17 14a4.5 4.5 0 0 1 3.5 4.5V19"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ypf-client-name">${esc(persons.map(nameOf).join(' & '))}</div>
-            <div class="ypf-client-note">Family protection · Illustrative view</div>
-          </div>
-        </div>
-        <div class="ypf-view-controls">
-          <button type="button" class="ypf-view-btn ypf-adviser-only" onclick="togglePictureNotes()" title="Open the notes box without leaving this screen">&#9998; Notes</button>
-          ${hasCover ?
-            `<button type="button" class="ypf-view-btn" id="ypfCoverToggle" onclick="togglePictureCover()" aria-pressed="${pictureCoverOn}">${pictureCoverOn ? 'Back to the shortfall' : 'Show cover in place'}</button>` :
-            `<span class="ypf-view-btn ypf-adviser-only" id="ypfCoverHint" style="opacity:.55;cursor:default" title="Add the cover you've priced on the Before the call screen">No cover added yet</span>`}
-          <button type="button" class="ypf-view-btn" id="ypfViewToggle" onclick="togglePictureView()" aria-pressed="${state.pictureView==='client'}" title="Hide your coaching notes before sharing this screen">${state.pictureView==='client' ? 'Back to adviser view' : 'Client view'}</button>
-        </div>
-      </header>
-      <main>
-        <section class="ypf-lifestyle" aria-labelledby="ypf-lifestyle-heading">
-          <div class="ypf-lifestyle-card">
-            <div class="ypf-lifestyle-top">
-              <span class="ypf-lifestyle-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="8"/><path d="M12 7.5v9M9 10c0-1.1 1.1-2 3-2s3 .8 3 1.9-1.2 1.5-3 1.5-3 .5-3 1.6 1.2 2 3 2 3-.8 3-2"/>
-                </svg>
-              </span>
-              <span class="ypf-lifestyle-index">EVERYDAY LIFE</span>
-            </div>
-            <h3 id="ypf-lifestyle-heading">Maintaining their lifestyle</h3>
-            <div class="ypf-lifestyle-figure-block">
-              <div class="ypf-lifestyle-figure">${money(outgoings)}${outgoings !== null ? '<span class="ypf-lifestyle-figure-unit">/ month</span>' : ''}</div>
-              <div class="ypf-lifestyle-figure-description">Rough monthly outgoing to keep life as it is now</div>
-            </div>
-            <p class="ypf-lifestyle-consequence">${lifestyleConsequence}</p>
-            ${outgoings === null ? `<div class="ypf-capture ypf-adviser-only">
-              <label for="ypfOutgoings">Rough monthly outgoings</label>
-              <input id="ypfOutgoings" inputmode="decimal" placeholder="e.g. £2,800" onkeydown="if(event.key==='Enter')capturePictureOutgoings()">
-              <button type="button" onclick="capturePictureOutgoings()">Add</button>
-            </div>` : ''}
-          </div>
-          <div class="ypf-leaves" id="ypf-leaves-lifestyle"></div>
-        </section>
-        <p class="ypf-map-intro">Start with what matters. See what could put it at risk — and what’s already helping.</p>
-        <section class="ypf-map" aria-label="Family protection map">
-          <svg class="ypf-connections" viewBox="0 0 1320 665" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M660 89 V137"/>
-            <path d="M410 287 H390 C365 287 374 319 347 319"/>
-            <path d="M910 287 H930 C955 287 946 319 973 319"/>
-            <path class="ypf-positive-line" d="M660 413 V502"/>
-            <circle cx="347" cy="319" r="4"/>
-            <circle cx="973" cy="319" r="4"/>
-            <circle cx="660" cy="137" r="3"/>
-            <circle class="ypf-positive-dot" cx="660" cy="502" r="4"/>
-          </svg>
-          <div class="ypf-income">
-            <div class="ypf-small-label">The household today</div>
-            <div class="ypf-income-value">${money(householdNet)}<span> / month net income</span></div>
-          </div>
-          <section class="ypf-goal" aria-labelledby="ypf-goal-heading">
-            <div class="ypf-goal-marker">
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m2.5 9 7.5-6.5L17.5 9M4.5 7.5V17h11V7.5M8 17v-6h4v6"/>
-              </svg>
-              What matters most
-            </div>
-            <h2 id="ypf-goal-heading" data-fallback-html="${goalHtml.replace(/"/g,'&quot;')}">${goalHtml}</h2>
-            <p class="ypf-goal-caption ypf-before">The life you’re protecting. Not just the numbers.</p>
-            <p class="ypf-goal-caption ypf-after ypf-goal-after" id="ypf-goal-after">${!hasCover ? 'The life you’re protecting. Not just the numbers.' :
-              illnessSolved && deathSolved ?
-                `${persons.length > 1 ? `${secondaryName} wouldn’t be left carrying the mortgage alone. ` : ''}The payments can carry on and the home stays secure.` :
-                `This would take a real share of the mortgage burden off ${persons.length > 1 ? secondaryName : 'the family'}, with some of the gap still to talk through.`}</p>
-          </section>
-          <article class="ypf-card ypf-risk ypf-illness" aria-labelledby="ypf-illness-heading">
-            <div class="ypf-node-top">
-              <span class="ypf-icon-box" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 12h4l3-7 4 14 3-7h4"/>
-                </svg>
-              </span>
-              <span class="ypf-node-index">01 / INCOME</span>
-            </div>
-            <h3 id="ypf-illness-heading">If illness stops work</h3>
-            <div class="ypf-figure-block ypf-before">
-              <div class="ypf-figure">${money(illnessGap)}${illnessGap !== null ? '<span class="ypf-figure-unit">/ month</span>' : ''}</div>
-              <div class="ypf-figure-description">Illustrative mortgage shortfall</div>
-            </div>
-            <div class="ypf-after" id="ypf-illness-after">
-              <div class="ypf-figure-block ypf-good">
-                <div class="ypf-figure">${qIp > 0 ? gm(qIp) + '<span class="ypf-figure-unit">/ month</span>' : '<span class="ypf-figure-unit">not yet priced</span>'}</div>
-                <div class="ypf-figure-description">${qIp > 0 ? 'Paid to the household if illness stops work' : 'No income protection added'}</div>
-              </div>
-              <p class="ypf-consequence">${qIp > 0 ?
-                (illnessAfter === 0 || illnessGap === 0 ?
-                  `That would keep the ${money(payment)} mortgage payment going${persons.length > 1 ? `, without ${secondaryName} having to find it alone` : ''}.` :
-                  illnessAfter === null ?
-                  'A regular monthly income would carry on while the household recovers.' :
-                  `That covers ${gm(qIp)} of the ${money(illnessGap)} monthly shortfall, leaving ${gm(illnessAfter)} a month to plan for.`) :
-                'Without income protection the monthly shortfall stays as shown.'}${qCic > 0 ? ` If a serious illness is diagnosed, ${gm(qCic)} would be paid as a lump sum.` : ''}</p>
-              <div class="ypf-calculation">${qIp > 0 ? `<strong>${gm(qIp)} a month of cover${illnessGap !== null ? ` against a ${money(illnessGap)} shortfall` : ''}.</strong><br>` : ''}Illustration of the cover as quoted, subject to underwriting, policy terms and exclusions.</div>
-            </div>
-            <p class="ypf-consequence ypf-before" id="ypf-illness-consequence">${illnessConsequence}</p>
-            <div class="ypf-calculation ypf-before">
-              <strong>${money(payment)} mortgage payment − ${money(continuingIncome)} continuing income.</strong><br>
-              Illustrates ${primaryName} unable to work after sick pay ends.${persons.length > 1 ?
-                ` Assumes ${secondaryName}’s estimated net earnings continue unchanged.` :
-                ' Assumes no earnings continue.'} Before other living costs, benefits or savings.
-            </div>
-          </article>
-          <div class="ypf-leaves ypf-leaves-risk ypf-leaves-illness" id="ypf-leaves-illness"></div>
-          <article class="ypf-card ypf-risk ypf-death" aria-labelledby="ypf-death-heading">
-            <div class="ypf-node-top">
-              <span class="ypf-icon-box" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m3 10 9-7 9 7M5 8.5V21h14V8.5M9 21v-7h6v7"/>
-                </svg>
-              </span>
-              <span class="ypf-node-index">02 / MORTGAGE</span>
-            </div>
-            <h3 id="ypf-death-heading">${persons.length > 1 ? 'If one of them dies' : `If ${primaryName} dies`}</h3>
-            <div class="ypf-figure-block ypf-before">
-              <div class="ypf-figure">${money(deathGap)}</div>
-              <div class="ypf-figure-description">Mortgage gap if ${primaryName} dies</div>
-            </div>
-            <div class="ypf-after" id="ypf-death-after">
-              <div class="ypf-figure-block ypf-good">
-                <div class="ypf-figure">${qLife > 0 ? gm(qLife) : qFib > 0 ? gm(qFib) + '<span class="ypf-figure-unit">/ month</span>' : '<span class="ypf-figure-unit">not yet priced</span>'}</div>
-                <div class="ypf-figure-description">${qLife > 0 ? `Paid out if ${primaryName} dies` : qFib > 0 ? 'Paid to the household each month' : 'No life cover added'}</div>
-              </div>
-              <p class="ypf-consequence">${qLife > 0 ?
-                (deathAfter === 0 || deathGap === 0 ?
-                  `The mortgage could be cleared, so the home stays${persons.length > 1 ? ` and ${secondaryName} isn't left carrying it` : ''}.` :
-                  deathAfter === null ?
-                  'A lump sum would be paid towards the mortgage and the family’s costs.' :
-                  `That clears ${gm(Math.min(qLife, deathGap))} of the ${money(deathGap)} gap, leaving ${gm(deathAfter)}.`) :
-                qFib > 0 ? 'A regular income would be paid to the household instead of a lump sum.' :
-                'Without life cover the gap stays as shown.'}${qLife > 0 && qFib > 0 ? ` Plus ${gm(qFib)} a month to the household.` : ''}${qLife2 > 0 ? ` If ${secondaryName} died, ${gm(qLife2)} would be paid.` : ''}</p>
-              <div class="ypf-calculation">${qLife > 0 ? `<strong>${gm(qLife)} of cover${deathGap !== null ? ` against a ${money(deathGap)} gap` : ''}.</strong><br>` : ''}Illustration of the cover as quoted, subject to underwriting, policy terms and exclusions.</div>
-            </div>
-            <p class="ypf-consequence ypf-before" id="ypf-death-consequence">${deathConsequence}</p>
-            <div class="ypf-calculation ypf-before">
-              <strong>${money(mortgage)} mortgage − ${money(covers[0])} cover.</strong><br>
-              ${secondaryNote}
-            </div>
-          </article>
-          <div class="ypf-leaves ypf-leaves-risk ypf-leaves-death" id="ypf-leaves-death"></div>
-          <article class="ypf-card ypf-existing" aria-labelledby="ypf-existing-heading">
-            <div class="ypf-existing-heading" id="ypf-existing-heading">
-              <svg width="17" height="18" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M10 2 17 5v6c0 4-4 7-7 9-3-2-7-5-7-9V5l7-3Z"/>
-                <path d="m6.5 10.5 2.3 2.3 4.7-4.7"/>
-              </svg>
-              Already helping · Death-in-service cover
-            </div>
-            <div class="ypf-existing-figures">${coverFigures}</div>
-            <p>${covers.some(value=>value !== null && value > 0) ?
-              'A head start towards keeping the home, not the whole answer.' :
-              'Confirm employer benefits to see what is already helping.'}</p>
-          </article>
-          <div class="ypf-leaves-centre" id="ypf-leaves-centre">
-            <div class="ypf-leaves-group">
-              <div class="ypf-leaves-label">From what matters most</div>
-              <div class="ypf-leaves" id="ypf-leaves-goal"></div>
-            </div>
-            <div class="ypf-leaves-group">
-              <div class="ypf-leaves-label">From what&rsquo;s already helping</div>
-              <div class="ypf-leaves" id="ypf-leaves-existing"></div>
-            </div>
-            <div class="ypf-trunk-end">
-              <p class="ypf-bridge" id="ypf-bridge"></p>
-              <div class="ypf-trunk-actions">
-                <button type="button" class="ypf-guide-btn" id="ypfGuideRefresh">Refresh prompts</button>
-                <button type="button" class="ypf-guide-btn ypf-guide-btn-primary" id="ypfOpenCanvas" onclick="if(window.openPictureCanvas) openPictureCanvas();">Open whiteboard view &#8599;</button>
-              </div>
-            </div>
-          </div>
-        </section>
+        <p class="ypf-launch-hint ypf-adviser-only">${hasCover ? 'Cover you\u2019ve priced is ready \u2014 use \u201cCover in place\u201d on the whiteboard.' : 'No cover added yet \u2014 add what you\u2019ve priced on the Before the call screen to show cover in place.'}</p>
+        ${missingBits.length ? `<p class="ypf-launch-hint ypf-adviser-only">Not yet recorded: ${esc(missingBits.join(', '))}. The whiteboard marks these as unknown until you add them.</p>` : ''}
+        ${outgoings === null ? `<div class="ypf-capture ypf-adviser-only">
+          <label for="ypfOutgoings">Rough monthly outgoings (to show what everyday life costs)</label>
+          <input id="ypfOutgoings" inputmode="decimal" placeholder="e.g. \u00a32,800" onkeydown="if(event.key==='Enter')capturePictureOutgoings()">
+          <button type="button" onclick="capturePictureOutgoings()">Add</button>
+        </div>` : ''}
       </main>
-      <footer class="ypf-page-footer">
-        <div class="ypf-legend" aria-label="Colour key">
-          <span class="ypf-legend-item"><span class="ypf-dot"></span>What matters &amp; what helps</span>
-          <span class="ypf-legend-item"><span class="ypf-dot ypf-amber"></span>Gaps to explore</span>
-        </div>
-        <p class="ypf-disclaimer ypf-after">With cover in place is an illustration of the cover as quoted. It assumes the plans are taken out and pay out as described, and is subject to underwriting, policy terms, conditions and exclusions. It is not a guarantee of any payment.</p>
-        <p class="ypf-disclaimer ypf-before">A conversation starter, not a recommendation. Mortgage gaps assume the relevant death-in-service benefit is available in full to reduce the loan. Where no separate DIS policy is recorded, cover uses the recorded salary multiplier assumption on base salary only. Benefits depend on employment and scheme terms. Net income is estimated using the app’s tax calculation. Income assumptions and other cover, savings and spending need to be confirmed.</p>
-      </footer>
     </div>`;
   }
 
@@ -3386,7 +3238,7 @@ function yourPictureBody(){
     finally { if(pictureGuideCache.inflight === promise){ pictureGuideCache.inflight = null; pictureGuideCache.inflightKey = null; } }
   }
   async function loadPictureGuidance(force){
-    if(!document.getElementById('ypf-leaves-centre')) return;
+    if(STEPS[state.current].id !== 'picture') return;
     const refreshBtn = document.getElementById('ypfGuideRefresh');
     if(refreshBtn) refreshBtn.onclick = () => { saveNotes(); loadPictureGuidance(true); };
     const req = pictureGuidanceRequest();
@@ -3397,7 +3249,7 @@ function yourPictureBody(){
     setPictureLeavesMessage('Reading the picture&hellip;');
     try{
       const out = await fetchPictureGuidance(force);
-      if(!document.getElementById('ypf-leaves-centre')) return;  // navigated away
+      if(STEPS[state.current].id !== 'picture') return;  // navigated away
       paintPictureGuidance(out);
     }catch(e){
       console.error('picture guidance failed', e);
@@ -3860,7 +3712,7 @@ function yourPictureBody(){
   });
   // On Your Picture, 'back' returns to the topic you came from rather than the step before.
   document.getElementById('prevBtn').addEventListener('click',()=>{ if(STEPS[state.current].id==='picture' && state.view==='call') goTopic(state.lastCallTopic||'health'); else goto(state.current-1); });
-  document.getElementById('nextBtn').addEventListener('click',()=>goto(state.current+1));
+  document.getElementById('nextBtn').addEventListener('click',()=>softLeave(state.current+1, () => goto(state.current+1)));
   document.getElementById('newClientBtn').addEventListener('click',()=>newClient());
 
   // ---------- AI guidance ----------
@@ -3924,6 +3776,92 @@ function yourPictureBody(){
     const combined=[ff, notes && 'CALL NOTES:\n'+notes, figures].filter(Boolean).join('\n\n');
     return {combined, hash: STEPS[idx].title+'\u0001'+(state.callPlan||'')+'\u0001'+combined};
   }
+  // The cards currently on the adviser's screen for a step, so the model can say which ones the notes now answer.
+  function shownCardTexts(idx){
+    const out = guidanceCache[idx];
+    if(!out || out._fallback) return [];
+    const t = x => typeof x === 'string' ? x : (x && (x.headline || x.detail)) || '';
+    return [...(out.questions||[]), ...(out.prompts||[])].map(t).filter(Boolean).slice(0, 12);
+  }
+  // A card whose question has been answered comes off the screen straight away - even if the
+  // adviser is mid-read and the rest of the new guidance is waiting behind the "new guidance" pill.
+  function retireAnsweredCards(out, idx){
+    const gone = new Set((Array.isArray(out.answered) ? out.answered : []).map(x => String(x).trim()).filter(Boolean));
+    if(!gone.size) return;
+    const keep = x => !gone.has(String(typeof x === 'string' ? x : (x && (x.headline || x.detail)) || '').trim());
+    if(guidanceCache[idx]){
+      ['questions','prompts'].forEach(k => { if(Array.isArray(guidanceCache[idx][k])) guidanceCache[idx][k] = guidanceCache[idx][k].filter(keep); });
+    }
+    if(state.current === idx && lastDeckStep === idx && deckCards.length){
+      const before = deckCards.length;
+      deckCards = deckCards.filter(c => !((c.type === 'question' || c.type === 'prompt') && gone.has(String(c.text).trim())));
+      if(deckCards.length !== before){
+        Object.keys(miniIdx).forEach(k => { const n = deckCards.filter(c => c.type === k).length; if(miniIdx[k] >= n) miniIdx[k] = Math.max(0, n - 1); });
+        renderDeckStack();
+      }
+    }
+  }
+
+  // ---------- "asked / still to ask" for the script ----------
+  // The script's ASK lines show as chips. The notes decide what has been covered (checked with each
+  // cards refresh), a tap overrides, and Next gently mentions what's left - it never blocks.
+  const asksDone = {}, asksOff = {}, asksRequested = {};
+  function askKey(t){ return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().slice(0,70); }
+  function scriptAsks(idx){
+    const b = scriptCache[idx]; if(!Array.isArray(b)) return [];
+    return b.filter(x => x && x.type !== 'coach' && /\bask\b/i.test(String(x.cue||''))).slice(0, 8).map((x, n) => {
+      let label = String(x.cue||'').replace(/^\s*ask\b\s*[-:\u00b7\u2013\u2014]*\s*/i, '').trim();
+      label = label ? label.charAt(0).toUpperCase() + label.slice(1).toLowerCase() : 'Ask ' + (n + 1);
+      return {key: askKey(x.text), label, text: String(x.text||'')};
+    }).filter(a => a.key);
+  }
+  function asksState(idx){
+    const d = asksDone[idx]||{}, off = asksOff[idx]||{};
+    return scriptAsks(idx).map(a => Object.assign(a, {done: !!d[a.key] && !off[a.key]}));
+  }
+  function asksForRequest(idx){
+    const list = scriptAsks(idx);
+    asksRequested[idx] = list.map(a => a.key);
+    return list.map(a => a.text);
+  }
+  function markAsksCovered(out, idx){
+    const keys = asksRequested[idx]; if(!keys || !Array.isArray(out.asks_covered) || !out.asks_covered.length) return;
+    asksDone[idx] = asksDone[idx] || {};
+    out.asks_covered.forEach(i => { if(Number.isInteger(i) && keys[i]) asksDone[idx][keys[i]] = true; });
+    if(state.current === idx && scriptMode === 'script' && scriptCache[idx]) renderScript();
+  }
+  function toggleAsk(i){
+    const idx = state.current, a = asksState(idx)[i]; if(!a) return;
+    asksDone[idx] = asksDone[idx] || {}; asksOff[idx] = asksOff[idx] || {};
+    if(a.done){ asksOff[idx][a.key] = true; } else { asksDone[idx][a.key] = true; delete asksOff[idx][a.key]; }
+    renderScript();
+  }
+  function asksStripHTML(idx){
+    const asks = asksState(idx); if(asks.length < 2) return '';
+    const n = asks.filter(a => a.done).length;
+    return `<div class="asks" id="asksStrip"><span class="asks-label">${n} of ${asks.length} asked</span>` +
+      asks.map((a, i) => `<button type="button" class="ask-chip ${a.done ? 'done' : ''}" onclick="toggleAsk(${i})" aria-pressed="${a.done}" title="${esc(a.text)}">${a.done ? '\u2713' : '\u25cb'} ${esc(a.label)}</button>`).join('') + `</div>`;
+  }
+  function hideAsksNudge(){ const n = document.getElementById('asksNudge'); if(n) n.remove(); }
+  // Moving on by clicking (topic chips, the step rail, the bottom bar, Next): if you've started this step's
+  // asks but some are still open, say which - once. "Next anyway" goes. Voice and internal moves are never held.
+  function softLeave(target, go){
+    if(target !== state.current && scriptMode === 'script' && state.view === 'call' && !document.getElementById('asksNudge')){
+      const asks = asksState(state.current), open = asks.filter(a => !a.done);
+      const sbox = document.getElementById('scriptbox');
+      if(sbox && asks.length >= 2 && open.length && open.length < asks.length){
+        const el = document.createElement('div'); el.className = 'asks-nudge'; el.id = 'asksNudge'; el.setAttribute('role', 'status');
+        el.innerHTML = `<span>Still to ask: <b>${open.map(a => esc(a.label)).join(', ')}</b></span><button type="button" id="asksNudgeStay">Ask them</button><button type="button" class="alt" id="asksNudgeGo">Move on anyway</button>`;
+        sbox.parentNode.insertBefore(el, sbox);
+        document.getElementById('asksNudgeStay').onclick = hideAsksNudge;
+        document.getElementById('asksNudgeGo').onclick = () => { hideAsksNudge(); go(); };
+        return;
+      }
+    }
+    hideAsksNudge(); go();
+  }
+  function navTo(i){ softLeave(i, () => goto(i)); }
+  function goTopicUser(id){ softLeave(SI(id), () => goTopic(id)); }
   function maybeRequestGuidance(){
     const idx=state.current;
     if(STEPS[idx].id==='picture') return;                          // co-pilot panel is hidden on Your Picture
@@ -3947,10 +3885,12 @@ function yourPictureBody(){
     status.className='mind-live thinking'; status.innerHTML='<span class="d"></span> reading…';
     try{
       const res=await authFetch(API_BASE+'/copilot/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title, call_plan:state.callPlan, profile:guidanceProfile()})});
+        body:JSON.stringify({notes:combined, step:STEPS[stepAtRequest].title, call_plan:state.callPlan, profile:guidanceProfile(), shown:shownCardTexts(stepAtRequest), script_asks:asksForRequest(stepAtRequest)})});
       const out=await res.json();
       if(out.error) throw new Error(out.error);
       if(seq!==guidanceSeq[stepAtRequest]) return;   // superseded by a newer request
+      retireAnsweredCards(out, stepAtRequest);
+      markAsksCovered(out, stepAtRequest);
       guidanceCache[stepAtRequest]=out;
       guidanceHash[stepAtRequest]=hash;
       updateFieldSuggestions(out.fields);
@@ -4244,9 +4184,18 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
 // ── script mode ──
   let scriptMode = 'cards';
   const scriptCache = {};   // per-step generated scripts
+  // Remember each adviser's choice: newer advisers live in Script, experienced ones in Cards.
+  try{
+    if(localStorage.getItem('cp_panel_mode') === 'script'){
+      scriptMode = 'script';
+      document.getElementById('mtCards').classList.remove('on');
+      document.getElementById('mtScript').classList.add('on');
+    }
+  }catch(e){}
 
   function setPanelMode(m){
     scriptMode = m;
+    try{ localStorage.setItem('cp_panel_mode', m); }catch(e){}
     document.getElementById('mtCards').classList.toggle('on', m==='cards');
     document.getElementById('mtScript').classList.toggle('on', m==='script');
     const deck = document.getElementById('carddeck');
@@ -4383,7 +4332,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
   function renderScriptBlocks(blocks, streaming){
     const sbox = document.getElementById('scriptbox');
     if(!sbox) return;
-    let h = '<div class="scriptbox">';
+    let h = '<div class="scriptbox">' + (streaming ? '' : asksStripHTML(state.current));
     blocks.forEach(b=>{
       if(b.type === 'coach'){
         h += `<div class="sblock scoach"><span class="scue">${esc(b.cue||'note')}</span>${esc(b.text||'')}</div>`;
@@ -4405,7 +4354,31 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
       sbox.innerHTML = '<div class="sloading">Writing the script for this stage…</div>';
       return;
     }
-    renderScriptBlocks(blocks, false);
+    renderScriptBlocks(bridgedBlocks(blocks), false);
+  }
+
+  // The script is generated ahead of time, so its opening BRIDGE is deliberately neutral. On arrival we
+  // swap in one short line that picks up what the client actually just said (a quick, separate call).
+  function bridgedBlocks(blocks){
+    const a = bridgeArrival;
+    if(!a || a.idx !== state.current) return blocks;
+    const i = blocks.findIndex(b => b.type !== 'coach' && /^bridge\b/i.test(String(b.cue||'')));
+    if(i < 0 || i > 1) return blocks;
+    if(a.text){
+      const c = blocks.slice(); c[i] = Object.assign({}, c[i], {cue:'BRIDGE \u00b7 from your last notes', text:a.text}); return c;
+    }
+    if(a.state === 'idle' && a.tail.trim().length >= 20){ a.state = 'loading'; fetchBridge(a, blocks[i].text); }
+    return blocks;
+  }
+  async function fetchBridge(a, fallback){
+    try{
+      const res = await authFetch(API_BASE+'/copilot/bridge', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({from_step:a.from, to_step:STEPS[a.idx].title, recent_notes:a.tail, fallback})});
+      const out = await res.json();
+      if(out && out.bridge && out.bridge !== fallback) a.text = out.bridge;
+    }catch(e){ console.warn('bridge failed', e); }
+    a.state = 'done';
+    if(bridgeArrival === a && state.current === a.idx && scriptMode === 'script' && a.text) renderScript();
   }
 
   function buildDeck(out){
@@ -4471,7 +4444,7 @@ const pendingRatings = [];  // down-votes queued for an optional comment, added 
     const el = document.getElementById('btmSteps');
     if(!el) return;
     el.innerHTML = STEPS.map((s,i)=>
-      `<div class="bst ${i===state.current?'on':''} ${state.complete[i]?'done':''}" onclick="goto(${i})"><span class="bn">${String(i+1).padStart(2,'0')}</span>${s.title}</div>`).join('');
+      `<div class="bst ${i===state.current?'on':''} ${state.complete[i]?'done':''}" onclick="navTo(${i})"><span class="bn">${String(i+1).padStart(2,'0')}</span>${s.title}</div>`).join('');
   }
 
   // paint whatever is cached for the current step
@@ -5442,7 +5415,7 @@ function setUWAnswer(condKey, qIdx, field, value){
       subHtml += '<div class="cl-topics">' + ph.topics.map(t => {
         const has = !!String(state.notes[SI(t)]||'').trim();
         const off = t === 'fib' && !hasDependants();
-        return `<button type="button" class="cl-topic ${t===id?'on':''} ${has?'has':''} ${off?'off':''}" onclick="goTopic('${t}')" ${off?'title="No dependants recorded - FIB may not apply"':''}><span class="cl-dot" aria-hidden="true"></span>${esc(topicLabel(t))}</button>`;
+        return `<button type="button" class="cl-topic ${t===id?'on':''} ${has?'has':''} ${off?'off':''}" onclick="goTopicUser('${t}')" ${off?'title="No dependants recorded - FIB may not apply"':''}><span class="cl-dot" aria-hidden="true"></span>${esc(topicLabel(t))}</button>`;
       }).join('') + '</div>';
     }
     if(!prep && phase === 'talk'){
@@ -5811,21 +5784,21 @@ function setUWAnswer(condKey, qIdx, field, value){
     }
     if(/\bclient view\b/.test(lc)){
       if(wb) window.pcVoice.setMode('client');
-      else if(inPicture()){ if(state.pictureView !== 'client') togglePictureView(); }
+      else if(inPicture()){ openPictureCanvas().then(() => window.pcVoice.setMode('client')); }
       else { voiceToast('Client view is on Your Picture — say “co-pilot, show the picture” first. Nothing changed.'); return; }
       voiceToast('Client view'); return;
     }
     if(/\badviser view\b|\badvisor view\b/.test(lc)){
       if(wb) window.pcVoice.setMode('adviser');
-      else if(inPicture()){ if(state.pictureView === 'client') togglePictureView(); }
+      else if(inPicture()){ openPictureCanvas().then(() => window.pcVoice.setMode('adviser')); }
       else { voiceToast('Already in the adviser view'); return; }
       voiceToast('Adviser view'); return;
     }
     if(/\bcover in place\b|\bshow (the )?cover\b|\bwith (the )?cover\b/.test(lc) || /\b(back to|show) (the )?shortfall\b/.test(lc)){
       const wantOn = !/\b(back to|show) (the )?shortfall\b/.test(lc);
       if(wb) window.pcVoice.setCover(wantOn);
-      else if(inPicture() && document.getElementById('ypfCoverToggle')){
-        if(wantOn !== document.body.classList.contains('ypf-cover-on')) togglePictureCover();
+      else if(inPicture() && state._pictureCalc && state._pictureCalc.cover && state._pictureCalc.cover.has){
+        openPictureCanvas().then(() => window.pcVoice.setCover(wantOn));
       } else { voiceToast('Cover in place is on Your Picture — add the cover you’ve priced first. Nothing changed.'); return; }
       voiceToast(wantOn ? 'Cover in place' : 'Back to the shortfall'); return;
     }
@@ -6019,6 +5992,7 @@ function setUWAnswer(condKey, qIdx, field, value){
 #pcOverlay h1 { font:400 25px/1.12 var(--pc-serif); letter-spacing:-.6px; margin:0; }
 #pcOverlay .pc-header-right, #pcOverlay .pc-client, #pcOverlay .pc-actions,
 #pcOverlay .pc-toolbar, #pcOverlay .pc-tools-left, #pcOverlay .pc-tools-right { display:flex; align-items:center; gap:12px; }
+#pcOverlay.pc-client-mode .pc-source-button { display:none !important; }
 #pcOverlay .pc-client { padding-right:18px; border-right:1px solid var(--pc-border); gap:10px; }
 #pcOverlay .pc-avatar { width:35px; height:35px; border:1px solid #C8D6CD; border-radius:50%; display:grid; place-items:center; color:var(--pc-green); font:14px var(--pc-serif); flex-shrink:0; }
 #pcOverlay .pc-client strong { display:block; font-size:13px; }
@@ -6370,8 +6344,8 @@ function setUWAnswer(condKey, qIdx, field, value){
       cover: calc.cover || {has:false},
       goalSummary: links.goalSummary || calc.goalText || '',
       goalHighlight: links.goalHighlight || '',
-      illnessSentence: links.illnessSentence || (document.getElementById('ypf-illness-consequence') ? document.getElementById('ypf-illness-consequence').textContent : ''),
-      deathSentence: links.deathSentence || (document.getElementById('ypf-death-consequence') ? document.getElementById('ypf-death-consequence').textContent : ''),
+      illnessSentence: links.illnessSentence || calc.illnessConsequence || '',
+      deathSentence: links.deathSentence || calc.deathConsequence || '',
       bridge: guideOut.bridge || '',
       branches: { goal: clean('goal'), illness: clean('illness'), death: clean('death'), existing: clean('existing'), lifestyle: clean('lifestyle') }
     };
@@ -6725,6 +6699,10 @@ function setUWAnswer(condKey, qIdx, field, value){
   }
   function pcSetMode(value){
     mode = value; step = -1;
+    state.pictureView = value === 'client' ? 'client' : 'adviser';
+    overlay.classList.toggle('pc-client-mode', mode === 'client');
+    document.body.classList.toggle('ypf-client-view', state.pictureView === 'client');
+    if(typeof persistSoon === 'function') persistSoon();
     document.getElementById('pcAdviserMode').setAttribute('aria-pressed', String(mode === 'adviser'));
     document.getElementById('pcClientMode').setAttribute('aria-pressed', String(mode === 'client'));
     document.getElementById('pcModeHint').textContent = mode === 'adviser' ? 'Prompts & their sources' : 'The family, facts & unknowns';

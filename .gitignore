@@ -4,3 +4,13 @@ knowledge_docs/
 __pycache__/
 *.pyc
 chroma_store/
+*.xlsx
+test.pdf
+andrew_methodology_chunks.json
+static/copilot_backup*.html
+*.pdf
+
+*.m4a
+corpus_full_dump.txt
+*backup*
+.DS_Store
